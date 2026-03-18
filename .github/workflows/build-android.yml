@@ -42,22 +42,21 @@ jobs:
     
     - name: Prepare build directory
       run: |
-        # Copy android/ directory contents to root for buildozer
-        echo "=== Before copy ==="
+        # 项目结构已经是根目录模式，不需要复制
+        # 只需确保 data/ 和 fonts/ 目录存在
+        echo "=== Project structure ==="
         ls -la
-        echo "=== Copying android/ to root ==="
-        cp -r android/* .
-        cp -r android/data ./data_backup
-        rm -rf android
-        mv data_backup data
-        echo "=== After copy ==="
-        ls -la
-        echo "=== Checking fonts ==="
+        echo "=== Checking data/ ==="
+        ls data/ | head -5
+        echo "=== Checking fonts/ ==="
         ls -la fonts/ || echo "No fonts directory"
+        echo "=== Checking buildozer.spec ==="
+        cat buildozer.spec | grep -E "minapi|ndk_api|api|add_assets"
     
     - name: Build APK
       run: |
         export PATH="$HOME/.local/bin:$PATH"
+        # 直接在根目录运行 buildozer
         buildozer android debug 2>&1 | tee build.log
       timeout-minutes: 60
       continue-on-error: false
