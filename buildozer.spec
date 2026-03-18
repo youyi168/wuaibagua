@@ -5,7 +5,7 @@ package.domain = org.wuaibagua
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf
 version = 2.4.0
-requirements = python3,kivy
+requirements = python3,kivy,Cython==0.29.33
 orientation = portrait
 fullscreen = 0
 android.permissions = VIBRATE
