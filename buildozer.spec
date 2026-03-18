@@ -5,7 +5,7 @@ package.domain = org.wuaibagua
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf
 version = 2.4.0
-requirements = python3,kivy,Cython==0.29.33
+requirements = python3,kivy
 orientation = portrait
 fullscreen = 0
 android.permissions = VIBRATE
@@ -25,6 +25,6 @@ android.add_assets = fonts
 log_level = 2
 warn_on_root = 1
 
-# 国内镜像
-p4a.source_url = https://gitee.com/mirrors/python-for-android.git
+# 使用官方源，让 p4a 自动选择合适的 Cython 版本
+# p4a.source_url = https://gitee.com/mirrors/python-for-android.git
 python.pip = 23.0.1
