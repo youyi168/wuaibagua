@@ -35,9 +35,12 @@ jobs:
     - name: Install Buildozer
       run: |
         # 使用经过验证的版本组合
-        pip3 install buildozer==1.5.0
+        # 先安装旧版 Cython，防止 p4a 自动安装新版
         pip3 install Cython==0.29.33
+        pip3 install buildozer==1.5.0
         pip3 install virtualenv
+        # 强制锁定 Cython 版本
+        pip3 install --force-reinstall Cython==0.29.33
         echo "$HOME/.local/bin" >> $GITHUB_PATH
         export PATH="$HOME/.local/bin:$PATH"
         which buildozer

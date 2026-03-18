@@ -5,7 +5,9 @@ package.domain = org.wuaibagua
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf
 version = 2.4.0
-requirements = python3,kivy
+# 指定 pyjnius 版本以解决 Cython long 类型兼容性问题
+# pyjnius 1.6.1+ 已经修复了 long 类型检查问题
+requirements = python3,kivy,pyjnius==1.6.1
 orientation = portrait
 fullscreen = 0
 android.permissions = VIBRATE
