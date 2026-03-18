@@ -72,6 +72,17 @@ jobs:
         echo "=== .buildozer directory ==="
         ls -la .buildozer/ 2>/dev/null || echo "No .buildozer directory"
     
+    - name: Find APK files
+      run: |
+        echo "=== Searching for APK files ==="
+        find . -name "*.apk" -type f 2>/dev/null | tee /tmp/apk_files.txt || true
+        echo "=== APK files found ==="
+        cat /tmp/apk_files.txt || echo "No APK files found"
+        echo "=== Bin directory ==="
+        ls -la bin/ 2>/dev/null || echo "No bin directory"
+        echo "=== .buildozer structure ==="
+        ls -la .buildozer/android/platform/ 2>/dev/null || echo "No platform directory"
+    
     - name: Upload APK as artifact
       uses: actions/upload-artifact@v4
       if: always()
@@ -81,6 +92,8 @@ jobs:
           bin/*.apk
           *.apk
           .buildozer/android/platform/build*/dists/*/build/outputs/apk/*/*.apk
+          .buildozer/android/platform/build*/dists/*/build/outputs/apk/*/*/*.apk
+          .buildozer/android/platform/build*/dists/**/apk/**/*.apk
         if-no-files-found: warn
     
     - name: Upload build logs
