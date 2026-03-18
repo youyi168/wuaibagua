@@ -40,13 +40,21 @@ jobs:
         which buildozer
         buildozer --version
     
+    - name: Prepare build directory
+      run: |
+        # Copy android/ directory contents to root for buildozer
+        cp -r android/* .
+        cp -r android/data ./data_backup
+        rm -rf android
+        mv data_backup data
+        ls -la
+    
     - name: Build APK
       run: |
-        cd android
         export PATH="$HOME/.local/bin:$PATH"
         buildozer android debug 2>&1 | tee build.log
-      timeout-minutes: 45
-      continue-on-error: true
+      timeout-minutes: 60
+      continue-on-error: false
     
     - name: Check build output
       run: |
