@@ -19,12 +19,63 @@ from kivy.core.window import Window
 from kivy.properties import StringProperty, ListProperty, NumericProperty
 from kivy.lang import Builder
 from kivy.metrics import dp
+from kivy.core.text import LabelBase
 import random
 import os
+import sys
+
+# 注册中文字体 - 解决 Android 上汉字显示乱码问题
+def register_chinese_font():
+    """注册支持中文的字体"""
+    # Android 系统字体路径
+    android_fonts = [
+        '/system/fonts/DroidSansFallback.ttf',
+        '/system/fonts/DroidSansFallbackFull.ttf',
+        '/system/fonts/NotoSansSC-Regular.ttf',
+        '/system/fonts/Roboto-Regular.ttf',
+    ]
+    
+    # 应用目录字体
+    app_fonts = [
+        os.path.join(os.path.dirname(__file__), 'fonts', 'NotoSansSC-Regular.ttf'),
+        os.path.join(os.path.dirname(__file__), 'fonts', 'SourceHanSansSC-Regular.ttf'),
+    ]
+    
+    # 尝试注册字体
+    font_path = None
+    for path in android_fonts + app_fonts:
+        if os.path.exists(path):
+            font_path = path
+            break
+    
+    if font_path:
+        try:
+            LabelBase.register(name='Chinese', fn_regular=font_path)
+            print(f'[INFO] Registered Chinese font: {font_path}')
+        except Exception as e:
+            print(f'[WARN] Failed to register font {font_path}: {e}')
+    else:
+        print('[WARN] No Chinese font found, using default font')
+
+# 在导入 Builder 前注册字体
+register_chinese_font()
 
 # KV 语言定义界面
 KV = '''
 #:kivy 2.0
+
+# 全局字体设置 - 使用注册的中文字体
+<Label>:
+    font_name: 'Chinese'
+
+<Button>:
+    font_name: 'Chinese'
+
+<Spinner>:
+    font_name: 'Chinese'
+
+<ToggleButton>:
+    font_name: 'Chinese'
 
 <YaoButton@ToggleButton>:
     font_size: '16sp'
@@ -37,6 +88,7 @@ KV = '''
     halign: 'center'
     valign: 'middle'
     text_size: self.size
+    font_name: 'Chinese'
 
 <MainLayout>:
     orientation: 'vertical'

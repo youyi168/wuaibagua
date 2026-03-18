@@ -3,7 +3,7 @@ title = 吾爱八卦
 package.name = wuaibagua
 package.domain = org.wuaibagua
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,txt,json
+source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf
 version = 2.4.0
 requirements = python3,kivy
 orientation = portrait
@@ -17,6 +17,9 @@ android.skip_update = False
 android.accept_sdk_license = True
 android.archs = arm64-v8a, armeabi-v7a
 android.allow_backup = True
+
+# 包含字体目录
+android.add_src = fonts/
 
 [buildozer]
 log_level = 2
