@@ -43,11 +43,17 @@ jobs:
     - name: Prepare build directory
       run: |
         # Copy android/ directory contents to root for buildozer
+        echo "=== Before copy ==="
+        ls -la
+        echo "=== Copying android/ to root ==="
         cp -r android/* .
         cp -r android/data ./data_backup
         rm -rf android
         mv data_backup data
+        echo "=== After copy ==="
         ls -la
+        echo "=== Checking fonts ==="
+        ls -la fonts/ || echo "No fonts directory"
     
     - name: Build APK
       run: |
@@ -60,12 +66,12 @@ jobs:
       run: |
         echo "=== Current directory ==="
         pwd
-        echo "=== Android directory ==="
-        ls -la android/
         echo "=== Bin directory ==="
-        ls -la android/bin/ 2>/dev/null || echo "No bin directory"
-        echo "=== Build log (last 50 lines) ==="
-        tail -50 android/build.log 2>/dev/null || echo "No build.log"
+        ls -la bin/ 2>/dev/null || echo "No bin directory"
+        echo "=== Build log (last 100 lines) ==="
+        tail -100 build.log 2>/dev/null || echo "No build.log"
+        echo "=== .buildozer directory ==="
+        ls -la .buildozer/ 2>/dev/null || echo "No .buildozer directory"
     
     - name: Upload APK as artifact
       uses: actions/upload-artifact@v4
@@ -73,8 +79,9 @@ jobs:
       with:
         name: wuaibagua-apk
         path: |
-          android/bin/*.apk
-          android/*.apk
+          bin/*.apk
+          *.apk
+          .buildozer/android/platform/build*/dists/*/build/outputs/apk/*/*.apk
         if-no-files-found: warn
     
     - name: Upload build logs
@@ -83,6 +90,6 @@ jobs:
       with:
         name: build-logs
         path: |
-          android/build.log
-          android/.buildozer/logs/*.txt
+          build.log
+          .buildozer/logs/*.txt
         if-no-files-found: warn

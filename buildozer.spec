@@ -18,8 +18,8 @@ android.accept_sdk_license = True
 android.archs = arm64-v8a, armeabi-v7a
 android.allow_backup = True
 
-# 包含字体目录
-android.add_src = fonts/
+# 包含字体文件
+android.add_assets = fonts
 
 [buildozer]
 log_level = 2
