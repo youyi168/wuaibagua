@@ -98,6 +98,51 @@ def register_chinese_font():
                 print('[WARN] Fallback font also failed')
     else:
         print('[WARN] No Chinese font found, using default font')
+
+
+def register_symbol_font():
+    """注册支持八卦符号的字体"""
+    # 八卦符号（☰☱☲☳☴☵☶☷）需要特殊字体支持
+    # Windows 系统字体 - Segoe UI Symbol 支持八卦符号
+    windows_symbol_fonts = [
+        'C:/Windows/Fonts/seguisym.ttf',   # Segoe UI Symbol (支持八卦符号)
+    ]
+    
+    # Android 系统字体 - Noto Sans Symbols
+    android_symbol_fonts = [
+        '/system/fonts/NotoSansSymbols-Regular-VF.ttf',
+        '/system/fonts/NotoSansSymbols-Regular.ttf',
+    ]
+    
+    # 应用目录字体
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    if getattr(sys, 'frozen', False):
+        if hasattr(sys, '_MEIPASS'):
+            app_dir = sys._MEIPASS
+        else:
+            app_dir = os.path.dirname(sys.executable)
+    
+    app_symbol_fonts = [
+        os.path.join(app_dir, 'fonts', 'seguisym.ttf'),
+        os.path.join(app_dir, 'fonts', 'NotoSansSymbols-Regular.ttf'),
+    ]
+    
+    all_symbol_fonts = app_symbol_fonts + windows_symbol_fonts + android_symbol_fonts
+    
+    font_path = None
+    for path in all_symbol_fonts:
+        if os.path.exists(path):
+            font_path = path
+            break
+    
+    if font_path:
+        try:
+            LabelBase.register(name='Symbol', fn_regular=font_path)
+            print(f'[INFO] Registered Symbol font: {font_path}')
+        except Exception as e:
+            print(f'[WARN] Failed to register symbol font: {e}')
+    else:
+        print('[WARN] No Symbol font found, using Chinese font as fallback')
         # 打印调试信息
         print(f'[DEBUG] App dir: {app_dir}')
         print(f'[DEBUG] __file__: {__file__}')
@@ -105,6 +150,7 @@ def register_chinese_font():
 
 # 在导入 Builder 前注册字体
 register_chinese_font()
+register_symbol_font()
 
 # 配置窗口（Android 上自动全屏）
 Config.set('graphics', 'width', '1080')
@@ -636,8 +682,8 @@ class MainLayout(BoxLayout):
         
         # 本卦信息
         text = f"[b]【本卦：{ben_gua_name}】[/b]\n"
-        text += f"上卦：{result['ben_gua']['upper_name']}\n"
-        text += f"下卦：{result['ben_gua']['lower_name']}\n\n"
+        text += f"上卦：{result['ben_gua']['upper_name']} {GuaData.BAGUA_SYMBOLS.get(result['ben_gua']['upper_name'], '')}\n"
+        text += f"下卦：{result['ben_gua']['lower_name']} {GuaData.BAGUA_SYMBOLS.get(result['ben_gua']['lower_name'], '')}\n\n"
         
         # 动爻详细信息
         if dong_yao:
@@ -651,8 +697,8 @@ class MainLayout(BoxLayout):
         # 变卦信息
         if dong_yao:
             text += f"[b]【变卦：{bian_gua_name}】[/b]\n"
-            text += f"上卦：{result['bian_gua']['upper_name']}\n"
-            text += f"下卦：{result['bian_gua']['lower_name']}\n\n"
+            text += f"上卦：{result['bian_gua']['upper_name']} {GuaData.BAGUA_SYMBOLS.get(result['bian_gua']['upper_name'], '')}\n"
+            text += f"下卦：{result['bian_gua']['lower_name']} {GuaData.BAGUA_SYMBOLS.get(result['bian_gua']['lower_name'], '')}\n\n"
         
         # 断卦规则
         text += "[b]【断卦规则】[/b]\n"
