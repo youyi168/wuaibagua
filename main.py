@@ -381,9 +381,6 @@ KV = '''
         SearchButton:
             id: dong_yao_search
             size_hint_x: 0.15
-        font_size: dp(16)
-        size_hint_y: None
-        height: dp(30)
         
     # 解卦显示
     ScrollView:
