@@ -227,21 +227,21 @@ KV = '''
 <MainLayout>:
     orientation: 'vertical'
     padding: dp(10)
-    spacing: dp(10)
+    spacing: dp(8)
     size_hint: (1, 1)
     
     # 标题
     Label:
         text: '我爱八卦'
-        font_size: dp(28)
+        font_size: dp(26)
         size_hint_y: None
-        height: dp(50)
+        height: dp(45)
         bold: True
         
     # 起卦方式
     BoxLayout:
         size_hint_y: None
-        height: dp(40)
+        height: dp(38)
         
         ToggleButton:
             id: auto_btn
@@ -268,94 +268,113 @@ KV = '''
     # 起卦按钮
     Button:
         text: '开始起卦'
-        font_size: dp(20)
+        font_size: dp(18)
         size_hint_y: None
-        height: dp(50)
+        height: dp(45)
         background_color: 0.55, 0.27, 0.07, 1
         on_press: root.do_divination()
+    
+    # 分隔线
+    Label:
+        text: '─' * 40
+        size_hint_y: None
+        height: dp(20)
+        font_size: dp(12)
+        color: 0.7, 0.7, 0.7, 1
         
-    # 卦象显示
+    # 卦象显示区域（统一布局）
     BoxLayout:
-        size_hint_y: 0.4
+        size_hint_y: None
+        height: dp(180)
         
         # 本卦
         BoxLayout:
             orientation: 'vertical'
+            spacing: dp(2)
             
             Label:
                 text: '本卦'
-                font_size: dp(16)
+                font_size: dp(14)
                 size_hint_y: None
-                height: dp(30)
+                height: dp(22)
+                color: 0.3, 0.3, 0.3, 1
             
-            # 本卦名称（可点击）
             ClickableLabel:
                 id: ben_gua_name
                 text: '未起卦'
-                font_size: dp(20)
+                font_size: dp(18)
                 halign: 'center'
                 valign: 'middle'
                 size_hint_y: None
-                height: dp(40)
+                height: dp(32)
                 
-            ScrollView:
-                Label:
-                    id: ben_gua_display
-                    text: ''
-                    font_size: dp(24)
-                    markup: True
-                    halign: 'center'
-                    valign: 'middle'
-                    text_size: self.width, None
-                    size_hint_y: None
-                    height: self.texture_size[1]
+            Label:
+                id: ben_gua_display
+                text: ''
+                font_size: dp(22)
+                markup: True
+                halign: 'center'
+                valign: 'middle'
+        
+        # 分隔
+        Label:
+            text: ''
+            size_hint_x: None
+            width: dp(10)
         
         # 变卦
         BoxLayout:
             orientation: 'vertical'
+            spacing: dp(2)
             
             Label:
                 text: '变卦'
-                font_size: dp(16)
+                font_size: dp(14)
                 size_hint_y: None
-                height: dp(30)
+                height: dp(22)
+                color: 0.3, 0.3, 0.3, 1
             
-            # 变卦名称（可点击）
             ClickableLabel:
                 id: bian_gua_name
                 text: '无变卦'
-                font_size: dp(20)
+                font_size: dp(18)
                 halign: 'center'
                 valign: 'middle'
                 size_hint_y: None
-                height: dp(40)
-            
+                height: dp(32)
+                
             Label:
                 id: bian_gua_display
                 text: ''
-                font_size: dp(24)
+                font_size: dp(22)
                 markup: True
                 halign: 'center'
                 valign: 'middle'
-                size_hint_y: None
-                height: dp(80)
     
-    # 动爻信息（可点击）
+    # 动爻信息
     ClickableLabel:
         id: dong_yao_info
         text: '动爻：无'
-        font_size: dp(16)
+        font_size: dp(14)
         halign: 'center'
         valign: 'middle'
         size_hint_y: None
-        height: dp(35)
+        height: dp(30)
+    
+    # 分隔线
+    Label:
+        text: '─' * 40
+        size_hint_y: None
+        height: dp(20)
+        font_size: dp(12)
+        color: 0.7, 0.7, 0.7, 1
         
     # 解卦显示
     ScrollView:
         Label:
             id: jie_gua_display
             text: '点击"开始起卦"开始算卦'
-            font_size: dp(16)
+            font_size: dp(14)
             markup: True
             halign: 'left'
             valign: 'top'
@@ -741,55 +760,65 @@ class MainLayout(BoxLayout):
             self.ids['bian_gua_name'].search_query = None
             self.ids['dong_yao_info'].search_query = None
         
+        # 构建解卦文本
+        text = ""
+        
         # 本卦信息
-        text = f"[b]【本卦：{ben_gua_name}】[/b]\n"
-        text += f"上卦：{result['ben_gua']['upper_name']} {GuaData.BAGUA_SYMBOLS.get(result['ben_gua']['upper_name'], '')}\n"
-        text += f"下卦：{result['ben_gua']['lower_name']} {GuaData.BAGUA_SYMBOLS.get(result['ben_gua']['lower_name'], '')}\n\n"
+        text += f"[b]【本卦】[/b] {ben_gua_name}\n"
+        text += f"上卦：{result['ben_gua']['upper_name']}  下卦：{result['ben_gua']['lower_name']}\n"
+        
+        # 本卦解释
+        ben_gua_info = self.engine.gua_data.get_gua_info(ben_gua_name)
+        if "暂无" not in ben_gua_info and "不存在" not in ben_gua_info and "失败" not in ben_gua_info:
+            text += f"{ben_gua_info[:200]}...\n" if len(ben_gua_info) > 200 else f"{ben_gua_info}\n"
+        
+        text += "\n"
         
         # 动爻详细信息
         if dong_yao:
-            text += "[b]【动爻】[/b]\n"
+            text += f"[b]【动爻】[/b] "
+            dong_names = [GuaData.YAO_NAMES[pos-1] for pos in dong_yao]
+            text += "、".join(dong_names) + "\n"
             for pos in dong_yao:
                 yao = yao_list[pos - 1]
                 yao_name = GuaData.YAO_NAMES[pos - 1]
-                text += f"{yao_name}：{yao['name']} {yao['symbol']}（{yao['yin_yang']}）\n"
+                text += f"  {yao_name}：{yao['name']}（{yao['yin_yang']}）\n"
             text += "\n"
-        
-        # 变卦信息
-        if dong_yao:
-            text += f"[b]【变卦：{bian_gua_name}】[/b]\n"
-            text += f"上卦：{result['bian_gua']['upper_name']} {GuaData.BAGUA_SYMBOLS.get(result['bian_gua']['upper_name'], '')}\n"
-            text += f"下卦：{result['bian_gua']['lower_name']} {GuaData.BAGUA_SYMBOLS.get(result['bian_gua']['lower_name'], '')}\n\n"
+            
+            # 变卦信息
+            text += f"[b]【变卦】[/b] {bian_gua_name}\n"
+            text += f"上卦：{result['bian_gua']['upper_name']}  下卦：{result['bian_gua']['lower_name']}\n"
+            
+            # 变卦解释
+            bian_gua_info = self.engine.gua_data.get_gua_info(bian_gua_name)
+            if "暂无" not in bian_gua_info and "不存在" not in bian_gua_info and "失败" not in bian_gua_info:
+                text += f"{bian_gua_info[:150]}...\n" if len(bian_gua_info) > 150 else f"{bian_gua_info}\n"
+            text += "\n"
         
         # 断卦规则（依据《图解周易》）
         text += "[b]【断卦规则】[/b]\n"
         if not dong_yao:
-            text += "六爻皆静，以本卦卦辞占断。\n\n"
+            text += "六爻皆静，以本卦卦辞占断。\n"
         elif len(dong_yao) == 1:
             yao = yao_list[dong_yao[0] - 1]
             text += f"一爻动（{GuaData.YAO_NAMES[dong_yao[0]-1]}），以动爻爻辞占断。\n"
-            text += f"动爻属性：{yao['name']}（{yao['yin_yang']}）\n\n"
         elif len(dong_yao) == 2:
-            text += f"两爻动（{GuaData.YAO_NAMES[dong_yao[0]-1]}、{GuaData.YAO_NAMES[dong_yao[1]-1]}）\n"
-            text += "以两动爻爻辞合断，以上爻（位置高者）为主。\n\n"
+            text += f"两爻动，以两动爻爻辞合断，以上爻为主。\n"
         elif len(dong_yao) == 3:
-            text += f"三爻动，以本卦、变卦卦辞参断，以本卦为主。\n\n"
+            text += "三爻动，以本卦、变卦卦辞参断，以本卦为主。\n"
         elif len(dong_yao) == 4:
-            static = [i for i in range(1, 7) if i not in dong_yao]
-            text += f"四爻动，以变卦两静爻（{GuaData.YAO_NAMES[static[0]-1]}、{GuaData.YAO_NAMES[static[1]-1]}）爻辞断，以下爻为主。\n\n"
+            text += "四爻动，以变卦两静爻爻辞断，以下爻为主。\n"
         elif len(dong_yao) == 5:
-            static = [i for i in range(1, 7) if i not in dong_yao][0]
-            text += f"五爻动，以变卦静爻（{GuaData.YAO_NAMES[static-1]}）爻辞断。\n\n"
+            text += "五爻动，以变卦静爻爻辞断。\n"
         else:
             if ben_gua_name == '乾为天':
-                text += "六爻皆动，以「用九」爻辞占断。\n\n"
+                text += "六爻皆动，以「用九」爻辞占断。\n"
             elif ben_gua_name == '坤为地':
-                text += "六爻皆动，以「用六」爻辞占断。\n\n"
+                text += "六爻皆动，以「用六」爻辞占断。\n"
             else:
-                text += f"六爻皆动，以变卦（{bian_gua_name}）卦辞占断。\n\n"
+                text += f"六爻皆动，以变卦（{bian_gua_name}）卦辞占断。\n"
         
-        text += "─" * 30 + "\n"
-        text += "[i]提示：点击卦名可搜索详解[/i]"
+        text += "\n[i]点击卦名可搜索详解[/i]"
         
         self.ids['jie_gua_display'].text = text
 
