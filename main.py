@@ -679,9 +679,11 @@ class MainLayout(BoxLayout):
         # 显示动爻
         if result['dong_yao']:
             dong_text = f"动爻：第{'、第'.join(map(str, result['dong_yao']))}爻"
-            self.ids['dong_yao_info'].text = dong_text
+            self.ids['dong_yao_info'].text = f'[u]{dong_text}[/u]'
+            self.ids['dong_yao_info'].search_query = f'{ben_gua_name} 动爻'
         else:
             self.ids['dong_yao_info'].text = '动爻：无'
+            self.ids['dong_yao_info'].search_query = None
         
         # 显示解卦
         self.display_jie_gua()
@@ -740,37 +742,32 @@ class MainLayout(BoxLayout):
             text += f"上卦：{result['bian_gua']['upper_name']} {GuaData.BAGUA_SYMBOLS.get(result['bian_gua']['upper_name'], '')}\n"
             text += f"下卦：{result['bian_gua']['lower_name']} {GuaData.BAGUA_SYMBOLS.get(result['bian_gua']['lower_name'], '')}\n\n"
         
-        # 断卦规则
+        # 断卦规则（依据《图解周易》）
         text += "[b]【断卦规则】[/b]\n"
         if not dong_yao:
             text += "六爻皆静，以本卦卦辞占断。\n\n"
         elif len(dong_yao) == 1:
             yao = yao_list[dong_yao[0] - 1]
-            text += f"一爻动（第{dong_yao[0]}爻），以动爻爻辞占断。\n"
-            text += f"动爻：{yao['name']}，{yao['symbol']}\n\n"
+            text += f"一爻动（{GuaData.YAO_NAMES[dong_yao[0]-1]}），以动爻爻辞占断。\n"
+            text += f"动爻属性：{yao['name']}（{yao['yin_yang']}）\n\n"
         elif len(dong_yao) == 2:
-            yin_count = sum(1 for pos in dong_yao if '阴' in yao_list[pos-1]['yin_yang'])
-            text += f"[b]两爻动[/b]（第{dong_yao[0]}、第{dong_yao[1]}爻）\n"
-            if yin_count == 1:
-                text += "一阴一阳，以阴动爻为主。\n\n"
-            else:
-                text += f"同{'阴' if yin_count == 2 else '阳'}，以上爻为主。\n\n"
+            text += f"两爻动（{GuaData.YAO_NAMES[dong_yao[0]-1]}、{GuaData.YAO_NAMES[dong_yao[1]-1]}）\n"
+            text += "以两动爻爻辞合断，以上爻（位置高者）为主。\n\n"
         elif len(dong_yao) == 3:
-            text += f"[b]三爻动[/b]（第{dong_yao[0]}、第{dong_yao[1]}、第{dong_yao[2]}爻）\n"
-            text += "本卦、变卦卦辞参看，以本卦为主。\n\n"
+            text += f"三爻动，以本卦、变卦卦辞参断，以本卦为主。\n\n"
         elif len(dong_yao) == 4:
             static = [i for i in range(1, 7) if i not in dong_yao]
-            text += f"[b]四爻动[/b]，以下静爻（第{static[0]}爻）占断。\n\n"
+            text += f"四爻动，以变卦两静爻（{GuaData.YAO_NAMES[static[0]-1]}、{GuaData.YAO_NAMES[static[1]-1]}）爻辞断，以下爻为主。\n\n"
         elif len(dong_yao) == 5:
             static = [i for i in range(1, 7) if i not in dong_yao][0]
-            text += f"[b]五爻动[/b]，以静爻（第{static}爻）占断。\n\n"
+            text += f"五爻动，以变卦静爻（{GuaData.YAO_NAMES[static-1]}）爻辞断。\n\n"
         else:
             if ben_gua_name == '乾为天':
-                text += "[b]六爻皆动[/b]，以「用九」爻辞占断。\n\n"
+                text += "六爻皆动，以「用九」爻辞占断。\n\n"
             elif ben_gua_name == '坤为地':
-                text += "[b]六爻皆动[/b]，以「用六」爻辞占断。\n\n"
+                text += "六爻皆动，以「用六」爻辞占断。\n\n"
             else:
-                text += f"[b]六爻皆动[/b]，以变卦（{bian_gua_name}）卦辞占断。\n\n"
+                text += f"六爻皆动，以变卦（{bian_gua_name}）卦辞占断。\n\n"
         
         text += "─" * 30 + "\n"
         text += "[i]提示：点击卦名可搜索详解[/i]"
