@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 我爱八卦 - 金钱卦算卦软件 (Android版)
-版本：1.0.0
+版本：1.0.1
 使用 Kivy 框架，可打包为 Android APK
+支持点击卦名跳转百度搜索
 """
 
 import os
 import sys
+import webbrowser
 
 # 在导入 Kivy 之前设置环境变量（用于 CI/CD 打包）
 if os.environ.get('PYINSTALLER_ANALYZE') or os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'):
@@ -24,6 +26,7 @@ from kivy.uix.label import Label
 from kivy.uix.spinner import Spinner
 from kivy.uix.popup import Popup
 from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.behaviors import ButtonBehavior
 from kivy.core.window import Window
 from kivy.properties import StringProperty, ListProperty, NumericProperty
 from kivy import Config
@@ -32,8 +35,6 @@ from kivy.metrics import dp
 from kivy.core.text import LabelBase
 from kivy import metrics
 import random
-import os
-import sys
 
 # 注册中文字体 - 解决 Android/Windows 上汉字显示乱码问题
 def register_chinese_font():
@@ -159,6 +160,52 @@ Config.set('graphics', 'resizable', '1')
 Config.set('graphics', 'minimum_width', '320')
 Config.set('graphics', 'minimum_height', '480')
 
+
+# ==================== 可点击标签组件 ====================
+class ClickableLabel(ButtonBehavior, Label):
+    """可点击的标签，用于跳转到网络搜索"""
+    
+    def __init__(self, **kwargs):
+        self.search_query = kwargs.pop('search_query', None)
+        super().__init__(**kwargs)
+        self.font_name = 'Chinese'
+        self.color = (0.2, 0.4, 0.8, 1)  # 蓝色链接颜色
+        self.bold = True
+        self.markup = True
+    
+    def on_press(self):
+        """点击时跳转到搜索页面"""
+        if self.search_query:
+            url = f'https://www.baidu.com/s?wd={self.search_query}'
+            print(f'[INFO] Opening URL: {url}')
+            try:
+                webbrowser.open(url)
+            except Exception as e:
+                print(f'[ERROR] Failed to open browser: {e}')
+
+
+class SearchButton(Button):
+    """搜索按钮"""
+    
+    def __init__(self, **kwargs):
+        self.search_query = kwargs.pop('search_query', None)
+        super().__init__(**kwargs)
+        self.text = '🔍'
+        self.size_hint_x = None
+        self.width = dp(40)
+        self.font_size = dp(18)
+        self.background_color = (0.9, 0.9, 0.95, 1)
+    
+    def on_press(self):
+        if self.search_query:
+            url = f'https://www.baidu.com/s?wd={self.search_query}'
+            print(f'[INFO] Opening URL: {url}')
+            try:
+                webbrowser.open(url)
+            except Exception as e:
+                print(f'[ERROR] Failed to open browser: {e}')
+
+
 # KV 语言定义界面
 KV = '''
 #:kivy 2.0
@@ -179,6 +226,14 @@ KV = '''
     font_name: 'Chinese'
 
 <ToggleButton>:
+    font_name: 'Chinese'
+
+<ClickableLabel>:
+    font_name: 'Chinese'
+    color: 0.2, 0.4, 0.8, 1
+    markup: True
+
+<SearchButton>:
     font_name: 'Chinese'
 
 <YaoButton@ToggleButton>:
@@ -257,14 +312,21 @@ KV = '''
                 font_size: dp(16)
                 size_hint_y: None
                 height: dp(30)
-                
-            Label:
-                id: ben_gua_name
-                text: '未起卦'
-                font_size: dp(18)
+            
+            # 本卦名称（可点击）+ 搜索按钮
+            BoxLayout:
                 size_hint_y: None
-                height: dp(30)
-                bold: True
+                height: dp(35)
+                
+                ClickableLabel:
+                    id: ben_gua_name
+                    text: '未起卦'
+                    font_size: dp(18)
+                    halign: 'center'
+                    valign: 'middle'
+                
+                SearchButton:
+                    id: ben_gua_search
                 
             ScrollView:
                 Label:
@@ -287,31 +349,38 @@ KV = '''
                 font_size: dp(16)
                 size_hint_y: None
                 height: dp(30)
-                
-            Label:
-                id: bian_gua_name
-                text: '无变卦'
-                font_size: dp(18)
+            
+            # 变卦名称（可点击）+ 搜索按钮
+            BoxLayout:
                 size_hint_y: None
-                height: dp(30)
-                bold: True
+                height: dp(35)
                 
-            ScrollView:
-                Label:
-                    id: bian_gua_display
-                    text: ''
-                    font_size: dp(24)
-                    markup: True
+                ClickableLabel:
+                    id: bian_gua_name
+                    text: '无变卦'
+                    font_size: dp(18)
                     halign: 'center'
                     valign: 'middle'
-                    text_size: self.width, None
-                    size_hint_y: None
-                    height: self.texture_size[1]
+                
+                SearchButton:
+                    id: bian_gua_search
     
-    # 动爻信息
-    Label:
-        id: dong_yao_info
-        text: '动爻：无'
+    # 动爻信息（可点击）+ 搜索按钮
+    BoxLayout:
+        size_hint_y: None
+        height: dp(35)
+        
+        ClickableLabel:
+            id: dong_yao_info
+            text: '动爻：无'
+            font_size: dp(16)
+            halign: 'left'
+            valign: 'middle'
+            size_hint_x: 0.85
+        
+        SearchButton:
+            id: dong_yao_search
+            size_hint_x: 0.15
         font_size: dp(16)
         size_hint_y: None
         height: dp(30)
@@ -636,20 +705,26 @@ class MainLayout(BoxLayout):
         result = self.current_result
         
         # 显示本卦
-        self.ids['ben_gua_name'].text = result['ben_gua']['name']
+        ben_gua_name = result['ben_gua']['name']
+        self.ids['ben_gua_name'].text = f'[u]{ben_gua_name}[/u]'
+        self.ids['ben_gua_name'].search_query = f'{ben_gua_name} 卦象详解'
         self.ids['ben_gua_display'].text = self.format_gua_display(result['yao_list'])
         
         # 显示变卦
         if result['dong_yao']:
-            self.ids['bian_gua_name'].text = result['bian_gua']['name']
+            bian_gua_name = result['bian_gua']['name']
+            self.ids['bian_gua_name'].text = f'[u]{bian_gua_name}[/u]'
+            self.ids['bian_gua_name'].search_query = f'{bian_gua_name} 卦象详解'
             self.ids['bian_gua_display'].text = self.format_gua_display(result['bian_yao_list'])
         else:
             self.ids['bian_gua_name'].text = '无变卦'
+            self.ids['bian_gua_name'].search_query = None
             self.ids['bian_gua_display'].text = '六爻皆静'
         
         # 显示动爻
         if result['dong_yao']:
-            self.ids['dong_yao_info'].text = f"动爻：第{'、第'.join(map(str, result['dong_yao']))}爻"
+            dong_text = f"动爻：第{'、第'.join(map(str, result['dong_yao']))}爻"
+            self.ids['dong_yao_info'].text = dong_text
         else:
             self.ids['dong_yao_info'].text = '动爻：无'
         
@@ -676,6 +751,22 @@ class MainLayout(BoxLayout):
         bian_gua_name = result['bian_gua']['name']
         dong_yao = result['dong_yao']
         yao_list = result['yao_list']
+        
+        # 更新搜索按钮的查询内容
+        self.ids['ben_gua_name'].text = f'[u]{ben_gua_name}[/u]'
+        self.ids['ben_gua_name'].search_query = f'{ben_gua_name} 卦象详解'
+        self.ids['ben_gua_search'].search_query = f'{ben_gua_name} 卦象详解'
+        
+        if dong_yao:
+            self.ids['bian_gua_name'].text = f'[u]{bian_gua_name}[/u]'
+            self.ids['bian_gua_name'].search_query = f'{bian_gua_name} 卦象详解'
+            self.ids['bian_gua_search'].search_query = f'{bian_gua_name} 卦象详解'
+            self.ids['dong_yao_search'].search_query = f'{ben_gua_name} 动爻'
+        else:
+            self.ids['bian_gua_name'].text = '无变卦'
+            self.ids['bian_gua_name'].search_query = None
+            self.ids['bian_gua_search'].search_query = None
+            self.ids['dong_yao_search'].search_query = None
         
         ben_gua_data = self.engine.gua_data.get_gua_info(ben_gua_name)
         bian_gua_data = self.engine.gua_data.get_gua_info(bian_gua_name) if dong_yao else ""
