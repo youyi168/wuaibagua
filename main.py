@@ -35,26 +35,51 @@ import random
 import os
 import sys
 
-# 注册中文字体 - 解决 Android 上汉字显示乱码问题
+# 注册中文字体 - 解决 Android/Windows 上汉字显示乱码问题
 def register_chinese_font():
     """注册支持中文的字体"""
+    import os
+    import sys
+    
+    # 获取应用根目录（兼容打包后的环境）
+    if getattr(sys, 'frozen', False):
+        # PyInstaller 打包后的环境
+        app_dir = os.path.dirname(sys.executable)
+        # PyInstaller 解压目录
+        if hasattr(sys, '_MEIPASS'):
+            app_dir = sys._MEIPASS
+    else:
+        # 开发环境
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Windows 系统字体路径
+    windows_fonts = [
+        'C:/Windows/Fonts/msyh.ttc',      # 微软雅黑
+        'C:/Windows/Fonts/simhei.ttf',    # 黑体
+        'C:/Windows/Fonts/simsun.ttc',    # 宋体
+    ]
+    
     # Android 系统字体路径
     android_fonts = [
+        '/system/fonts/NotoSansSC-Regular.otf',
         '/system/fonts/DroidSansFallback.ttf',
         '/system/fonts/DroidSansFallbackFull.ttf',
-        '/system/fonts/NotoSansSC-Regular.ttf',
         '/system/fonts/Roboto-Regular.ttf',
     ]
     
-    # 应用目录字体
+    # 应用目录字体（打包后的相对路径）
     app_fonts = [
+        os.path.join(app_dir, 'fonts', 'NotoSansSC-Regular.ttf'),
+        os.path.join(app_dir, 'fonts', 'SourceHanSansSC-Regular.ttf'),
         os.path.join(os.path.dirname(__file__), 'fonts', 'NotoSansSC-Regular.ttf'),
-        os.path.join(os.path.dirname(__file__), 'fonts', 'SourceHanSansSC-Regular.ttf'),
     ]
+    
+    # 优先级：应用字体 > Windows字体 > Android字体
+    all_fonts = app_fonts + windows_fonts + android_fonts
     
     # 尝试注册字体
     font_path = None
-    for path in android_fonts + app_fonts:
+    for path in all_fonts:
         if os.path.exists(path):
             font_path = path
             break
@@ -65,8 +90,18 @@ def register_chinese_font():
             print(f'[INFO] Registered Chinese font: {font_path}')
         except Exception as e:
             print(f'[WARN] Failed to register font {font_path}: {e}')
+            # 尝试使用系统默认字体
+            try:
+                LabelBase.register(name='Chinese', fn_regular='msyh.ttc')
+                print('[INFO] Using fallback: Microsoft YaHei')
+            except:
+                print('[WARN] Fallback font also failed')
     else:
         print('[WARN] No Chinese font found, using default font')
+        # 打印调试信息
+        print(f'[DEBUG] App dir: {app_dir}')
+        print(f'[DEBUG] __file__: {__file__}')
+        print(f'[DEBUG] Frozen: {getattr(sys, "frozen", False)}')
 
 # 在导入 Builder 前注册字体
 register_chinese_font()
@@ -601,8 +636,8 @@ class MainLayout(BoxLayout):
         
         # 本卦信息
         text = f"[b]【本卦：{ben_gua_name}】[/b]\n"
-        text += f"上卦：{result['ben_gua']['upper_name']} {GuaData.BAGUA_SYMBOLS.get(result['ben_gua']['upper_name'], '')}\n"
-        text += f"下卦：{result['ben_gua']['lower_name']} {GuaData.BAGUA_SYMBOLS.get(result['ben_gua']['lower_name'], '')}\n\n"
+        text += f"上卦：{result['ben_gua']['upper_name']}\n"
+        text += f"下卦：{result['ben_gua']['lower_name']}\n\n"
         
         # 动爻详细信息
         if dong_yao:
@@ -616,8 +651,8 @@ class MainLayout(BoxLayout):
         # 变卦信息
         if dong_yao:
             text += f"[b]【变卦：{bian_gua_name}】[/b]\n"
-            text += f"上卦：{result['bian_gua']['upper_name']} {GuaData.BAGUA_SYMBOLS.get(result['bian_gua']['upper_name'], '')}\n"
-            text += f"下卦：{result['bian_gua']['lower_name']} {GuaData.BAGUA_SYMBOLS.get(result['bian_gua']['lower_name'], '')}\n\n"
+            text += f"上卦：{result['bian_gua']['upper_name']}\n"
+            text += f"下卦：{result['bian_gua']['lower_name']}\n\n"
         
         # 断卦规则
         text += "[b]【断卦规则】[/b]\n"
