@@ -18,8 +18,11 @@ from PyInstaller.utils.hooks import collect_data_files
 # 项目名称
 name = '我爱八卦'
 
+# 版本号
+version = '1.0.4'
+
 # 主程序文件
-main_script = 'main.py'
+main_script = 'wuaibagua_kivy.py'
 
 # 收集数据文件（不触发 Kivy 导入）
 datas = []

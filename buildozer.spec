@@ -4,7 +4,7 @@ package.name = woaibagua
 package.domain = org.woaibagua
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf
-version = 1.0.0
+version = 1.0.4
 requirements = python3,kivy,pyjnius
 # 使用清华镜像下载 Python 源码
 hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11.5.tgz

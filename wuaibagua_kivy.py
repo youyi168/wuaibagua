@@ -7,6 +7,7 @@
 
 import random
 import os
+from urllib.parse import quote
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
@@ -22,6 +23,13 @@ from kivy.properties import StringProperty, ListProperty
 from kivy.metrics import dp, sp
 from kivy.core.window import Window
 from kivy.clock import Clock
+
+# 尝试导入 webbrowser（桌面端）
+try:
+    import webbrowser
+    WEBBROWSER_AVAILABLE = True
+except ImportError:
+    WEBBROWSER_AVAILABLE = False
 
 
 class ResponsiveUI:
@@ -451,7 +459,7 @@ class MainScreen(BoxLayout):
         
         # 解卦区域（滚动）- 确保小屏幕可以滚动查看
         scroll = ScrollView(
-            size_hint_y=0.42,
+            size_hint_y=0.35,
             do_scroll_x=False,
             scroll_type=['bars', 'content'],
             bar_width=self.responsive.get_dp(4)
@@ -473,6 +481,23 @@ class MainScreen(BoxLayout):
         )
         scroll.add_widget(self.result_label)
         self.add_widget(scroll)
+        
+        # 搜索按钮区域
+        search_layout = BoxLayout(
+            size_hint_y=None,
+            height=self.responsive.get_height(50),
+            spacing=self.responsive.get_spacing(10)
+        )
+        
+        self.btn_search = Button(
+            text="🔍 百度搜索卦象详解",
+            font_size=self.responsive.get_font_size(15),
+            background_color=(0.2, 0.5, 0.2, 1)
+        )
+        self.btn_search.bind(on_press=self.on_search)
+        search_layout.add_widget(self.btn_search)
+        
+        self.add_widget(search_layout)
     
     def on_auto_cast(self, instance):
         """自动起卦"""
@@ -525,6 +550,29 @@ class MainScreen(BoxLayout):
         
         # 显示解卦
         self.display_jie_gua()
+    
+    def on_search(self, instance):
+        """打开百度搜索卦象详解"""
+        if not self.current_result:
+            return
+        
+        gua_name = self.current_result['ben_gua']['name']
+        query = f"周易 {gua_name} 详解"
+        url = f"https://www.baidu.com/s?wd={quote(query)}"
+        
+        # 尝试在 Android 上使用 Intent 打开浏览器
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            Intent = autoclass('android.content.Intent')
+            Uri = autoclass('android.net.Uri')
+            
+            intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            PythonActivity.mActivity.startActivity(intent)
+        except Exception as e:
+            # 桌面端回退到 webbrowser
+            if WEBBROWSER_AVAILABLE:
+                webbrowser.open(url)
     
     def display_jie_gua(self):
         """显示解卦"""
