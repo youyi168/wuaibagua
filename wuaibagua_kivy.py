@@ -19,6 +19,90 @@ from kivy.uix.popup import Popup
 from kivy.core.text import LabelBase
 from kivy.graphics import Color, Rectangle
 from kivy.properties import StringProperty, ListProperty
+from kivy.metrics import dp, sp
+from kivy.core.window import Window
+from kivy.clock import Clock
+
+
+class ResponsiveUI:
+    """响应式 UI 工具类 - 根据屏幕尺寸动态计算字体和组件大小
+    
+    基准尺寸针对现代主流手机优化：
+    - iPhone 13/14/15: 390x844
+    - iPhone 13/14/15 Pro Max: 428x926
+    - Android 旗舰：360x800 ~ 412x915
+    - 桌面端：自动适配，按高度缩放
+    """
+    
+    # 现代主流手机基准分辨率（竖屏）
+    BASE_WIDTH = 390    # iPhone 13/14/15 标准版宽度
+    BASE_HEIGHT = 844   # iPhone 13/14/15 标准版高度
+    
+    def __init__(self):
+        self.screen_width = Window.width
+        self.screen_height = Window.height
+        self.scale_factor = self._calculate_scale_factor()
+        self.is_desktop = self._check_if_desktop()
+    
+    def _check_if_desktop(self):
+        """判断是否为桌面设备"""
+        # 桌面通常宽度 > 1000 且宽高比 > 1.3
+        return (self.screen_width > 1000 and 
+                self.screen_width / self.screen_height > 1.3)
+    
+    def _calculate_scale_factor(self):
+        """根据屏幕尺寸计算缩放因子
+        
+        手机：使用宽度和高度的较小缩放比
+        桌面：主要按高度缩放，避免内容过大
+        """
+        width_scale = self.screen_width / self.BASE_WIDTH
+        height_scale = self.screen_height / self.BASE_HEIGHT
+        
+        if self.is_desktop:
+            # 桌面端：按高度缩放，限制最大缩放因子
+            return min(height_scale, 2.0)
+        else:
+            # 手机端：使用较小值确保内容不溢出
+            return min(width_scale, height_scale)
+    
+    def get_font_size(self, base_size=16):
+        """动态字体大小（使用 sp - scale independent pixels）"""
+        return sp(base_size * self.scale_factor)
+    
+    def get_dp(self, base_dp=10):
+        """动态密度无关像素（使用 dp - density independent pixels）"""
+        return dp(base_dp * self.scale_factor)
+    
+    def get_height(self, base_height=40):
+        """动态组件高度"""
+        return dp(base_height * self.scale_factor)
+    
+    def get_spacing(self, base_spacing=10):
+        """动态间距"""
+        return dp(base_spacing * self.scale_factor)
+    
+    def get_padding(self, base_padding=10):
+        """动态内边距"""
+        return dp(base_padding * self.scale_factor)
+    
+    def update_scale(self, width, height):
+        """窗口大小变化时更新缩放因子"""
+        self.screen_width = width
+        self.screen_height = height
+        old_is_desktop = self.is_desktop
+        self.is_desktop = self._check_if_desktop()
+        
+        # 设备类型变化或尺寸变化超过 10% 时重新计算
+        if old_is_desktop != self.is_desktop:
+            self.scale_factor = self._calculate_scale_factor()
+            return True
+        else:
+            new_scale = self._calculate_scale_factor()
+            if abs(new_scale - self.scale_factor) > 0.1:
+                self.scale_factor = new_scale
+                return True
+            return False
 
 
 class GuaData:
@@ -217,50 +301,58 @@ class DivinationEngine:
 
 
 class GuaDisplay(GridLayout):
-    """卦象显示组件"""
+    """卦象显示组件 - 响应式版本"""
     
-    def __init__(self, title="", **kwargs):
+    def __init__(self, title="", responsive=None, **kwargs):
         super().__init__(**kwargs)
+        self.responsive = responsive or ResponsiveUI()
         self.cols = 1
-        self.spacing = 2
+        self.spacing = self.responsive.get_spacing(3)
         self.size_hint_y = None
         self.bind(minimum_height=self.setter('height'))
         
-        # 标题
+        # 标题 - 动态字体和高度
         self.title_label = Label(
             text=title,
-            font_size='18sp',
+            font_size=self.responsive.get_font_size(15),
             size_hint_y=None,
-            height='30dp',
-            color=(0.6, 0.3, 0.1, 1)
+            height=self.responsive.get_height(32),
+            color=(0.6, 0.3, 0.1, 1),
+            halign='center',
+            valign='middle'
         )
         self.add_widget(self.title_label)
         
-        # 卦名
+        # 卦名 - 动态字体和高度
         self.gua_name_label = Label(
             text="未起卦",
-            font_size='24sp',
+            font_size=self.responsive.get_font_size(24),
             size_hint_y=None,
-            height='40dp',
+            height=self.responsive.get_height(50),
             bold=True,
-            color=(0.5, 0.2, 0, 1)
+            color=(0.5, 0.2, 0, 1),
+            halign='center',
+            valign='middle'
         )
         self.add_widget(self.gua_name_label)
         
-        # 六爻显示
+        # 六爻显示 - 动态字体和高度
         self.yao_labels = []
         for i in range(6):
             label = Label(
                 text="",
-                font_size='20sp',
+                font_size=self.responsive.get_font_size(19),
                 size_hint_y=None,
-                height='35dp',
-                font_name='DroidSansFallback'
+                height=self.responsive.get_height(42),
+                font_name='DroidSansFallback',
+                halign='left',
+                valign='middle'
             )
             self.yao_labels.append(label)
             self.add_widget(label)
         
-        self.height = 280
+        # 动态计算总高度
+        self.height = self.responsive.get_height(300)
     
     def update_display(self, gua_info, yao_list, is_ben_gua=True):
         """更新显示"""
@@ -279,34 +371,41 @@ class GuaDisplay(GridLayout):
 
 
 class MainScreen(BoxLayout):
-    """主界面"""
+    """主界面 - 响应式版本"""
     
-    def __init__(self, **kwargs):
+    def __init__(self, responsive=None, **kwargs):
         super().__init__(**kwargs)
+        self.responsive = responsive or ResponsiveUI()
         self.orientation = 'vertical'
-        self.padding = 10
-        self.spacing = 10
+        self.padding = self.responsive.get_padding(12)
+        self.spacing = self.responsive.get_spacing(12)
         
         self.engine = DivinationEngine()
         self.current_result = None
         
-        # 标题
+        # 标题 - 动态字体和高度，居中显示
         title = Label(
             text="我爱八卦",
-            font_size='32sp',
+            font_size=self.responsive.get_font_size(32),
             size_hint_y=None,
-            height='50dp',
+            height=self.responsive.get_height(60),
             bold=True,
-            color=(0.6, 0.3, 0.1, 1)
+            color=(0.6, 0.3, 0.1, 1),
+            halign='center',
+            valign='middle'
         )
         self.add_widget(title)
         
-        # 起卦按钮区域
-        btn_layout = BoxLayout(size_hint_y=None, height='60dp', spacing=10)
+        # 起卦按钮区域 - 动态高度
+        btn_layout = BoxLayout(
+            size_hint_y=None,
+            height=self.responsive.get_height(65),
+            spacing=self.responsive.get_spacing(12)
+        )
         
         self.btn_auto = Button(
             text="电脑起卦",
-            font_size='18sp',
+            font_size=self.responsive.get_font_size(18),
             background_color=(0.55, 0.27, 0.07, 1)
         )
         self.btn_auto.bind(on_press=self.on_auto_cast)
@@ -314,7 +413,7 @@ class MainScreen(BoxLayout):
         
         self.btn_clear = Button(
             text="清空",
-            font_size='18sp',
+            font_size=self.responsive.get_font_size(18),
             background_color=(0.5, 0.5, 0.5, 1)
         )
         self.btn_clear.bind(on_press=self.on_clear)
@@ -322,41 +421,56 @@ class MainScreen(BoxLayout):
         
         self.add_widget(btn_layout)
         
-        # 卦象显示区域
-        gua_layout = BoxLayout(size_hint_y=0.35, spacing=10)
+        # 卦象显示区域 - 使用比例布局
+        gua_layout = BoxLayout(
+            size_hint_y=0.38,
+            spacing=self.responsive.get_spacing(12)
+        )
         
         # 本卦
-        self.ben_gua_display = GuaDisplay(title="本卦")
+        self.ben_gua_display = GuaDisplay(title="本卦", responsive=self.responsive)
         gua_layout.add_widget(self.ben_gua_display)
         
         # 变卦
-        self.bian_gua_display = GuaDisplay(title="变卦")
+        self.bian_gua_display = GuaDisplay(title="变卦", responsive=self.responsive)
         gua_layout.add_widget(self.bian_gua_display)
         
         self.add_widget(gua_layout)
         
-        # 动爻信息
+        # 动爻信息 - 动态字体和高度
         self.dong_info = Label(
             text="动爻：无",
-            font_size='16sp',
+            font_size=self.responsive.get_font_size(16),
             size_hint_y=None,
-            height='30dp',
-            color=(0.8, 0.2, 0.2, 1)
+            height=self.responsive.get_height(35),
+            color=(0.8, 0.2, 0.2, 1),
+            halign='center',
+            valign='middle'
         )
         self.add_widget(self.dong_info)
         
-        # 解卦区域（滚动）
-        scroll = ScrollView(size_hint_y=0.4)
+        # 解卦区域（滚动）- 确保小屏幕可以滚动查看
+        scroll = ScrollView(
+            size_hint_y=0.42,
+            do_scroll_x=False,
+            scroll_type=['bars', 'content'],
+            bar_width=self.responsive.get_dp(4)
+        )
         self.result_label = Label(
             text="点击「电脑起卦」开始",
-            font_size='14sp',
+            font_size=self.responsive.get_font_size(14),
             size_hint_y=None,
-            padding=(10, 10),
+            padding=(self.responsive.get_padding(12), self.responsive.get_padding(12)),
             markup=True,
-            valign='top'
+            valign='top',
+            halign='left'
         )
         self.result_label.bind(texture_size=self.result_label.setter('size'))
-        self.result_label.bind(width=lambda *args: self.result_label.setter('text_size')(self.result_label, (self.result_label.width, None)))
+        self.result_label.bind(
+            width=lambda *args: self.result_label.setter('text_size')(
+                self.result_label, (self.result_label.width, None)
+            )
+        )
         scroll.add_widget(self.result_label)
         self.add_widget(scroll)
     
@@ -464,10 +578,28 @@ class MainScreen(BoxLayout):
 
 
 class WuaibaguaApp(App):
-    """我爱八卦应用"""
+    """我爱八卦应用 - 响应式版本"""
     
     def build(self):
-        return MainScreen()
+        # 创建响应式 UI 工具类
+        self.responsive = ResponsiveUI()
+        return MainScreen(responsive=self.responsive)
+    
+    def on_start(self):
+        """应用启动时监听窗口大小变化"""
+        Window.bind(on_resize=self.on_window_resize)
+    
+    def on_window_resize(self, window, width, height):
+        """窗口大小变化时重新计算缩放因子"""
+        if self.responsive.update_scale(width, height):
+            # 缩放因子变化较大时，延迟触发 UI 更新
+            Clock.schedule_once(lambda dt: self.update_ui_scale(), 0.15)
+    
+    def update_ui_scale(self):
+        """更新 UI 缩放"""
+        # 重新计算布局（Kivy 会自动处理大部分响应式布局）
+        # 这里可以添加更复杂的 UI 更新逻辑
+        pass
     
     def get_application_config(self):
         return super().get_application_config('~/.wuaibagua')
