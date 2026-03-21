@@ -9,7 +9,15 @@
 
 import os
 import sys
-import webbrowser
+import random
+
+# webbrowser 在 Android 上可能不可用，需要安全导入
+try:
+    import webbrowser
+    WEBBROWSER_AVAILABLE = True
+except ImportError:
+    WEBBROWSER_AVAILABLE = False
+    print('[WARN] webbrowser module not available')
 
 # 在导入 Kivy 之前设置环境变量（用于 CI/CD 打包）
 if os.environ.get('PYINSTALLER_ANALYZE') or os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'):
@@ -33,7 +41,6 @@ from kivy import Config
 from kivy.lang import Builder
 from kivy.metrics import dp
 from kivy.core.text import LabelBase
-from kivy import metrics
 import random
 
 # 注册中文字体 - 解决 Android/Windows 上汉字显示乱码问题
@@ -178,10 +185,13 @@ class ClickableLabel(ButtonBehavior, Label):
         if self.search_query:
             url = f'https://www.baidu.com/s?wd={self.search_query}'
             print(f'[INFO] Opening URL: {url}')
-            try:
-                webbrowser.open(url)
-            except Exception as e:
-                print(f'[ERROR] Failed to open browser: {e}')
+            if WEBBROWSER_AVAILABLE:
+                try:
+                    webbrowser.open(url)
+                except Exception as e:
+                    print(f'[ERROR] Failed to open browser: {e}')
+            else:
+                print(f'[WARN] webbrowser not available, URL: {url}')
 
 
 # KV 语言定义界面
@@ -435,7 +445,10 @@ class GuaData:
         # Android 打包时数据文件在 assets 目录
         self.data_dir = self._find_data_dir()
         self.gua_data = {}
-        self.load_all_gua()
+        try:
+            self.load_all_gua()
+        except Exception as e:
+            print(f'[WARN] Failed to load gua data: {e}')
     
     def _find_data_dir(self):
         """查找数据目录"""

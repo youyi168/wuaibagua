@@ -19,7 +19,9 @@ android.skip_update = False
 android.accept_sdk_license = True
 android.archs = arm64-v8a, armeabi-v7a
 android.allow_backup = True
-android.add_assets = fonts
+
+# 包含数据目录和字体目录
+source.include_dirs = data,fonts
 
 [buildozer]
 log_level = 2
