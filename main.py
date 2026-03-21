@@ -720,9 +720,6 @@ class MainLayout(BoxLayout):
             self.ids['bian_gua_name'].search_query = None
             self.ids['dong_yao_info'].search_query = None
         
-        ben_gua_data = self.engine.gua_data.get_gua_info(ben_gua_name)
-        bian_gua_data = self.engine.gua_data.get_gua_info(bian_gua_name) if dong_yao else ""
-        
         # 本卦信息
         text = f"[b]【本卦：{ben_gua_name}】[/b]\n"
         text += f"上卦：{result['ben_gua']['upper_name']} {GuaData.BAGUA_SYMBOLS.get(result['ben_gua']['upper_name'], '')}\n"
@@ -776,12 +773,7 @@ class MainLayout(BoxLayout):
                 text += f"[b]六爻皆动[/b]，以变卦（{bian_gua_name}）卦辞占断。\n\n"
         
         text += "─" * 30 + "\n"
-        text += ben_gua_data
-        
-        if dong_yao and bian_gua_data:
-            text += "\n" + "─" * 30 + "\n"
-            text += f"[b]【变卦解释：{bian_gua_name}】[/b]\n\n"
-            text += bian_gua_data
+        text += "[i]提示：点击卦名可搜索详解[/i]"
         
         self.ids['jie_gua_display'].text = text
 
