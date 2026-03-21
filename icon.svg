@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <circle cx="256" cy="256" r="256" fill="#8B4513"/>
+  
+  <!-- 外圈 -->
+  <circle cx="256" cy="256" r="240" fill="none" stroke="#D2691E" stroke-width="4"/>
+  
+  <!-- 太极图 -->
+  <g transform="translate(256, 256)">
+    <!-- 大圆 -->
+    <circle r="120" fill="white" stroke="#333" stroke-width="2"/>
+    
+    <!-- 阴鱼（黑色） -->
+    <path d="M 0,-120 A 60,60 0 0,1 0,0 A 60,60 0 0,0 0,120 A 120,120 0 0,1 0,-120 Z" fill="#000000"/>
+    
+    <!-- 阳鱼（白色） -->
+    <path d="M 0,-120 A 60,60 0 0,1 0,0 A 60,60 0 0,0 0,120 A 120,120 0 0,0 0,-120 Z" fill="#FFFFFF"/>
+    
+    <!-- 阴眼（黑中白点） -->
+    <circle cx="0" cy="-60" r="20" fill="#FFFFFF"/>
+    
+    <!-- 阳眼（白中黑点） -->
+    <circle cx="0" cy="60" r="20" fill="#000000"/>
+  </g>
+  
+  <!-- 八卦符号 - 外圈 -->
+  <g font-family="Arial, sans-serif" font-size="48" fill="#FFD700" text-anchor="middle">
+    <!-- 乾 ☰ -->
+    <text x="256" y="60">☰</text>
+    <!-- 坤 ☷ -->
+    <text x="256" y="470">☷</text>
+    <!-- 震 ☳ -->
+    <text x="60" y="270">☳</text>
+    <!-- 巽 ☴ -->
+    <text x="452" y="270">☴</text>
+    <!-- 坎 ☵ -->
+    <text x="100" y="420">☵</text>
+    <!-- 离 ☲ -->
+    <text x="412" y="110">☲</text>
+    <!-- 艮 ☶ -->
+    <text x="100" y="110">☶</text>
+    <!-- 兑 ☱ -->
+    <text x="412" y="420">☱</text>
+  </g>
+  
+  <!-- 标题 -->
+  <text x="256" y="500" font-family="Arial, sans-serif" font-size="24" fill="#FFFFFF" text-anchor="middle">我爱八卦</text>
+</svg>

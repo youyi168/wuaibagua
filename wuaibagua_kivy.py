@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-我爱八卦 - 金钱卦算卦软件 (Kivy版本)
-适用于打包成安卓APK
+我爱八卦 - 金钱卦算卦软件 (Kivy 版本)
+版本：v1.0.5
+支持 Windows 和 Android 平台
+功能：电脑起卦、手动起卦、响应式 UI、网络搜索
 """
 
 import random
@@ -14,12 +16,8 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.uix.spinner import Spinner
-from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.popup import Popup
 from kivy.core.text import LabelBase
-from kivy.graphics import Color, Rectangle
-from kivy.properties import StringProperty, ListProperty
 from kivy.metrics import dp, sp
 from kivy.core.window import Window
 from kivy.clock import Clock
@@ -33,16 +31,8 @@ except ImportError:
 
 
 class ResponsiveUI:
-    """响应式 UI 工具类 - 根据屏幕尺寸动态计算字体和组件大小
+    """响应式 UI 工具类 - 根据屏幕尺寸动态计算字体和组件大小"""
     
-    基准尺寸针对现代主流手机优化：
-    - iPhone 13/14/15: 390x844
-    - iPhone 13/14/15 Pro Max: 428x926
-    - Android 旗舰：360x800 ~ 412x915
-    - 桌面端：自动适配，按高度缩放
-    """
-    
-    # 现代主流手机基准分辨率（竖屏）
     BASE_WIDTH = 390    # iPhone 13/14/15 标准版宽度
     BASE_HEIGHT = 844   # iPhone 13/14/15 标准版高度
     
@@ -54,32 +44,25 @@ class ResponsiveUI:
     
     def _check_if_desktop(self):
         """判断是否为桌面设备"""
-        # 桌面通常宽度 > 1000 且宽高比 > 1.3
         return (self.screen_width > 1000 and 
                 self.screen_width / self.screen_height > 1.3)
     
     def _calculate_scale_factor(self):
-        """根据屏幕尺寸计算缩放因子
-        
-        手机：使用宽度和高度的较小缩放比
-        桌面：主要按高度缩放，避免内容过大
-        """
+        """根据屏幕尺寸计算缩放因子"""
         width_scale = self.screen_width / self.BASE_WIDTH
         height_scale = self.screen_height / self.BASE_HEIGHT
         
         if self.is_desktop:
-            # 桌面端：按高度缩放，限制最大缩放因子
             return min(height_scale, 2.0)
         else:
-            # 手机端：使用较小值确保内容不溢出
             return min(width_scale, height_scale)
     
     def get_font_size(self, base_size=16):
-        """动态字体大小（使用 sp - scale independent pixels）"""
+        """动态字体大小"""
         return sp(base_size * self.scale_factor)
     
     def get_dp(self, base_dp=10):
-        """动态密度无关像素（使用 dp - density independent pixels）"""
+        """动态密度无关像素"""
         return dp(base_dp * self.scale_factor)
     
     def get_height(self, base_height=40):
@@ -101,7 +84,6 @@ class ResponsiveUI:
         old_is_desktop = self.is_desktop
         self.is_desktop = self._check_if_desktop()
         
-        # 设备类型变化或尺寸变化超过 10% 时重新计算
         if old_is_desktop != self.is_desktop:
             self.scale_factor = self._calculate_scale_factor()
             return True
@@ -114,18 +96,15 @@ class ResponsiveUI:
 
 
 class GuaData:
-    """64卦数据管理"""
+    """64 卦数据管理"""
     
-    # 八卦名称
     BAGUA_NAMES = ['乾', '坤', '震', '坎', '艮', '离', '兑', '巽']
     
-    # 八卦符号
     BAGUA_SYMBOLS = {
         '乾': '☰', '坤': '☷', '震': '☳', '坎': '☵',
         '艮': '☶', '离': '☲', '兑': '☱', '巽': '☴'
     }
     
-    # 六十四卦名称
     GUA_NAMES = [
         '乾为天', '天泽履', '天火同人', '天雷无妄', '天风姤', '天水讼', '天山遁', '天地否',
         '泽天夬', '兑为泽', '泽火革', '泽雷随', '泽风大过', '泽水困', '泽山咸', '泽地萃',
@@ -137,7 +116,6 @@ class GuaData:
         '地天泰', '地泽临', '地火明夷', '地雷复', '地风升', '地水师', '地山谦', '坤为地'
     ]
     
-    # 六十四卦（上卦+下卦）
     LIUSHI_GUA = [
         ['乾为天', '天泽履', '天火同人', '天雷无妄', '天风姤', '天水讼', '天山遁', '天地否'],
         ['泽天夬', '兑为泽', '泽火革', '泽雷随', '泽风大过', '泽水困', '泽山咸', '泽地萃'],
@@ -149,7 +127,6 @@ class GuaData:
         ['地天泰', '地泽临', '地火明夷', '地雷复', '地风升', '地水师', '地山谦', '坤为地']
     ]
     
-    # 卦名到文件名的映射
     GUA_TO_FILE = {
         '乾为天': '乾卦', '坤为地': '坤卦', '震为雷': '震卦', '巽为风': '巽卦',
         '坎为水': '坎卦', '离为火': '离卦', '艮为山': '艮卦', '兑为泽': '兑卦',
@@ -172,16 +149,10 @@ class GuaData:
         '天水讼': '讼卦'
     }
     
-    # 六爻名称
     YAO_NAMES = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻']
     
     def __init__(self):
-        # 获取数据目录
-        if hasattr(App, 'get_running_app') and App.get_running_app():
-            self.data_dir = os.path.join(os.path.dirname(__file__), 'data')
-        else:
-            self.data_dir = os.path.join(os.path.dirname(__file__), 'data')
-        
+        self.data_dir = os.path.join(os.path.dirname(__file__), 'data')
         self.gua_data = {}
         self.load_all_gua()
     
@@ -199,7 +170,7 @@ class GuaData:
                 with open(filename, 'r', encoding='utf-8') as f:
                     return f.read()
             except Exception as e:
-                return f"{gua_name}的数据加载失败: {str(e)}"
+                return f"{gua_name}的数据加载失败：{str(e)}"
         return f"{gua_name}的数据文件不存在"
     
     def get_gua_by_index(self, upper, lower):
@@ -214,7 +185,6 @@ class GuaData:
 class DivinationEngine:
     """算卦引擎"""
     
-    # 铜钱结果映射
     COIN_RESULTS = {
         0: ('老阴', '━ ━×', '阴动', 6),   # 三个反面
         1: ('少阳', '━━━', '阳', 7),      # 两反一正
@@ -308,6 +278,79 @@ class DivinationEngine:
         return trigram_map.get(index, 0)
 
 
+class ManualCastDialog(Popup):
+    """手动起卦对话框"""
+    
+    def __init__(self, callback, responsive=None, **kwargs):
+        super().__init__(**kwargs)
+        self.callback = callback
+        self.responsive = responsive or ResponsiveUI()
+        self.results = [None] * 6
+        self.current_yao = 0
+        
+        layout = BoxLayout(orientation='vertical', 
+                          padding=self.responsive.get_padding(20), 
+                          spacing=self.responsive.get_spacing(10))
+        
+        # 标题
+        title = Label(
+            text="手动投掷铜钱",
+            font_size=self.responsive.get_font_size(20),
+            size_hint_y=None,
+            height=self.responsive.get_height(45),
+            bold=True
+        )
+        layout.add_widget(title)
+        
+        # 当前爻位
+        self.yao_label = Label(
+            text="请投掷第 1 爻（初爻）",
+            font_size=self.responsive.get_font_size(18),
+            size_hint_y=None,
+            height=self.responsive.get_height(40)
+        )
+        layout.add_widget(self.yao_label)
+        
+        # 投掷按钮
+        btn = Button(
+            text="投掷铜钱",
+            font_size=self.responsive.get_font_size(18),
+            background_color=(0.55, 0.27, 0.07, 1)
+        )
+        btn.bind(on_press=self.on_throw)
+        layout.add_widget(btn)
+        
+        # 结果显示
+        self.result_label = Label(
+            text="",
+            font_size=self.responsive.get_font_size(16),
+            size_hint_y=None,
+            height=self.responsive.get_height(40)
+        )
+        layout.add_widget(self.result_label)
+        
+        self.content = layout
+        self.size_hint = (0.9, 0.5)
+        self.title = "手动起卦"
+    
+    def on_throw(self, instance):
+        """投掷铜钱"""
+        coins = [random.randint(0, 1) for _ in range(3)]
+        result = sum(coins)
+        self.results[self.current_yao] = result
+        
+        name, symbol, yin_yang, number = DivinationEngine.COIN_RESULTS[result]
+        self.result_label.text = f"结果：{name} {symbol}"
+        
+        self.current_yao += 1
+        if self.current_yao < 6:
+            yao_names = GuaData.YAO_NAMES
+            self.yao_label.text = f"请投掷第{self.current_yao + 1}爻（{yao_names[self.current_yao]}）"
+        else:
+            self.callback(self.results)
+            self.dismiss()
+
+
 class GuaDisplay(GridLayout):
     """卦象显示组件 - 响应式版本"""
     
@@ -319,7 +362,6 @@ class GuaDisplay(GridLayout):
         self.size_hint_y = None
         self.bind(minimum_height=self.setter('height'))
         
-        # 标题 - 动态字体和高度
         self.title_label = Label(
             text=title,
             font_size=self.responsive.get_font_size(15),
@@ -331,7 +373,6 @@ class GuaDisplay(GridLayout):
         )
         self.add_widget(self.title_label)
         
-        # 卦名 - 动态字体和高度
         self.gua_name_label = Label(
             text="未起卦",
             font_size=self.responsive.get_font_size(24),
@@ -344,7 +385,6 @@ class GuaDisplay(GridLayout):
         )
         self.add_widget(self.gua_name_label)
         
-        # 六爻显示 - 动态字体和高度
         self.yao_labels = []
         for i in range(6):
             label = Label(
@@ -359,7 +399,6 @@ class GuaDisplay(GridLayout):
             self.yao_labels.append(label)
             self.add_widget(label)
         
-        # 动态计算总高度
         self.height = self.responsive.get_height(300)
     
     def update_display(self, gua_info, yao_list, is_ben_gua=True):
@@ -369,7 +408,7 @@ class GuaDisplay(GridLayout):
         
         if yao_list:
             for i, label in enumerate(self.yao_labels):
-                yao = yao_list[5 - i]  # 从上爻到初爻
+                yao = yao_list[5 - i]
                 yao_text = f"{yao['symbol']}  {GuaData.YAO_NAMES[5-i]}"
                 if is_ben_gua and yao.get('is_dong'):
                     label.text = f"[color=ff0000]{yao_text} ○[/color]"
@@ -379,7 +418,7 @@ class GuaDisplay(GridLayout):
 
 
 class MainScreen(BoxLayout):
-    """主界面 - 响应式版本"""
+    """主界面 - 响应式版本（支持手动起卦）"""
     
     def __init__(self, responsive=None, **kwargs):
         super().__init__(**kwargs)
@@ -390,8 +429,9 @@ class MainScreen(BoxLayout):
         
         self.engine = DivinationEngine()
         self.current_result = None
+        self.manual_mode = False
         
-        # 标题 - 动态字体和高度，居中显示
+        # 标题
         title = Label(
             text="我爱八卦",
             font_size=self.responsive.get_font_size(32),
@@ -404,7 +444,7 @@ class MainScreen(BoxLayout):
         )
         self.add_widget(title)
         
-        # 起卦按钮区域 - 动态高度
+        # 起卦按钮区域
         btn_layout = BoxLayout(
             size_hint_y=None,
             height=self.responsive.get_height(65),
@@ -419,33 +459,42 @@ class MainScreen(BoxLayout):
         self.btn_auto.bind(on_press=self.on_auto_cast)
         btn_layout.add_widget(self.btn_auto)
         
-        self.btn_clear = Button(
-            text="清空",
+        self.btn_manual = Button(
+            text="手动起卦",
             font_size=self.responsive.get_font_size(18),
-            background_color=(0.5, 0.5, 0.5, 1)
+            background_color=(0.2, 0.4, 0.6, 1)
         )
-        self.btn_clear.bind(on_press=self.on_clear)
-        btn_layout.add_widget(self.btn_clear)
+        self.btn_manual.bind(on_press=self.on_manual_cast)
+        btn_layout.add_widget(self.btn_manual)
         
         self.add_widget(btn_layout)
         
-        # 卦象显示区域 - 使用比例布局
+        # 清空按钮
+        self.btn_clear = Button(
+            text="清空",
+            font_size=self.responsive.get_font_size(18),
+            size_hint_y=None,
+            height=self.responsive.get_height(50),
+            background_color=(0.5, 0.5, 0.5, 1)
+        )
+        self.btn_clear.bind(on_press=self.on_clear)
+        self.add_widget(self.btn_clear)
+        
+        # 卦象显示区域
         gua_layout = BoxLayout(
             size_hint_y=0.38,
             spacing=self.responsive.get_spacing(12)
         )
         
-        # 本卦
         self.ben_gua_display = GuaDisplay(title="本卦", responsive=self.responsive)
         gua_layout.add_widget(self.ben_gua_display)
         
-        # 变卦
         self.bian_gua_display = GuaDisplay(title="变卦", responsive=self.responsive)
         gua_layout.add_widget(self.bian_gua_display)
         
         self.add_widget(gua_layout)
         
-        # 动爻信息 - 动态字体和高度
+        # 动爻信息
         self.dong_info = Label(
             text="动爻：无",
             font_size=self.responsive.get_font_size(16),
@@ -457,7 +506,7 @@ class MainScreen(BoxLayout):
         )
         self.add_widget(self.dong_info)
         
-        # 解卦区域（滚动）- 确保小屏幕可以滚动查看
+        # 解卦区域（滚动）
         scroll = ScrollView(
             size_hint_y=0.35,
             do_scroll_x=False,
@@ -465,7 +514,7 @@ class MainScreen(BoxLayout):
             bar_width=self.responsive.get_dp(4)
         )
         self.result_label = Label(
-            text="点击「电脑起卦」开始",
+            text="点击「电脑起卦」或「手动起卦」开始",
             font_size=self.responsive.get_font_size(14),
             size_hint_y=None,
             padding=(self.responsive.get_padding(12), self.responsive.get_padding(12)),
@@ -482,7 +531,7 @@ class MainScreen(BoxLayout):
         scroll.add_widget(self.result_label)
         self.add_widget(scroll)
         
-        # 搜索按钮区域
+        # 搜索按钮
         search_layout = BoxLayout(
             size_hint_y=None,
             height=self.responsive.get_height(50),
@@ -505,6 +554,15 @@ class MainScreen(BoxLayout):
         self.current_result = self.engine.analyze_gua(results)
         self.display_result()
     
+    def on_manual_cast(self, instance):
+        """手动起卦"""
+        def on_complete(results):
+            self.current_result = self.engine.analyze_gua(results)
+            self.display_result()
+        
+        dialog = ManualCastDialog(on_complete, self.responsive)
+        dialog.open()
+    
     def on_clear(self, instance):
         """清空"""
         self.current_result = None
@@ -513,7 +571,28 @@ class MainScreen(BoxLayout):
         self.bian_gua_display.update_display(None, None)
         self.bian_gua_display.gua_name_label.text = "无变卦"
         self.dong_info.text = "动爻：无"
-        self.result_label.text = "点击「电脑起卦」开始"
+        self.result_label.text = "点击「电脑起卦」或「手动起卦」开始"
+    
+    def on_search(self, instance):
+        """打开百度搜索"""
+        if not self.current_result:
+            return
+        
+        gua_name = self.current_result['ben_gua']['name']
+        query = f"周易 {gua_name} 详解"
+        url = f"https://www.baidu.com/s?wd={quote(query)}"
+        
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            Intent = autoclass('android.content.Intent')
+            Uri = autoclass('android.net.Uri')
+            
+            intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            PythonActivity.mActivity.startActivity(intent)
+        except:
+            if WEBBROWSER_AVAILABLE:
+                webbrowser.open(url)
     
     def display_result(self):
         """显示结果"""
@@ -522,14 +601,12 @@ class MainScreen(BoxLayout):
         
         result = self.current_result
         
-        # 显示本卦
         self.ben_gua_display.update_display(
             result['ben_gua'],
             result['yao_list'],
             True
         )
         
-        # 显示变卦
         if result['bian_gua']:
             self.bian_gua_display.update_display(
                 result['bian_gua'],
@@ -541,38 +618,13 @@ class MainScreen(BoxLayout):
             for label in self.bian_gua_display.yao_labels:
                 label.text = ""
         
-        # 显示动爻
         if result['dong_yao']:
             dong_text = f"动爻：第{'、第'.join(map(str, result['dong_yao']))}爻"
         else:
             dong_text = "动爻：无"
         self.dong_info.text = dong_text
         
-        # 显示解卦
         self.display_jie_gua()
-    
-    def on_search(self, instance):
-        """打开百度搜索卦象详解"""
-        if not self.current_result:
-            return
-        
-        gua_name = self.current_result['ben_gua']['name']
-        query = f"周易 {gua_name} 详解"
-        url = f"https://www.baidu.com/s?wd={quote(query)}"
-        
-        # 尝试在 Android 上使用 Intent 打开浏览器
-        try:
-            from jnius import autoclass
-            PythonActivity = autoclass('org.kivy.android.PythonActivity')
-            Intent = autoclass('android.content.Intent')
-            Uri = autoclass('android.net.Uri')
-            
-            intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            PythonActivity.mActivity.startActivity(intent)
-        except Exception as e:
-            # 桌面端回退到 webbrowser
-            if WEBBROWSER_AVAILABLE:
-                webbrowser.open(url)
     
     def display_jie_gua(self):
         """显示解卦"""
@@ -629,24 +681,17 @@ class WuaibaguaApp(App):
     """我爱八卦应用 - 响应式版本"""
     
     def build(self):
-        # 创建响应式 UI 工具类
         self.responsive = ResponsiveUI()
         return MainScreen(responsive=self.responsive)
     
     def on_start(self):
-        """应用启动时监听窗口大小变化"""
         Window.bind(on_resize=self.on_window_resize)
     
     def on_window_resize(self, window, width, height):
-        """窗口大小变化时重新计算缩放因子"""
         if self.responsive.update_scale(width, height):
-            # 缩放因子变化较大时，延迟触发 UI 更新
             Clock.schedule_once(lambda dt: self.update_ui_scale(), 0.15)
     
     def update_ui_scale(self):
-        """更新 UI 缩放"""
-        # 重新计算布局（Kivy 会自动处理大部分响应式布局）
-        # 这里可以添加更复杂的 UI 更新逻辑
         pass
     
     def get_application_config(self):
