@@ -3,6 +3,8 @@ name: Build Android APK
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
@@ -15,6 +17,9 @@ on:
         options:
           - debug
           - release
+
+permissions:
+  contents: write
 
 jobs:
   build:
