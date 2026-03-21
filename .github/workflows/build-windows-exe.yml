@@ -53,24 +53,15 @@ jobs:
     
     - name: Build EXE
       run: |
-        # 使用命令行参数打包（不依赖 spec 文件）
-        pyinstaller `
-          --name="吾爱八卦" `
-          --windowed `
-          --onefile `
-          --add-data="data;data" `
-          --add-data="fonts;fonts" `
-          --hidden-import=kivy `
-          --hidden-import=kivy.uix `
-          --hidden-import=kivy.core `
-          --hidden-import=kivy.graphics `
-          --hidden-import=kivy.factory_registers `
-          --hidden-import=kivy.text.sdl2 `
-          --hidden-import=PIL `
-          --noconfirm `
-          --clean `
-          --log-level=INFO `
-          main.py
+        # 设置环境变量避免 Kivy 初始化 OpenGL（关键！）
+        $env:PYINSTALLER_ANALYZE = "1"
+        $env:CI = "true"
+        $env:KIVY_NO_ARGS = "1"
+        $env:KIVY_LOG_MODE = "PYTHON"
+        $env:KIVY_GL_BACKEND = "angle"
+        
+        # 使用 spec 文件打包
+        pyinstaller wuaibagua.spec --noconfirm --clean --log-level=INFO
       shell: pwsh
     
     - name: Check build output

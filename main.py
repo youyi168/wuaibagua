@@ -6,6 +6,15 @@
 使用 Kivy 框架，可打包为 Android APK
 """
 
+import os
+import sys
+
+# 在导入 Kivy 之前设置环境变量（用于 CI/CD 打包）
+if os.environ.get('PYINSTALLER_ANALYZE') or os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'):
+    # 设置无头模式，避免初始化 OpenGL
+    os.environ['KIVY_NO_ARGS'] = '1'
+    os.environ['KIVY_LOG_MODE'] = 'PYTHON'
+
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
