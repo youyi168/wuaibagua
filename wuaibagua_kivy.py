@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-吾爱八卦 - 金钱卦算卦软件 (Kivy版本)
+我爱八卦 - 金钱卦算卦软件 (Kivy版本)
 适用于打包成安卓APK
 """
 
@@ -292,7 +292,7 @@ class MainScreen(BoxLayout):
         
         # 标题
         title = Label(
-            text="吾爱八卦",
+            text="我爱八卦",
             font_size='32sp',
             size_hint_y=None,
             height='50dp',
@@ -464,7 +464,7 @@ class MainScreen(BoxLayout):
 
 
 class WuaibaguaApp(App):
-    """吾爱八卦应用"""
+    """我爱八卦应用"""
     
     def build(self):
         return MainScreen()

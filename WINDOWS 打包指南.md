@@ -1,4 +1,4 @@
-# 吾爱八卦 - Windows 打包指南
+# 我爱八卦 - Windows 打包指南
 
 ## 📦 快速打包（推荐）
 
@@ -6,7 +6,7 @@
 
 1. **在 Windows 11 上双击运行** `build-windows.bat`
 2. 等待打包完成（约 5-10 分钟）
-3. 在 `dist/` 目录找到 `吾爱八卦.exe`
+3. 在 `dist/` 目录找到 `我爱八卦.exe`
 
 ---
 
@@ -73,7 +73,7 @@ pyinstaller wuaibagua.spec --clean
 打包完成后，在以下位置找到可执行文件：
 
 ```
-wuaibagua/dist/吾爱八卦.exe
+wuaibagua/dist/我爱八卦.exe
 ```
 
 ---
@@ -142,7 +142,7 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple kivy
 
 **调试方法：**
 1. 打开命令行
-2. 运行：`吾爱八卦.exe`
+2. 运行：`我爱八卦.exe`
 3. 查看错误信息
 
 **常见原因：**
@@ -199,19 +199,19 @@ excludes=[
 
 ```iss
 [Setup]
-AppName=吾爱八卦
+AppName=我爱八卦
 AppVersion=2.4.0
-DefaultDirName={autopf}\吾爱八卦
-DefaultGroupName=吾爱八卦
+DefaultDirName={autopf}\我爱八卦
+DefaultGroupName=我爱八卦
 OutputDir=installer
 
 [Files]
-Source: "dist\吾爱八卦.exe"; DestDir: "{app}"
+Source: "dist\我爱八卦.exe"; DestDir: "{app}"
 Source: "data\*"; DestDir: "{app}\data"; Flags: recursesubdirs
 Source: "fonts\*"; DestDir: "{app}\fonts"
 
 [Icons]
-Name: "{group}\吾爱八卦"; Filename: "{app}\吾爱八卦.exe"
+Name: "{group}\我爱八卦"; Filename: "{app}\我爱八卦.exe"
 ```
 
 3. 编译生成 `setup.exe`
@@ -219,9 +219,9 @@ Name: "{group}\吾爱八卦"; Filename: "{app}\吾爱八卦.exe"
 ### 创建绿色版
 
 直接分发 `dist/` 目录：
-1. 压缩 `dist/吾爱八卦.exe`
+1. 压缩 `dist/我爱八卦.exe`
 2. 或创建包含以下文件的文件夹：
-   - `吾爱八卦.exe`
+   - `我爱八卦.exe`
    - `data/` （卦辞数据）
    - `fonts/` （字体文件）
 

@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-吾爱八卦 - PyInstaller 打包配置文件
+我爱八卦 - PyInstaller 打包配置文件
 用于生成 Windows 可执行文件
 注意：此文件在 CI/CD 环境中使用，避免 Kivy 初始化 OpenGL
 """
@@ -16,7 +16,7 @@ os.environ['KIVY_NO_ARGS'] = '1'
 from PyInstaller.utils.hooks import collect_data_files
 
 # 项目名称
-name = '吾爱八卦'
+name = '我爱八卦'
 
 # 主程序文件
 main_script = 'main.py'

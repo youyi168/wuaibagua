@@ -61,7 +61,7 @@ git push origin v2.4.0
 
 1. 进入 https://github.com/youyi168/wuaibagua/releases
 2. 找到对应版本
-3. 下载 `吾爱八卦.exe`
+3. 下载 `我爱八卦.exe`
 
 ---
 
