@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-吾爱八卦 - 金钱卦算卦软件 (Android版)
-基于原作者 weixy1216 的吾爱八卦 V2.4 重构
+我爱八卦 - 金钱卦算卦软件 (Android版)
+版本：1.0.0
 使用 Kivy 框架，可打包为 Android APK
 """
 
@@ -17,9 +17,11 @@ from kivy.uix.popup import Popup
 from kivy.uix.togglebutton import ToggleButton
 from kivy.core.window import Window
 from kivy.properties import StringProperty, ListProperty, NumericProperty
+from kivy import Config
 from kivy.lang import Builder
 from kivy.metrics import dp
 from kivy.core.text import LabelBase
+from kivy import metrics
 import random
 import os
 import sys
@@ -60,9 +62,21 @@ def register_chinese_font():
 # 在导入 Builder 前注册字体
 register_chinese_font()
 
+# 配置窗口（Android 上自动全屏）
+Config.set('graphics', 'width', '1080')
+Config.set('graphics', 'height', '1920')
+Config.set('graphics', 'resizable', '1')
+Config.set('graphics', 'minimum_width', '320')
+Config.set('graphics', 'minimum_height', '480')
+
 # KV 语言定义界面
 KV = '''
 #:kivy 2.0
+#:import Config kivy.config.Config
+
+# 屏幕适配设置
+#:import sm kivy.metrics.dp
+
 
 # 全局字体设置 - 使用注册的中文字体
 <Label>:
@@ -78,12 +92,12 @@ KV = '''
     font_name: 'Chinese'
 
 <YaoButton@ToggleButton>:
-    font_size: '16sp'
+    font_size: dp(16)
     size_hint_y: None
-    height: '40dp'
+    height: dp(40)
     
 <GuaDisplay@Label>:
-    font_size: '24sp'
+    font_size: dp(20)
     markup: True
     halign: 'center'
     valign: 'middle'
@@ -92,21 +106,22 @@ KV = '''
 
 <MainLayout>:
     orientation: 'vertical'
-    padding: '10dp'
-    spacing: '10dp'
+    padding: dp(10)
+    spacing: dp(10)
+    size_hint: (1, 1)
     
     # 标题
     Label:
-        text: '吾爱八卦'
-        font_size: '32sp'
+        text: '我爱八卦'
+        font_size: dp(28)
         size_hint_y: None
-        height: '50dp'
+        height: dp(50)
         bold: True
         
     # 起卦方式
     BoxLayout:
         size_hint_y: None
-        height: '40dp'
+        height: dp(40)
         
         ToggleButton:
             id: auto_btn
@@ -127,15 +142,15 @@ KV = '''
         cols: 2
         size_hint_y: None
         height: 0
-        spacing: '5dp'
+        spacing: dp(5)
         opacity: 0
     
     # 起卦按钮
     Button:
         text: '开始起卦'
-        font_size: '24sp'
+        font_size: dp(20)
         size_hint_y: None
-        height: '60dp'
+        height: dp(50)
         background_color: 0.55, 0.27, 0.07, 1
         on_press: root.do_divination()
         
@@ -149,23 +164,23 @@ KV = '''
             
             Label:
                 text: '本卦'
-                font_size: '18sp'
+                font_size: dp(16)
                 size_hint_y: None
-                height: '30dp'
+                height: dp(30)
                 
             Label:
                 id: ben_gua_name
                 text: '未起卦'
-                font_size: '22sp'
+                font_size: dp(18)
                 size_hint_y: None
-                height: '30dp'
+                height: dp(30)
                 bold: True
                 
             ScrollView:
                 Label:
                     id: ben_gua_display
                     text: ''
-                    font_size: '28sp'
+                    font_size: dp(24)
                     markup: True
                     halign: 'center'
                     valign: 'middle'
@@ -179,23 +194,23 @@ KV = '''
             
             Label:
                 text: '变卦'
-                font_size: '18sp'
+                font_size: dp(16)
                 size_hint_y: None
-                height: '30dp'
+                height: dp(30)
                 
             Label:
                 id: bian_gua_name
                 text: '无变卦'
-                font_size: '22sp'
+                font_size: dp(18)
                 size_hint_y: None
-                height: '30dp'
+                height: dp(30)
                 bold: True
                 
             ScrollView:
                 Label:
                     id: bian_gua_display
                     text: ''
-                    font_size: '28sp'
+                    font_size: dp(24)
                     markup: True
                     halign: 'center'
                     valign: 'middle'
@@ -207,16 +222,16 @@ KV = '''
     Label:
         id: dong_yao_info
         text: '动爻：无'
-        font_size: '16sp'
+        font_size: dp(16)
         size_hint_y: None
-        height: '30dp'
+        height: dp(30)
         
     # 解卦显示
     ScrollView:
         Label:
             id: jie_gua_display
             text: '点击"开始起卦"开始算卦'
-            font_size: '16sp'
+            font_size: dp(16)
             markup: True
             halign: 'left'
             valign: 'top'
@@ -229,11 +244,12 @@ KV = '''
 class GuaData:
     """64卦数据管理"""
     
-    BAGUA_NAMES = ['乾', '坤', '震', '坎', '艮', '离', '兑', '巽']
+    # 八卦名称（按先天八卦数序：乾 1 兑 2 离 3 震 4 巽 5 坎 6 艮 7 坤 8）
+    BAGUA_NAMES = ['乾', '兑', '离', '震', '巽', '坎', '艮', '坤']
     
     BAGUA_SYMBOLS = {
-        '乾': '☰', '坤': '☷', '震': '☳', '坎': '☵',
-        '艮': '☶', '离': '☲', '兑': '☱', '巽': '☴'
+        '乾': '☰', '兑': '☱', '离': '☲', '震': '☳',
+        '巽': '☴', '坎': '☵', '艮': '☶', '坤': '☷'
     }
     
     # 六十四卦名称
@@ -310,6 +326,10 @@ class GuaData:
             except Exception as e:
                 return f"{gua_name}的数据加载失败: {str(e)}"
         return f"{gua_name}的数据文件不存在"
+
+    def get_gua_info(self, gua_name):
+        """获取卦象信息（用于解卦显示）"""
+        return self.gua_data.get(gua_name, f"暂无 {gua_name} 的详细解释")
 
 
 class DivinationEngine:
@@ -410,14 +430,19 @@ class DivinationEngine:
         }
     
     def _get_trigram(self, yao1, yao2, yao3):
-        """根据三爻确定八卦"""
-        bit1 = 1 if '阳' in yao1['yin_yang'] else 0
-        bit2 = 1 if '阳' in yao2['yin_yang'] else 0
-        bit3 = 1 if '阳' in yao3['yin_yang'] else 0
+        """根据三爻确定八卦（从下往上：yao1=下爻，yao2=中爻，yao3=上爻）"""
+        bit1 = 1 if '阳' in yao1['yin_yang'] else 0  # 下爻
+        bit2 = 1 if '阳' in yao2['yin_yang'] else 0  # 中爻
+        bit3 = 1 if '阳' in yao3['yin_yang'] else 0  # 上爻
         
+        # 先天八卦二进制：上爻*4 + 中爻*2 + 下爻*1
         index = bit3 * 4 + bit2 * 2 + bit1
-        trigram_map = {7: 0, 0: 1, 4: 2, 2: 3, 6: 4, 5: 5, 3: 6, 1: 7}
-        return trigram_map.get(index, 0)
+        
+        # 先天八卦映射（索引 = 先天数 - 1）
+        # 乾☰111=7→0, 兑☱110=6→1, 离☲101=5→2, 震☳100=4→3
+        # 巽☴011=3→4, 坎☵010=2→5, 艮☶001=1→6, 坤☷000=0→7
+        trigram_map = {7: 0, 6: 1, 5: 2, 4: 3, 3: 4, 2: 5, 1: 6, 0: 7}
+        return trigram_map.get(index, 7)
 
 
 class MainLayout(BoxLayout):
@@ -430,9 +455,27 @@ class MainLayout(BoxLayout):
         self.method = 'auto'
         self.yao_spinners = []
         
+        # 绑定窗口大小变化事件
+        Window.bind(on_resize=self.on_window_resize)
+        
         # 延迟初始化界面
         from kivy.clock import Clock
         Clock.schedule_once(self._init_ui)
+        Clock.schedule_once(self._adjust_font_size, 0.5)
+    
+    def on_window_resize(self, window, width, height):
+        """窗口大小变化时调整布局"""
+        # 根据屏幕高度调整字体大小
+        scale = min(width / 360, height / 640)
+        base_font_size = dp(16)
+        self.font_size = base_font_size * max(0.8, min(1.5, scale))
+    
+    def _adjust_font_size(self, dt):
+        """根据屏幕尺寸调整字体"""
+        width, height = Window.size
+        scale = min(width / 360, height / 640)
+        base_font_size = dp(16)
+        self.font_size = base_font_size * max(0.8, min(1.5, scale))
     
     def _init_ui(self, dt):
         """初始化界面"""
@@ -469,16 +512,29 @@ class MainLayout(BoxLayout):
             if self.method == 'auto':
                 results = self.engine.cast_by_computer()
             else:
-                results = [spinner.index(spinner.text) for spinner in self.yao_spinners]
+                # 手动起卦：获取每个 Spinner 的选中值索引
+                results = []
+                for i, spinner in enumerate(self.yao_spinners):
+                    try:
+                        idx = spinner.values.index(spinner.text)
+                        results.append(idx)
+                    except ValueError:
+                        # 如果 text 不在 values 中，使用默认值 1（少阳）
+                        print(f"[WARN] Spinner {i} text '{spinner.text}' not in values, using default")
+                        results.append(1)
             
+            print(f"[DEBUG] 起卦结果：{results}")
             self.current_result = self.engine.analyze_gua(results)
             self.display_result()
             
         except Exception as e:
+            import traceback
+            error_msg = f"起卦失败：{str(e)}\n\n{traceback.format_exc()}"
+            print(f"[ERROR] {error_msg}")
             popup = Popup(
                 title='错误',
-                content=Label(text=f'起卦失败：{str(e)}'),
-                size_hint=(0.8, 0.3)
+                content=Label(text=error_msg, markup=True),
+                size_hint=(0.8, 0.4)
             )
             popup.open()
     
@@ -527,54 +583,81 @@ class MainLayout(BoxLayout):
         
         result = self.current_result
         ben_gua_name = result['ben_gua']['name']
+        bian_gua_name = result['bian_gua']['name']
         dong_yao = result['dong_yao']
+        yao_list = result['yao_list']
         
-        gua_data = self.engine.gua_data.get_gua_info(ben_gua_name)
+        ben_gua_data = self.engine.gua_data.get_gua_info(ben_gua_name)
+        bian_gua_data = self.engine.gua_data.get_gua_info(bian_gua_name) if dong_yao else ""
         
-        text = f"[b]【{ben_gua_name}】[/b]\n"
+        # 本卦信息
+        text = f"[b]【本卦：{ben_gua_name}】[/b]\n"
         text += f"上卦：{result['ben_gua']['upper_name']} {GuaData.BAGUA_SYMBOLS.get(result['ben_gua']['upper_name'], '')}\n"
         text += f"下卦：{result['ben_gua']['lower_name']} {GuaData.BAGUA_SYMBOLS.get(result['ben_gua']['lower_name'], '')}\n\n"
         
+        # 动爻详细信息
+        if dong_yao:
+            text += "[b]【动爻】[/b]\n"
+            for pos in dong_yao:
+                yao = yao_list[pos - 1]
+                yao_name = GuaData.YAO_NAMES[pos - 1]
+                text += f"{yao_name}：{yao['name']} {yao['symbol']}（{yao['yin_yang']}）\n"
+            text += "\n"
+        
+        # 变卦信息
+        if dong_yao:
+            text += f"[b]【变卦：{bian_gua_name}】[/b]\n"
+            text += f"上卦：{result['bian_gua']['upper_name']} {GuaData.BAGUA_SYMBOLS.get(result['bian_gua']['upper_name'], '')}\n"
+            text += f"下卦：{result['bian_gua']['lower_name']} {GuaData.BAGUA_SYMBOLS.get(result['bian_gua']['lower_name'], '')}\n\n"
+        
+        # 断卦规则
+        text += "[b]【断卦规则】[/b]\n"
         if not dong_yao:
-            text += "[b]六爻皆静[/b]，以本卦卦辞断之。\n\n"
+            text += "六爻皆静，以本卦卦辞占断。\n\n"
         elif len(dong_yao) == 1:
-            text += f"[b]一爻动[/b]（第{dong_yao[0]}爻），以动爻爻辞断之。\n\n"
+            yao = yao_list[dong_yao[0] - 1]
+            text += f"一爻动（第{dong_yao[0]}爻），以动爻爻辞占断。\n"
+            text += f"动爻：{yao['name']}，{yao['symbol']}\n\n"
         elif len(dong_yao) == 2:
+            yin_count = sum(1 for pos in dong_yao if '阴' in yao_list[pos-1]['yin_yang'])
             text += f"[b]两爻动[/b]（第{dong_yao[0]}、第{dong_yao[1]}爻）\n"
-            yin_count = sum(1 for pos in dong_yao if '阴' in result['yao_list'][pos-1]['yin_yang'])
             if yin_count == 1:
                 text += "一阴一阳，以阴动爻为主。\n\n"
             else:
                 text += f"同{'阴' if yin_count == 2 else '阳'}，以上爻为主。\n\n"
         elif len(dong_yao) == 3:
-            text += f"[b]三爻动[/b]，取中间爻（第{dong_yao[1]}爻）断之。\n\n"
+            text += f"[b]三爻动[/b]（第{dong_yao[0]}、第{dong_yao[1]}、第{dong_yao[2]}爻）\n"
+            text += "本卦、变卦卦辞参看，以本卦为主。\n\n"
         elif len(dong_yao) == 4:
             static = [i for i in range(1, 7) if i not in dong_yao]
-            text += f"[b]四爻动[/b]，看下静爻（第{static[0]}爻）断之。\n\n"
+            text += f"[b]四爻动[/b]，以下静爻（第{static[0]}爻）占断。\n\n"
         elif len(dong_yao) == 5:
             static = [i for i in range(1, 7) if i not in dong_yao][0]
-            text += f"[b]五爻动[/b]，看静爻（第{static}爻）断之。\n\n"
+            text += f"[b]五爻动[/b]，以静爻（第{static}爻）占断。\n\n"
         else:
             if ben_gua_name == '乾为天':
-                text += "[b]六爻皆动[/b]，以「用九」断之。\n\n"
+                text += "[b]六爻皆动[/b]，以「用九」爻辞占断。\n\n"
             elif ben_gua_name == '坤为地':
-                text += "[b]六爻皆动[/b]，以「用六」断之。\n\n"
+                text += "[b]六爻皆动[/b]，以「用六」爻辞占断。\n\n"
             else:
-                text += f"[b]六爻皆动[/b]，看变卦（{result['bian_gua']['name']}）断之。\n\n"
+                text += f"[b]六爻皆动[/b]，以变卦（{bian_gua_name}）卦辞占断。\n\n"
         
-        if result['dong_yao']:
-            text += f"[b]变卦：{result['bian_gua']['name']}[/b]\n\n"
+        text += "─" * 30 + "\n"
+        text += ben_gua_data
         
-        text += "─" * 20 + "\n"
-        text += gua_data
+        if dong_yao and bian_gua_data:
+            text += "\n" + "─" * 30 + "\n"
+            text += f"[b]【变卦解释：{bian_gua_name}】[/b]\n\n"
+            text += bian_gua_data
         
         self.ids['jie_gua_display'].text = text
 
 
-class WuAiBaGuaApp(App):
+class WoAiBaGuaApp(App):
     """应用程序"""
     
     def build(self):
+        self.title = '我爱八卦 v1.0.0'
         Builder.load_string(KV)
         return MainLayout()
     
@@ -584,4 +667,4 @@ class WuAiBaGuaApp(App):
 
 
 if __name__ == '__main__':
-    WuAiBaGuaApp().run()
+    WoAiBaGuaApp().run()

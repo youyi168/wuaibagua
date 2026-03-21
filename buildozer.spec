@@ -1,32 +1,39 @@
 [app]
-title = 吾爱八卦
-package.name = wuaibagua
-package.domain = org.wuaibagua
+title = 我爱八卦
+package.name = woaibagua
+package.domain = org.woaibagua
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf
-version = 2.4.0
-# 指定 pyjnius 版本以解决 Cython long 类型兼容性问题
-# pyjnius 1.6.1+ 已经修复了 long 类型检查问题
-requirements = python3,kivy,pyjnius==1.6.1
+version = 1.0.0
+requirements = python3,kivy,pyjnius
+# 使用清华镜像下载 Python 源码
+hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11.5.tgz
 orientation = portrait
 fullscreen = 0
 android.permissions = VIBRATE
-android.api = 29
-android.ndk_api = 21
+android.api = 33
 android.minapi = 21
+android.ndk_api = 21
 android.ndk = 25b
 android.skip_update = False
 android.accept_sdk_license = True
 android.archs = arm64-v8a, armeabi-v7a
 android.allow_backup = True
-
-# 包含字体文件
 android.add_assets = fonts
 
 [buildozer]
 log_level = 2
 warn_on_root = 1
 
-# 使用官方源，让 p4a 自动选择合适的 Cython 版本
-# p4a.source_url = https://gitee.com/mirrors/python-for-android.git
-python.pip = 23.0.1
+# 使用国内镜像源加速下载
+# Python for Android 源码镜像（清华源）
+p4a.source_url = https://mirrors.tuna.tsinghua.edu.cn/git/python-for-android.git
+# 备用镜像（阿里云）
+# p4a.source_url = https://code.aliyun.com/python-for-android/python-for-android.git
+
+# pip 国内镜像（清华源）
+pip.index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+pip.extra-index-url = https://pypi.mirrors.ustc.edu.cn/simple/
+
+# Gradle 镜像（阿里云）
+gradle.repository-url = https://maven.aliyun.com/repository/public

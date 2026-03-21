@@ -3,23 +3,44 @@ name: Build Android APK
 on:
   push:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     
-    env:
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
+    
+    - name: Cache Buildozer dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.buildozer
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec', 'requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
     
     - name: Install system dependencies
       run: |
@@ -30,85 +51,149 @@ jobs:
           zlib1g-dev libncurses5-dev libncursesw5-dev liblzma-dev \
           python3-pip python3-venv \
           libffi-dev libssl-dev \
-          automake cmake
+          automake cmake \
+          libgtk-3-dev
+    
+    - name: Configure Git and Network
+      run: |
+        # 配置 Git 使用 HTTPS 并设置重试
+        git config --global http.sslVerify true
+        git config --global http.postBuffer 524288000
+        git config --global http.maxRequestBuffer 524288000
+        git config --global http.lowSpeedLimit 1000
+        git config --global http.lowSpeedTime 300
+        
+        # 配置 pip 重试
+        pip3 config set global.retries 5
+        pip3 config set global.timeout 120
     
     - name: Install Buildozer
       run: |
-        # 使用经过验证的版本组合
-        # 先安装旧版 Cython，防止 p4a 自动安装新版
-        pip3 install Cython==0.29.33
+        pip3 install --upgrade pip
+        pip3 install Cython==0.29.36
         pip3 install buildozer==1.5.0
         pip3 install virtualenv
-        # 强制锁定 Cython 版本
-        pip3 install --force-reinstall Cython==0.29.33
         echo "$HOME/.local/bin" >> $GITHUB_PATH
-        export PATH="$HOME/.local/bin:$PATH"
-        which buildozer
-        buildozer --version
-        cython --version
     
     - name: Prepare build directory
       run: |
-        # 项目结构已经是根目录模式，不需要复制
-        # 只需确保 data/ 和 fonts/ 目录存在
         echo "=== Project structure ==="
         ls -la
-        echo "=== Checking data/ ==="
-        ls data/ | head -5
-        echo "=== Checking fonts/ ==="
-        ls -la fonts/ || echo "No fonts directory"
-        echo "=== Checking buildozer.spec ==="
-        cat buildozer.spec | grep -E "minapi|ndk_api|api|add_assets"
+        echo ""
+        echo "=== Data directory ==="
+        ls -la data/ 2>/dev/null | head -10 || echo "No data directory"
+        echo ""
+        echo "=== Fonts directory ==="
+        ls -la fonts/ 2>/dev/null || echo "No fonts directory"
+        echo ""
+        echo "=== Buildozer API config ==="
+        cat buildozer.spec | grep -E "^android\.(api|minapi|ndk_api)" || true
     
-    - name: Build APK
+    - name: Build APK with retry
+      id: build_apk
       run: |
         export PATH="$HOME/.local/bin:$PATH"
-        # 直接在根目录运行 buildozer
-        buildozer android debug 2>&1 | tee build.log
-      timeout-minutes: 60
-      continue-on-error: false
+        
+        # 设置环境变量增强稳定性
+        export PYTHONHTTPSVERIFY=1
+        export PIP_CERT=/etc/ssl/certs/ca-certificates.crt
+        export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+        export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+        
+        # 带重试的构建
+        MAX_RETRIES=3
+        RETRY_COUNT=0
+        BUILD_SUCCESS=false
+        
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$BUILD_SUCCESS" = "false" ]; do
+          echo "=== Build attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES ==="
+          
+          if buildozer android debug 2>&1 | tee build.log; then
+            BUILD_SUCCESS=true
+            echo "=== Build successful! ==="
+          else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+              echo "=== Build failed, retrying in 30 seconds... ==="
+              sleep 30
+              # 清理可能损坏的缓存
+              rm -rf .buildozer/android/platform/build-*/build/bootstrap_builds
+            fi
+          fi
+        done
+        
+        if [ "$BUILD_SUCCESS" = "false" ]; then
+          echo "=== Build failed after $MAX_RETRIES attempts ==="
+          exit 1
+        fi
+      timeout-minutes: 90
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: Check build output
-      run: |
-        echo "=== Current directory ==="
-        pwd
-        echo "=== Bin directory ==="
-        ls -la bin/ 2>/dev/null || echo "No bin directory"
-        echo "=== Build log (last 100 lines) ==="
-        tail -100 build.log 2>/dev/null || echo "No build.log"
-        echo "=== .buildozer directory ==="
-        ls -la .buildozer/ 2>/dev/null || echo "No .buildozer directory"
-    
-    - name: Find APK files
+    - name: Find and copy APK
       run: |
         echo "=== Searching for APK files ==="
-        find . -name "*.apk" -type f 2>/dev/null | tee /tmp/apk_files.txt || true
-        echo "=== APK files found ==="
-        cat /tmp/apk_files.txt || echo "No APK files found"
-        echo "=== Bin directory ==="
-        ls -la bin/ 2>/dev/null || echo "No bin directory"
-        echo "=== .buildozer structure ==="
-        ls -la .buildozer/android/platform/ 2>/dev/null || echo "No platform directory"
+        find . -name "*.apk" -type f 2>/dev/null | tee /tmp/apk_files.txt
+        
+        mkdir -p release
+        
+        # 复制找到的 APK 文件
+        if [ -s /tmp/apk_files.txt ]; then
+          while IFS= read -r apk; do
+            echo "Found: $apk"
+            cp -v "$apk" release/ 2>/dev/null || true
+          done < /tmp/apk_files.txt
+        fi
+        
+        # 也检查 bin 目录
+        if [ -d "bin" ]; then
+          cp -v bin/*.apk release/ 2>/dev/null || true
+        fi
+        
+        echo "=== Release directory contents ==="
+        ls -la release/ || echo "No release directory"
+        
+        # 设置输出变量
+        APK_COUNT=$(ls -1 release/*.apk 2>/dev/null | wc -l)
+        echo "apk_count=$APK_COUNT" >> $GITHUB_OUTPUT
+      id: find_apk
     
-    - name: Upload APK as artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
-      if: always()
       with:
-        name: wuaibagua-apk
+        name: woaibagua-apk-${{ github.run_number }}
         path: |
           bin/*.apk
-          *.apk
-          .buildozer/android/platform/build*/dists/*/build/outputs/apk/*/*.apk
-          .buildozer/android/platform/build*/dists/*/build/outputs/apk/*/*/*.apk
-          .buildozer/android/platform/build*/dists/**/apk/**/*.apk
+          release/*.apk
         if-no-files-found: warn
+        retention-days: 30
     
     - name: Upload build logs
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: build-logs
+        name: build-logs-${{ github.run_number }}
         path: |
           build.log
-          .buildozer/logs/*.txt
-        if-no-files-found: warn
+          .buildozer/android/platform/build-*/build.log 2>/dev/null || true
+        if-no-files-found: ignore
+        retention-days: 7
+    
+    - name: Create Release (on tag)
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          release/*.apk
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build Summary
+      if: always()
+      run: |
+        echo "=== Build Summary ==="
+        echo "Build Status: ${{ job.status }}"
+        echo "APK Files Found: ${{ steps.find_apk.outputs.apk_count || '0' }}"
+        echo "Run Number: ${{ github.run_number }}"
+        echo "Commit: ${{ github.sha }}"
