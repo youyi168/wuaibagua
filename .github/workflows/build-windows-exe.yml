@@ -69,8 +69,8 @@ jobs:
         echo "=== Dist directory ==="
         dir dist
         echo "=== EXE file info ==="
-        if (Test-Path "dist\吾爱八卦.exe") {
-          $file = Get-Item "dist\吾爱八卦.exe"
+        if (Test-Path "dist\我爱八卦.exe") {
+          $file = Get-Item "dist\我爱八卦.exe"
           echo "File: $($file.Name)"
           echo "Size: $([math]::Round($file.Length / 1MB, 2)) MB"
         } else {
@@ -83,7 +83,7 @@ jobs:
       if: success()
       with:
         name: wuaibagua-windows-exe
-        path: dist/吾爱八卦.exe
+        path: dist/我爱八卦.exe
         retention-days: 30
         if-no-files-found: error
     
@@ -93,15 +93,15 @@ jobs:
       with:
         name: build-logs-windows
         path: |
-          build/吾爱八卦/*.log
-          build/吾爱八卦/warn-吾爱八卦.txt
+          build/我爱八卦/*.log
+          build/我爱八卦/warn-我爱八卦.txt
         if-no-files-found: ignore
     
     - name: Create Release (on tag)
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: dist/吾爱八卦.exe
+        files: dist/我爱八卦.exe
         generate_release_notes: true
         draft: false
         prerelease: false
