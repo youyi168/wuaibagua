@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   build:
@@ -67,14 +68,12 @@ jobs:
     
     - name: Configure Git and Network
       run: |
-        # 配置 Git 使用 HTTPS 并设置重试
         git config --global http.sslVerify true
         git config --global http.postBuffer 524288000
         git config --global http.maxRequestBuffer 524288000
         git config --global http.lowSpeedLimit 1000
         git config --global http.lowSpeedTime 300
         
-        # 配置 pip 重试
         pip3 config set global.retries 5
         pip3 config set global.timeout 120
     
@@ -88,53 +87,73 @@ jobs:
     
     - name: Prepare build directory
       run: |
-        echo "=== Project structure ==="
+        echo "=========================================="
+        echo "📦 Project Structure"
+        echo "=========================================="
         ls -la
+        
         echo ""
-        echo "=== Data directory ==="
+        echo "📁 Data directory:"
         ls -la data/ 2>/dev/null | head -10 || echo "No data directory"
+        
         echo ""
-        echo "=== Fonts directory ==="
+        echo "📁 Fonts directory:"
         ls -la fonts/ 2>/dev/null || echo "No fonts directory"
+        
         echo ""
-        echo "=== Buildozer API config ==="
-        cat buildozer.spec | grep -E "^android\.(api|minapi|ndk_api)" || true
+        echo "📁 Sounds directory:"
+        ls -la sounds/ 2>/dev/null || echo "No sounds directory"
+        
+        echo ""
+        echo "📋 Buildozer config:"
+        cat buildozer.spec | grep -E "^(version|package\.|android\.)" || true
+        
+        echo ""
+        echo "📊 Python files count:"
+        find . -name "*.py" -type f | wc -l
+        
+        echo "=========================================="
     
     - name: Build APK with retry
       id: build_apk
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         
-        # 设置环境变量增强稳定性
         export PYTHONHTTPSVERIFY=1
         export PIP_CERT=/etc/ssl/certs/ca-certificates.crt
         export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
         
-        # 带重试的构建
         MAX_RETRIES=3
         RETRY_COUNT=0
         BUILD_SUCCESS=false
         
         while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$BUILD_SUCCESS" = "false" ]; do
-          echo "=== Build attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES ==="
+          echo "=========================================="
+          echo "🔨 Build attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES"
+          echo "=========================================="
           
           if buildozer android debug 2>&1 | tee build.log; then
             BUILD_SUCCESS=true
-            echo "=== Build successful! ==="
+            echo "=========================================="
+            echo "✅ Build successful!"
+            echo "=========================================="
           else
             RETRY_COUNT=$((RETRY_COUNT + 1))
             if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-              echo "=== Build failed, retrying in 30 seconds... ==="
+              echo "=========================================="
+              echo "⚠️ Build failed, retrying in 30 seconds..."
+              echo "=========================================="
               sleep 30
-              # 清理可能损坏的缓存
               rm -rf .buildozer/android/platform/build-*/build/bootstrap_builds
             fi
           fi
         done
         
         if [ "$BUILD_SUCCESS" = "false" ]; then
-          echo "=== Build failed after $MAX_RETRIES attempts ==="
+          echo "=========================================="
+          echo "❌ Build failed after $MAX_RETRIES attempts"
+          echo "=========================================="
           exit 1
         fi
       timeout-minutes: 90
@@ -142,41 +161,95 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Find and copy APK
+      id: find_apk
       run: |
-        echo "=== Searching for APK files ==="
-        find . -name "*.apk" -type f 2>/dev/null | tee /tmp/apk_files.txt
+        echo "=========================================="
+        echo "🔍 Searching for APK files"
+        echo "=========================================="
         
-        mkdir -p release
+        BUILD_DIR=".buildozer/android/bin"
+        RELEASE_DIR="release"
         
-        # 复制找到的 APK 文件
-        if [ -s /tmp/apk_files.txt ]; then
-          while IFS= read -r apk; do
-            echo "Found: $apk"
-            cp -v "$apk" release/ 2>/dev/null || true
-          done < /tmp/apk_files.txt
+        mkdir -p "$RELEASE_DIR"
+        
+        APK_COUNT=0
+        
+        # 1. Buildozer 标准输出路径
+        if [ -d "$BUILD_DIR" ]; then
+          echo "📁 Checking Buildozer output directory: $BUILD_DIR"
+          for apk in "$BUILD_DIR"/*.apk; do
+            if [ -f "$apk" ]; then
+              echo "✅ Found: $apk"
+              cp -v "$apk" "$RELEASE_DIR/"
+              APK_COUNT=$((APK_COUNT + 1))
+            fi
+          done
         fi
         
-        # 也检查 bin 目录
+        # 2. 检查 bin 目录（兼容旧版本）
         if [ -d "bin" ]; then
-          cp -v bin/*.apk release/ 2>/dev/null || true
+          echo "📁 Checking bin directory"
+          for apk in bin/*.apk; do
+            if [ -f "$apk" ]; then
+              echo "✅ Found: $apk"
+              cp -v "$apk" "$RELEASE_DIR/" || true
+              APK_COUNT=$((APK_COUNT + 1))
+            fi
+          done
         fi
         
-        echo "=== Release directory contents ==="
-        ls -la release/ || echo "No release directory"
+        # 3. 全局查找（排除 .buildozer）
+        echo "📁 Searching entire project (excluding .buildozer)"
+        find . -path "./.buildozer" -prune -o -path "./release" -prune -o -name "*.apk" -type f -print | while read apk; do
+          echo "✅ Found (other): $apk"
+          cp -v "$apk" "$RELEASE_DIR/" || true
+        done
+        
+        # 重新统计
+        FINAL_COUNT=$(ls -1 "$RELEASE_DIR"/*.apk 2>/dev/null | wc -l)
+        
+        echo ""
+        echo "=========================================="
+        echo "📊 APK Summary"
+        echo "=========================================="
+        echo "Total APK files found: $FINAL_COUNT"
+        echo ""
+        echo "Release directory contents:"
+        ls -lh "$RELEASE_DIR/" || echo "No files in release directory"
+        echo "=========================================="
         
         # 设置输出变量
-        APK_COUNT=$(ls -1 release/*.apk 2>/dev/null | wc -l)
-        echo "apk_count=$APK_COUNT" >> $GITHUB_OUTPUT
-      id: find_apk
+        echo "apk_count=$FINAL_COUNT" >> $GITHUB_OUTPUT
+        echo "apk_path=$RELEASE_DIR" >> $GITHUB_OUTPUT
+        
+        # 如果没找到 APK，显示错误
+        if [ "$FINAL_COUNT" -eq 0 ]; then
+          echo "::error::未找到 APK 文件！"
+          echo "请检查构建日志"
+          exit 1
+        fi
+        
+        # 显示 APK 信息
+        if [ "$FINAL_COUNT" -gt 0 ]; then
+          echo ""
+          echo "📱 APK Information:"
+          for apk in "$RELEASE_DIR"/*.apk; do
+            if [ -f "$apk" ]; then
+              echo "  File: $(basename $apk)"
+              echo "  Size: $(ls -lh $apk | awk '{print $5}')"
+              echo "  Path: $apk"
+              echo ""
+            fi
+          done
+        fi
     
-    - name: Upload APK
+    - name: Upload APK (Artifact)
       uses: actions/upload-artifact@v4
       with:
         name: woaibagua-apk-${{ github.run_number }}
         path: |
-          bin/*.apk
           release/*.apk
-        if-no-files-found: warn
+        if-no-files-found: error
         retention-days: 30
     
     - name: Upload build logs
@@ -186,25 +259,40 @@ jobs:
         name: build-logs-${{ github.run_number }}
         path: |
           build.log
-          .buildozer/android/platform/build-*/build.log 2>/dev/null || true
+          .buildozer/android/platform/build-*/build.log
         if-no-files-found: ignore
         retention-days: 7
     
     - name: Create Release (on tag)
       if: startsWith(github.ref, 'refs/tags/v')
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           release/*.apk
         generate_release_notes: true
+        fail_on_unmatched_files: false
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Build Summary
       if: always()
       run: |
-        echo "=== Build Summary ==="
-        echo "Build Status: ${{ job.status }}"
-        echo "APK Files Found: ${{ steps.find_apk.outputs.apk_count || '0' }}"
+        echo "=========================================="
+        echo "📋 Build Summary"
+        echo "=========================================="
+        echo "Status: ${{ job.status }}"
         echo "Run Number: ${{ github.run_number }}"
         echo "Commit: ${{ github.sha }}"
+        echo "Branch/Tag: ${{ github.ref }}"
+        echo "APK Count: ${{ steps.find_apk.outputs.apk_count }}"
+        echo ""
+        
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Build completed successfully!"
+        else
+          echo "❌ Build failed!"
+        fi
+        
+        echo "=========================================="
