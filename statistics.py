@@ -11,7 +11,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.metrics import dp, sp
 from kivy.graphics import Color, Rectangle
-from utils.logger import info
+from logger import info
 
 
 class ProgressBar(BoxLayout):

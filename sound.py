@@ -7,7 +7,7 @@
 
 import os
 from kivy.core.audio import SoundLoader
-from utils.logger import info, debug
+from logger import info, debug
 
 
 class SoundManager:

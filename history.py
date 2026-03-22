@@ -8,7 +8,7 @@
 import json
 import os
 from datetime import datetime
-from utils.config import Config
+from config import Config
 
 
 class HistoryManager:

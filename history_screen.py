@@ -12,9 +12,9 @@ from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.metrics import dp, sp
-from features.history.history import get_history_manager
-from utils.config import Config
-from utils.logger import info
+from history import get_history_manager
+from config import Config
+from logger import info
 
 
 class HistoryItem(BoxLayout):

@@ -8,7 +8,7 @@
 from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.button import Button
-from utils.logger import info
+from logger import info
 
 
 class LongPressBehavior:

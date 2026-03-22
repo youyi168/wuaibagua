@@ -5,7 +5,7 @@
 提供智能解读、吉凶判断、事项分析等功能
 """
 
-from utils.logger import info, debug
+from logger import info, debug
 
 
 class GuaInterpreter:

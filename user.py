@@ -9,8 +9,8 @@ import uuid
 import os
 import hashlib
 from datetime import datetime
-from utils.config import Config
-from utils.logger import info, debug
+from config import Config
+from logger import info, debug
 
 
 class UserManager:

@@ -9,7 +9,7 @@ import json
 import os
 import hashlib
 import time
-from utils.config import Config
+from config import Config
 
 
 class GuaDataCache:

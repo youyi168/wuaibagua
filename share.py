@@ -7,7 +7,7 @@
 
 import os
 from datetime import datetime
-from utils.config import Config
+from config import Config
 
 
 class ShareManager:
