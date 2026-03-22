@@ -29,6 +29,7 @@ from cache import get_cache_manager
 from logger import get_logger, info, success
 from theme import get_theme_manager
 from share import get_share_manager
+from compact_gua import CompactGuaDisplay
 
 # 尝试导入 webbrowser（桌面端）
 try:
@@ -528,18 +529,20 @@ class MainScreen(BoxLayout):
         self.btn_clear.bind(on_press=self.on_clear)
         self.add_widget(self.btn_clear)
         
-        # 卦象显示区域
-        gua_layout = BoxLayout(
-            size_hint_y=0.38,
-            spacing=self.responsive.get_spacing(12)
-        )
+        # 卦象显示区域（紧凑版）
+        self.compact_gua = CompactGuaDisplay(responsive=self.responsive)
+        self.add_widget(self.compact_gua)
         
+        # 保留旧的 GuaDisplay 用于兼容性（隐藏）
+        gua_layout = BoxLayout(
+            size_hint_y=0.25,
+            spacing=self.responsive.get_spacing(12),
+            opacity=0
+        )
         self.ben_gua_display = GuaDisplay(title="本卦", responsive=self.responsive)
         gua_layout.add_widget(self.ben_gua_display)
-        
         self.bian_gua_display = GuaDisplay(title="变卦", responsive=self.responsive)
         gua_layout.add_widget(self.bian_gua_display)
-        
         self.add_widget(gua_layout)
         
         # 动爻信息
@@ -554,9 +557,9 @@ class MainScreen(BoxLayout):
         )
         self.add_widget(self.dong_info)
         
-        # 解卦区域（滚动）
+        # 解卦区域（滚动）- 增大到 45%
         scroll = ScrollView(
-            size_hint_y=0.35,
+            size_hint_y=0.45,
             do_scroll_x=False,
             scroll_type=['bars', 'content'],
             bar_width=self.responsive.get_dp(4)
@@ -680,23 +683,10 @@ class MainScreen(BoxLayout):
         
         result = self.current_result
         
-        self.ben_gua_display.update_display(
-            result['ben_gua'],
-            result['yao_list'],
-            True
-        )
+        # 使用紧凑卦象显示
+        self.compact_gua.update_display(result)
         
-        if result['bian_gua']:
-            self.bian_gua_display.update_display(
-                result['bian_gua'],
-                result['bian_yao_list'],
-                False
-            )
-        else:
-            self.bian_gua_display.gua_name_label.text = "无变卦（六爻皆静）"
-            for label in self.bian_gua_display.yao_labels:
-                label.text = ""
-        
+        # 显示动爻
         if result['dong_yao']:
             dong_text = f"动爻：第{'、第'.join(map(str, result['dong_yao']))}爻"
         else:
