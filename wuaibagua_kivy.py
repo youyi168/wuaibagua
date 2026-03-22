@@ -696,20 +696,65 @@ class MainScreen(BoxLayout):
         self.display_jie_gua()
     
     def display_jie_gua(self):
-        """显示解卦"""
+        """显示解卦（本卦 + 变卦对比 + 动爻详解）"""
         result = self.current_result
-        ben_gua_name = result['ben_gua']['name']
+        ben_gua = result['ben_gua']
+        bian_gua = result['bian_gua']
         dong_yao = result['dong_yao']
         yao_list = result['yao_list']
+        bian_yao_list = result.get('bian_yao_list', [])
         
-        gua_data = self.engine.gua_data.get_gua_info(ben_gua_name)
+        ben_gua_name = ben_gua['name']
+        ben_gua_data = self.engine.gua_data.get_gua_info(ben_gua_name)
         
-        text = f"[b]【{ben_gua_name}】[/b]\n"
-        text += f"上卦：{result['ben_gua']['upper_name']} {GuaData.BAGUA_SYMBOLS.get(result['ben_gua']['upper_name'], '')}\n"
-        text += f"下卦：{result['ben_gua']['lower_name']} {GuaData.BAGUA_SYMBOLS.get(result['ben_gua']['lower_name'], '')}\n\n"
+        # 构建对比视图文本
+        text = ""
         
-        text += "[b]【断卦】[/b]\n"
+        # ========== 1. 本卦变卦对比 ==========
+        text += "[b]▌本卦 ⇄ 变卦[/b]\n"
+        text += f"[b]{ben_gua_name}[/b] ䷀ ⇄  "
         
+        if bian_gua:
+            bian_gua_name = bian_gua['name']
+            text += f"[b]{bian_gua_name}[/b]\n"
+            
+            # 卦象结构对比
+            text += f"上{ben_gua['upper_name']}{GuaData.BAGUA_SYMBOLS.get(ben_gua['upper_name'], '')} → 上{bian_gua['upper_name']}{GuaData.BAGUA_SYMBOLS.get(bian_gua['upper_name'], '')}\n"
+            text += f"下{ben_gua['lower_name']}{GuaData.BAGUA_SYMBOLS.get(ben_gua['lower_name'], '')} → 下{bian_gua['lower_name']}{GuaData.BAGUA_SYMBOLS.get(bian_gua['lower_name'], '')}\n"
+        else:
+            text += "无变卦（六爻皆静）\n"
+        
+        text += "\n"
+        
+        # ========== 2. 卦辞对比 ==========
+        text += "[b]▌卦辞对比[/b]\n"
+        text += f"[b]本卦【{ben_gua_name}】[/b]\n"
+        
+        # 提取卦辞（第一行）
+        ben_lines = ben_gua_data.strip().split('\n')
+        if ben_lines:
+            text += f"{ben_lines[0]}\n"
+            # 查找白话解释
+            for i, line in enumerate(ben_lines):
+                if '【白话】' in line and i < 3:
+                    text += f"{line}\n"
+                    break
+        
+        if bian_gua:
+            bian_gua_name = bian_gua['name']
+            bian_gua_data = self.engine.gua_data.get_gua_info(bian_gua_name)
+            text += f"\n[b]变卦【{bian_gua_name}】[/b]\n"
+            bian_lines = bian_gua_data.strip().split('\n')
+            if bian_lines:
+                text += f"{bian_lines[0]}\n"
+                for i, line in enumerate(bian_lines):
+                    if '【白话】' in line and i < 3:
+                        text += f"{line}\n"
+                        break
+        
+        text += "\n"
+        
+        # ========== 3. 断卦规则 ==========
         if not dong_yao:
             text += "六爻皆静，以本卦卦辞断之。\n"
         elif len(dong_yao) == 1:
@@ -736,12 +781,69 @@ class MainScreen(BoxLayout):
             elif ben_gua_name == '坤为地':
                 text += "六爻皆动，坤卦用「用六」断之。\n"
             else:
-                text += f"六爻皆动，看变卦（{result['bian_gua']['name']}）断之。\n"
+                text += f"六爻皆动，看变卦（{bian_gua['name'] if bian_gua else '无'}）断之。\n"
         
-        if result['bian_gua']:
-            text += f"\n变卦：{result['bian_gua']['name']}\n"
+        text += "\n"
         
-        text += f"\n[b]【卦辞爻辞】[/b]\n{gua_data}"
+        # ========== 4. 动爻详解 ==========
+        if dong_yao:
+            text += "[b]▌动爻详解[/b]\n"
+            
+            for yao_pos in dong_yao:
+                idx = yao_pos - 1  # 索引从 0 开始
+                yao_name = GuaData.YAO_NAMES[idx]
+                ben_yao = yao_list[idx]
+                
+                text += f"\n[b]{yao_name}[/b]\n"
+                
+                # 本卦爻辞
+                text += f"本：{ben_yao['name']} {ben_yao['symbol']}\n"
+                
+                # 查找爻辞原文
+                for line in ben_lines:
+                    if yao_name in line and ('九' in yao_name or '六' in yao_name):
+                        text += f"{line}\n"
+                        # 查找白话
+                        ben_idx = ben_lines.index(line)
+                        for j in range(ben_idx + 1, min(ben_idx + 3, len(ben_lines))):
+                            if '【白话】' in ben_lines[j]:
+                                text += f"{ben_lines[j]}\n"
+                                break
+                        break
+                
+                # 变卦爻辞（如果有变化）
+                if bian_gua and idx < len(bian_yao_list):
+                    bian_yao = bian_yao_list[idx]
+                    if ben_yao['yin_yang'] != bian_yao['yin_yang']:
+                        text += f"变：{bian_yao['name']} {bian_yao['symbol']}\n"
+                        # 查找变卦爻辞
+                        bian_gua_name = bian_gua['name']
+                        bian_gua_data = self.engine.gua_data.get_gua_info(bian_gua_name)
+                        bian_lines = bian_gua_data.strip().split('\n')
+                        for line in bian_lines:
+                            if yao_name in line:
+                                text += f"{line}\n"
+                                bian_idx = bian_lines.index(line)
+                                for j in range(bian_idx + 1, min(bian_idx + 3, len(bian_lines))):
+                                    if '【白话】' in bian_lines[j]:
+                                        text += f"{bian_lines[j]}\n"
+                                        break
+                                break
+                
+                # 解读
+                text += f"[i]【解读】[/i]"
+                if '阳' in ben_yao['yin_yang'] and '阴' in bian_yao['yin_yang'] if bian_gua and idx < len(bian_yao_list) else False:
+                    text += "阳变阴，表示由刚转柔，宜退守...\n"
+                elif '阴' in ben_yao['yin_yang'] and '阳' in bian_yao['yin_yang'] if bian_gua and idx < len(bian_yao_list) else False:
+                    text += "阴变阳，表示由柔转刚，宜进取...\n"
+                else:
+                    text += "此爻变动，需结合卦象综合判断...\n"
+        
+        text += "\n"
+        
+        # ========== 5. 完整爻辞 ==========
+        text += "[b]▌完整爻辞（本卦）[/b]\n"
+        text += f"{gua_data}"
         
         self.result_label.text = text
 
