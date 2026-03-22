@@ -23,9 +23,12 @@ android.permissions =
     FOREGROUND_SERVICE,
     WAKE_LOCK
 
-android.api = 33
+android.api = 36
 android.minapi = 21
 android.ndk_api = 21
+
+# 使用 webview bootstrap 替代 sdl2 (解决图形线程互斥锁问题)
+p4a.bootstrap = webview
 android.ndk = 25b
 android.skip_update = False
 android.accept_sdk_license = True
