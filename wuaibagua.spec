@@ -94,9 +94,9 @@ hiddenimports = [
 ]
 
 # 使用 PyInstaller hooks 收集所有本地模块
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 
-# 收集所有本地模块
+# 收集所有本地模块（显式添加到 hiddenimports）
 local_modules = [
     'config',
     'logger',
@@ -116,14 +116,15 @@ local_modules = [
     'history_screen',
 ]
 
-# 添加到 hiddenimports
+# 添加到 hiddenimports（不使用 collect_submodules，直接添加模块名）
+hiddenimports.extend(local_modules)
+
+# 收集本地模块的数据文件
 for module in local_modules:
     try:
-        hiddenimports.extend(collect_submodules(module))
+        datas.extend(collect_data_files(module))
     except Exception as e:
-        print(f"[WARN] Could not collect {module}: {e}")
-        # 如果 collect_submodules 失败，直接添加模块名
-        hiddenimports.append(module)
+        print(f"[WARN] Could not collect data from {module}: {e}")
 
 # PyInstaller 配置
 a = Analysis(
