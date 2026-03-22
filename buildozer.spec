@@ -3,8 +3,8 @@ title = 我爱八卦
 package.name = woaibagua
 package.domain = org.woaibagua
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf,svg
-version = 1.5.0
+source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf,svg,mp3,ogg,wav
+version = 1.6.0
 icon.filename = icon.png
 requirements = python3,kivy,pyjnius
 # 使用清华镜像下载 Python 源码
