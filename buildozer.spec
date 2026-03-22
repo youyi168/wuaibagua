@@ -23,7 +23,7 @@ android.permissions =
     FOREGROUND_SERVICE,
     WAKE_LOCK
 
-android.api = 36
+android.api = 33
 android.minapi = 21
 android.ndk_api = 21
 android.ndk = 25b
