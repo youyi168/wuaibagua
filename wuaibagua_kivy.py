@@ -470,7 +470,7 @@ class MainScreen(BoxLayout):
         )
         self.add_widget(title)
         
-        # 顶部工具栏（主题切换 + 分享）
+        # 顶部工具栏（主题切换 + 分享 + 历史记录）
         toolbar = BoxLayout(
             size_hint_y=None,
             height=self.responsive.get_height(45),
@@ -494,6 +494,15 @@ class MainScreen(BoxLayout):
         )
         self.btn_share.bind(on_press=self.on_share)
         toolbar.add_widget(self.btn_share)
+        
+        # 历史记录按钮
+        self.btn_history = Button(
+            text="📜 历史",
+            font_size=self.responsive.get_font_size(15),
+            background_color=(0.4, 0.3, 0.5, 1)
+        )
+        self.btn_history.bind(on_press=self.on_history)
+        toolbar.add_widget(self.btn_history)
         
         self.add_widget(toolbar)
         
@@ -713,6 +722,25 @@ class MainScreen(BoxLayout):
         # 使用系统分享菜单
         self.share_manager.share_system(self.current_result)
         info('已打开分享菜单')
+    
+    def on_history(self, instance):
+        """打开历史记录"""
+        try:
+            from history_screen import HistoryScreen
+            from kivy.factory import Factory
+            
+            # 注册屏幕
+            Factory.register('HistoryScreen', cls=HistoryScreen)
+            
+            # 获取屏幕管理器
+            app = Factory.App.get_running_app()
+            if app and hasattr(app, 'screen_manager'):
+                app.screen_manager.current = 'history'
+            else:
+                # 如果没有屏幕管理器，显示简单提示
+                info('历史记录功能开发中...')
+        except Exception as e:
+            error(f'打开历史记录失败：{e}')
     
     def focus_next(self):
         """输入框回车后聚焦到起卦按钮"""
