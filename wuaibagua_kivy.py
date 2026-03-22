@@ -30,6 +30,7 @@ from logger import get_logger, info, success
 from theme import get_theme_manager
 from share import get_share_manager
 from compact_gua import CompactGuaDisplay
+from copy import copy_to_clipboard
 
 # Kivy 文本输入组件
 from kivy.uix.textinput import TextInput
@@ -470,17 +471,17 @@ class MainScreen(BoxLayout):
         )
         self.add_widget(title)
         
-        # 顶部工具栏（主题切换 + 分享 + 历史记录）
+        # 顶部工具栏（主题切换 + 分享 + 复制 + 历史记录）
         toolbar = BoxLayout(
             size_hint_y=None,
             height=self.responsive.get_height(45),
-            spacing=self.responsive.get_spacing(10)
+            spacing=self.responsive.get_spacing(8)
         )
         
         # 主题切换按钮
         self.btn_theme = Button(
             text="🌙 深色" if self.theme_manager.is_light() else "☀️ 浅色",
-            font_size=self.responsive.get_font_size(15),
+            font_size=self.responsive.get_font_size(14),
             background_color=(0.3, 0.3, 0.3, 1) if self.theme_manager.is_light() else (0.8, 0.8, 0.8, 1)
         )
         self.btn_theme.bind(on_press=self.on_toggle_theme)
@@ -488,18 +489,33 @@ class MainScreen(BoxLayout):
         
         # 分享按钮
         self.btn_share = Button(
-            text="📤 分享",
-            font_size=self.responsive.get_font_size(15),
-            background_color=(0.2, 0.5, 0.2, 1)
+            text="📤",
+            font_size=self.responsive.get_font_size(16),
+            background_color=(0.2, 0.5, 0.2, 1),
+            size_hint_x=None,
+            width=self.responsive.get_height(45)
         )
         self.btn_share.bind(on_press=self.on_share)
         toolbar.add_widget(self.btn_share)
         
+        # 复制按钮
+        self.btn_copy = Button(
+            text="📋",
+            font_size=self.responsive.get_font_size(16),
+            background_color=(0.3, 0.5, 0.7, 1),
+            size_hint_x=None,
+            width=self.responsive.get_height(45)
+        )
+        self.btn_copy.bind(on_press=self.on_copy)
+        toolbar.add_widget(self.btn_copy)
+        
         # 历史记录按钮
         self.btn_history = Button(
-            text="📜 历史",
-            font_size=self.responsive.get_font_size(15),
-            background_color=(0.4, 0.3, 0.5, 1)
+            text="📜",
+            font_size=self.responsive.get_font_size(16),
+            background_color=(0.4, 0.3, 0.5, 1),
+            size_hint_x=None,
+            width=self.responsive.get_height(45)
         )
         self.btn_history.bind(on_press=self.on_history)
         toolbar.add_widget(self.btn_history)
@@ -697,21 +713,94 @@ class MainScreen(BoxLayout):
         self.result_label.text = "点击「电脑起卦」或「手动起卦」开始"
     
     def on_toggle_theme(self, instance):
-        """切换主题"""
+        """切换主题（完全应用）"""
         new_theme = self.theme_manager.toggle_theme()
+        theme = self.theme_manager.get_theme()
         
-        # 更新按钮文字
+        # 更新按钮文字和颜色
         if new_theme == 'dark':
             self.btn_theme.text = "☀️ 浅色"
-            self.btn_theme.background_color = (0.8, 0.8, 0.8, 1)
+            self.btn_theme.background_color = theme['bg_tertiary']
+            self.btn_theme.color = theme['text_primary']
             info('已切换到深色模式')
         else:
             self.btn_theme.text = "🌙 深色"
-            self.btn_theme.background_color = (0.3, 0.3, 0.3, 1)
+            self.btn_theme.background_color = theme['bg_secondary']
+            self.btn_theme.color = theme['text_primary']
             info('已切换到浅色模式')
         
-        # TODO: 重新应用主题到所有 UI 组件
+        # 应用主题到所有组件
+        self._apply_theme()
+        
         success(f'主题已切换：{self.theme_manager.get_theme_name()}')
+    
+    def _apply_theme(self):
+        """应用当前主题到所有 UI 组件"""
+        theme = self.theme_manager.get_theme()
+        
+        # 背景色
+        self.canvas.before.clear()
+        with self.canvas.before:
+            from kivy.graphics import Color, Rectangle
+            Color(*theme['bg_primary'])
+            self.bg_rect = Rectangle(size=self.size, pos=self.pos)
+        
+        # 标题颜色
+        for child in self.children:
+            if isinstance(child, Label):
+                child.color = theme['text_primary']
+            elif isinstance(child, Button):
+                child.color = theme['text_primary']
+        
+        # 强制刷新
+        self.canvas.ask_update()
+    
+    def on_copy(self, instance):
+        """复制卦象结果"""
+        if not self.current_result:
+            info('复制失败：没有起卦结果')
+            return
+        
+        # 生成完整文本
+        text = self._generate_full_text()
+        
+        # 复制到剪贴板
+        if copy_to_clipboard(text):
+            success('✅ 已复制到剪贴板')
+    
+    def _generate_full_text(self):
+        """生成完整卦象文本"""
+        if not self.current_result:
+            return ''
+        
+        result = self.current_result
+        ben_gua = result.get('ben_gua', {})
+        bian_gua = result.get('bian_gua')
+        dong_yao = result.get('dong_yao', [])
+        topic = getattr(self, 'divination_topic', '')
+        
+        text = f"【{Config.APP_NAME}】起卦结果\n\n"
+        from datetime import datetime
+        text += f"📅 时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+        
+        if topic:
+            text += f"📝 事项：{topic}\n\n"
+        
+        text += f"🔮 本卦：{ben_gua.get('name', '未知')}\n"
+        
+        if bian_gua:
+            text += f"🔄 变卦：{bian_gua.get('name')}\n"
+        else:
+            text += f"🔄 变卦：无（六爻皆静）\n"
+        
+        if dong_yao:
+            yao_names = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻']
+            dong_text = '、'.join([yao_names[i-1] for i in dong_yao])
+            text += f"⚡ 动爻：{dong_text}\n"
+        
+        text += f"\n—— {Config.APP_NAME} v{Config.VERSION}"
+        
+        return text
     
     def on_share(self, instance):
         """分享卦象结果"""

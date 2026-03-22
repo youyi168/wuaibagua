@@ -176,6 +176,16 @@ class ThemeManager:
             return '深色模式'
         else:
             return '浅色模式'
+    
+    def apply_to_label(self, label, color_type='text_primary'):
+        """应用主题到 Label 组件"""
+        color = self.get_color(color_type)
+        label.color = color
+    
+    def apply_to_button(self, button, color_type='primary'):
+        """应用主题到 Button 组件"""
+        color = self.get_color(color_type)
+        button.background_color = color
 
 
 # 全局单例
@@ -187,3 +197,16 @@ def get_theme_manager():
     if _theme_manager is None:
         _theme_manager = ThemeManager()
     return _theme_manager
+
+
+def apply_theme_to_widget(widget, theme_manager):
+    """应用主题到任意组件"""
+    theme = theme_manager.get_theme()
+    
+    # 背景色
+    if hasattr(widget, 'background_color'):
+        widget.background_color = theme['bg_secondary']
+    
+    # 文字颜色
+    if hasattr(widget, 'color'):
+        widget.color = theme['text_primary']
