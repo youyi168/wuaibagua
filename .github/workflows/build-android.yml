@@ -177,7 +177,7 @@ jobs:
         
         echo ""
         echo "🔍 Checking main module:"
-        ls -la main.py src/wuaibagua_kivy.py 2>/dev/null || echo "Main module not found"
+        ls -la main.py 2>/dev/null || echo "Main module not found"
         
         echo "=========================================="
     
