@@ -8,10 +8,6 @@ source.include_dirs = data,fonts,sounds,resources
 version = 1.6.0
 icon.filename = icon.png
 
-# 指定主程序入口
-presplash_filename = 
-icon.filename = icon.png
-
 requirements = python3,kivy,pyjnius
 
 # 使用清华镜像下载 Python 源码
