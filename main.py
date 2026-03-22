@@ -11,10 +11,10 @@ import sys
 import os
 
 # 添加 src 目录到路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
 # 导入主应用
-from wuaibagua_kivy import WuaibaguaApp
+from src.wuaibagua_kivy import WuaibaguaApp
 
 if __name__ == '__main__':
     WuaibaguaApp().run()

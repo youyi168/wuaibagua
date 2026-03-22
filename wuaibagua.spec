@@ -19,10 +19,10 @@ from PyInstaller.utils.hooks import collect_data_files
 name = '我爱八卦'
 
 # 版本号
-version = '1.0.4'
+version = '1.6.0'
 
-# 主程序文件
-main_script = 'wuaibagua_kivy.py'
+# 主程序文件（使用新的入口）
+main_script = 'main.py'
 
 # 收集数据文件（不触发 Kivy 导入）
 datas = []
