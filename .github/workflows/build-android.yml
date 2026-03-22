@@ -61,13 +61,13 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
     
-    - name: Install system dependencies (Complete)
+    - name: Install system dependencies (Minimal)
       run: |
-        echo "📦 Installing system dependencies..."
-        sudo apt-get update
+        echo "📦 Installing minimal system dependencies..."
+        sudo apt-get update -qq
         
-        # 核心构建工具
-        sudo apt-get install -y \
+        # Buildozer 核心依赖（精简版）
+        sudo apt-get install -y --no-install-recommends \
           git zip unzip \
           autoconf libtool pkg-config \
           zlib1g-dev libncurses5-dev libncursesw5-dev liblzma-dev \
@@ -76,13 +76,22 @@ jobs:
           automake cmake \
           libgtk-3-dev \
           libgl1-mesa-dev libglu1-mesa-dev \
-          libgstreamer1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
           libbz2-dev libreadline-dev libsqlite3-dev \
-          llvm libncurses5-dev libncursesw5-dev \
-          xz-utils tk-dev libxml2-dev libxmlsec1-dev liblzma-dev \
-          wget curl ca-certificates
+          libxml2-dev \
+          wget curl ca-certificates || {
+          echo "::error::系统依赖安装失败"
+          exit 1
+        }
         
-        echo "✅ System dependencies installed"
+        # 验证安装
+        echo ""
+        echo "📋 Verifying installed packages:"
+        echo "  git: $(git --version 2>&1 | head -1)"
+        echo "  cmake: $(cmake --version | head -1)"
+        echo "  python3: $(python3 --version)"
+        echo "  pip3: $(pip3 --version | head -1)"
+        
+        echo "✅ Minimal dependencies installed"
     
     - name: Configure Git and Network
       run: |
