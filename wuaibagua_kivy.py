@@ -31,6 +31,7 @@ from theme import get_theme_manager
 from share import get_share_manager
 from compact_gua import CompactGuaDisplay
 from copy import copy_to_clipboard
+from user import get_user_manager, get_daily_seed
 
 # Kivy 文本输入组件
 from kivy.uix.textinput import TextInput
@@ -212,13 +213,31 @@ class DivinationEngine:
     def __init__(self):
         self.gua_data = GuaData()
     
-    def cast_by_computer(self):
-        """电脑自动起卦"""
+    def cast_by_computer(self, seed=None):
+        """电脑自动起卦
+        
+        Args:
+            seed: 随机种子（可选），用于每日运势等场景
+                   如果提供种子，同一用户同一天会得到相同结果
+                   如果不提供，完全随机
+        
+        Returns:
+            6 次投掷结果列表
+        """
+        if seed is not None:
+            # 使用种子（可复现）
+            random.seed(seed)
+        
         results = []
         for i in range(6):
             coins = [random.randint(0, 1) for _ in range(3)]
             sum_coins = sum(coins)
             results.append(sum_coins)
+        
+        # 重置种子（避免影响其他随机操作）
+        if seed is not None:
+            random.seed()
+        
         return results
     
     def analyze_gua(self, results):
@@ -450,6 +469,11 @@ class MainScreen(BoxLayout):
         self.manual_mode = False
         self.divination_topic = ''  # 占卜事项
         
+        # 用户管理器（个性化运势）
+        self.user_manager = get_user_manager()
+        user_info = self.user_manager.get_user_info()
+        info(f'用户 ID: {user_info["user_id_short"]} (设备：{user_info["device_id"]})')
+        
         # 管理器初始化
         self.history_manager = get_history_manager()
         self.theme_manager = get_theme_manager()
@@ -554,6 +578,17 @@ class MainScreen(BoxLayout):
         topic_layout.add_widget(self.topic_input)
         
         self.add_widget(topic_layout)
+        
+        # 每日运势按钮
+        self.btn_daily = Button(
+            text="📅 今日运势",
+            font_size=self.responsive.get_font_size(17),
+            size_hint_y=None,
+            height=self.responsive.get_height(55),
+            background_color=(0.6, 0.3, 0.6, 1)
+        )
+        self.btn_daily.bind(on_press=lambda x: self.on_daily_fortune())
+        self.add_widget(self.btn_daily)
         
         # 起卦按钮区域
         btn_layout = BoxLayout(
@@ -661,13 +696,26 @@ class MainScreen(BoxLayout):
         
         self.add_widget(search_layout)
     
-    def on_auto_cast(self, instance):
-        """自动起卦"""
+    def on_auto_cast(self, instance, use_daily_seed=False):
+        """自动起卦
+        
+        Args:
+            use_daily_seed: 是否使用每日种子（用于每日运势）
+        """
         # 保存占卜事项
         topic = self.topic_input.text.strip()
         self.divination_topic = topic
         
-        results = self.engine.cast_by_computer()
+        # 起卦
+        if use_daily_seed:
+            # 每日运势：使用个性化种子
+            seed = get_daily_seed()
+            results = self.engine.cast_by_computer(seed=seed)
+            info(f'每日运势：种子={seed}')
+        else:
+            # 普通起卦：完全随机
+            results = self.engine.cast_by_computer()
+        
         self.current_result = self.engine.analyze_gua(results)
         self.display_result()
         
@@ -679,7 +727,21 @@ class MainScreen(BoxLayout):
         )
         
         info(f'电脑起卦：{self.current_result["ben_gua"]["name"]}' + 
-             (f' - 事项：{topic}' if topic else ''))
+             (f' - 事项：{topic}' if topic else '') +
+             (f' (每日运势)' if use_daily_seed else ''))
+    
+    def on_daily_fortune(self, instance):
+        """每日运势"""
+        # 获取今日日期
+        from datetime import datetime
+        today = datetime.now()
+        date_str = today.strftime('%Y年%m月%d日')
+        
+        # 使用每日种子起卦
+        self.on_auto_cast(instance, use_daily_seed=True)
+        
+        # 显示提示
+        success(f'📅 {date_str} 运势已生成\n（同一用户今日结果相同）')
     
     def on_manual_cast(self, instance):
         """手动起卦"""
