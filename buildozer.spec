@@ -15,8 +15,15 @@ hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11
 
 orientation = portrait
 fullscreen = 0
-android.permissions = VIBRATE,INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE
-android.api = 33
+android.permissions = 
+    VIBRATE,
+    INTERNET,
+    READ_EXTERNAL_STORAGE,
+    WRITE_EXTERNAL_STORAGE,
+    FOREGROUND_SERVICE,
+    WAKE_LOCK
+
+android.api = 31
 android.minapi = 21
 android.ndk_api = 21
 android.ndk = 25b
