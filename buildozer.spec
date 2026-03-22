@@ -4,11 +4,11 @@ package.name = woaibagua
 package.domain = org.woaibagua
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf,svg,mp3,ogg,wav
-source.include_dirs = data,fonts,sounds,resources
+source.include_dirs = data,fonts,sounds
 version = 1.6.0
 icon.filename = icon.png
 
-requirements = python3,kivy,pyjnius
+requirements = python3,kivy==2.3.0,pyjnius
 
 # 使用清华镜像下载 Python 源码
 hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11.5.tgz

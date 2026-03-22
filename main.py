@@ -10,11 +10,13 @@
 import sys
 import os
 
-# 添加 src 目录到路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+# 添加 src 目录到路径（兼容 Buildozer 环境）
+src_path = os.path.join(os.path.dirname(__file__), 'src')
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 
 # 导入主应用
-from src.wuaibagua_kivy import WuaibaguaApp
+from wuaibagua_kivy import WuaibaguaApp
 
 if __name__ == '__main__':
     WuaibaguaApp().run()
