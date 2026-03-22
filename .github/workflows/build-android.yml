@@ -66,12 +66,12 @@ jobs:
         echo "📦 Installing minimal system dependencies..."
         sudo apt-get update -qq
         
-        # Buildozer 核心依赖（精简版）
+        # Buildozer 核心依赖（包含 distutils）
         sudo apt-get install -y --no-install-recommends \
           git zip unzip \
           autoconf libtool pkg-config \
           zlib1g-dev libncurses5-dev libncursesw5-dev liblzma-dev \
-          python3-pip python3-venv \
+          python3-pip python3-venv python3-distutils \
           libffi-dev libssl-dev \
           automake cmake \
           libgtk-3-dev \
@@ -83,14 +83,7 @@ jobs:
           exit 1
         }
         
-        # 验证安装
-        echo ""
-        echo "📋 Verifying installed packages:"
-        echo "  git: $(git --version 2>&1 | head -1)"
-        echo "  cmake: $(cmake --version | head -1)"
-        echo "  python3: $(python3 --version)"
-        echo "  pip3: $(pip3 --version | head -1)"
-        
+        # 验证
         echo "✅ Minimal dependencies installed"
     
     - name: Configure Git and Network
@@ -110,33 +103,34 @@ jobs:
       run: |
         echo "📦 Installing Buildozer..."
         
-        # 升级 pip
-        pip3 install --upgrade pip setuptools wheel
+        # 升级基础工具
+        python3 -m pip install --upgrade pip setuptools wheel
         
-        # 安装 Cython (兼容版本)
+        # 安装 Cython（优先使用预编译 wheel）
         echo "Installing Cython..."
+        pip3 install --only-binary :all: "Cython<3.0" 2>/dev/null || \
         pip3 install "Cython<3.0"
         
         # 安装 Buildozer
         echo "Installing Buildozer..."
-        pip3 install buildozer==1.5.0
+        pip3 install --no-cache-dir buildozer==1.5.0
         
-        # 安装虚拟环境工具
+        # 虚拟环境
         pip3 install virtualenv
         
         # 添加 PATH
         echo "$HOME/.local/bin" >> $GITHUB_PATH
         
-        # 验证安装
+        # 验证
         echo "✅ Buildozer installed"
         buildozer --version
         
-        # 显示 Python 环境
+        # 显示环境
         echo ""
         echo "📋 Python environment:"
         python3 --version
         pip3 --version
-        cython --version
+        cython --version 2>/dev/null || echo "Cython: installed"
         buildozer --version
     
     - name: Debug build environment
