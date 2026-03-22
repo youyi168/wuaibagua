@@ -27,8 +27,9 @@ android.api = 36
 android.minapi = 21
 android.ndk_api = 21
 
-# 使用 webview bootstrap 替代 sdl2 (解决图形线程互斥锁问题)
-p4a.bootstrap = webview
+# SDL2 配置优化（解决 Android 16 兼容性问题）
+p4a.bootstrap = sdl2
+p4a.extra_args = --allow-min-api-21
 android.ndk = 25b
 android.skip_update = False
 android.accept_sdk_license = True
