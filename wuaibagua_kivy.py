@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 我爱八卦 - 金钱卦算卦软件 (Kivy 版本)
-版本：v1.0.5
+版本：v1.1.0
 支持 Windows 和 Android 平台
-功能：电脑起卦、手动起卦、响应式 UI、网络搜索
+功能：电脑起卦、手动起卦、响应式 UI、网络搜索、历史记录、数据缓存
 """
 
 import random
@@ -22,12 +22,20 @@ from kivy.metrics import dp, sp
 from kivy.core.window import Window
 from kivy.clock import Clock
 
+# 导入配置和缓存模块
+from config import Config
+from history import get_history_manager
+from cache import get_cache_manager
+
 # 尝试导入 webbrowser（桌面端）
 try:
     import webbrowser
     WEBBROWSER_AVAILABLE = True
 except ImportError:
     WEBBROWSER_AVAILABLE = False
+
+# 打印应用信息
+Config.print_info()
 
 
 class ResponsiveUI:
@@ -152,26 +160,23 @@ class GuaData:
     YAO_NAMES = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻']
     
     def __init__(self):
-        self.data_dir = os.path.join(os.path.dirname(__file__), 'data')
+        self.data_dir = Config.get_data_dir()
         self.gua_data = {}
+        self.cache_manager = get_cache_manager()
         self.load_all_gua()
     
     def load_all_gua(self):
-        """加载所有卦象数据"""
+        """加载所有卦象数据（使用缓存）"""
         for gua_name in self.GUA_NAMES:
             self.gua_data[gua_name] = self.load_gua_data(gua_name)
     
     def load_gua_data(self, gua_name):
-        """加载单个卦象数据"""
+        """加载单个卦象数据（使用缓存加速）"""
         file_name = self.GUA_TO_FILE.get(gua_name, gua_name)
         filename = os.path.join(self.data_dir, f"{file_name}.txt")
-        if os.path.exists(filename):
-            try:
-                with open(filename, 'r', encoding='utf-8') as f:
-                    return f.read()
-            except Exception as e:
-                return f"{gua_name}的数据加载失败：{str(e)}"
-        return f"{gua_name}的数据文件不存在"
+        
+        # 使用缓存管理器加载（带缓存）
+        return self.cache_manager.get(gua_name, filename)
     
     def get_gua_by_index(self, upper, lower):
         """根据上下卦索引获取卦名"""
@@ -281,12 +286,13 @@ class DivinationEngine:
 class ManualCastDialog(Popup):
     """手动起卦对话框"""
     
-    def __init__(self, callback, responsive=None, **kwargs):
+    def __init__(self, callback, responsive=None, manual_mode=True, **kwargs):
         super().__init__(**kwargs)
         self.callback = callback
         self.responsive = responsive or ResponsiveUI()
         self.results = [None] * 6
         self.current_yao = 0
+        self.manual_mode = manual_mode
         
         layout = BoxLayout(orientation='vertical', 
                           padding=self.responsive.get_padding(20), 
@@ -347,7 +353,7 @@ class ManualCastDialog(Popup):
             yao_names = GuaData.YAO_NAMES
             self.yao_label.text = f"请投掷第{self.current_yao + 1}爻（{yao_names[self.current_yao]}）"
         else:
-            self.callback(self.results)
+            self.callback(self.results, self.manual_mode)
             self.dismiss()
 
 
@@ -418,7 +424,7 @@ class GuaDisplay(GridLayout):
 
 
 class MainScreen(BoxLayout):
-    """主界面 - 响应式版本（支持手动起卦）"""
+    """主界面 - 响应式版本（支持手动起卦、历史记录）"""
     
     def __init__(self, responsive=None, **kwargs):
         super().__init__(**kwargs)
@@ -430,6 +436,9 @@ class MainScreen(BoxLayout):
         self.engine = DivinationEngine()
         self.current_result = None
         self.manual_mode = False
+        
+        # 历史记录管理器
+        self.history_manager = get_history_manager()
         
         # 标题
         title = Label(
@@ -553,14 +562,18 @@ class MainScreen(BoxLayout):
         results = self.engine.cast_by_computer()
         self.current_result = self.engine.analyze_gua(results)
         self.display_result()
+        # 保存到历史记录
+        self.history_manager.add_record(self.current_result, manual_mode=False)
     
     def on_manual_cast(self, instance):
         """手动起卦"""
-        def on_complete(results):
+        def on_complete(results, manual_mode=True):
             self.current_result = self.engine.analyze_gua(results)
             self.display_result()
+            # 保存到历史记录
+            self.history_manager.add_record(self.current_result, manual_mode=manual_mode)
         
-        dialog = ManualCastDialog(on_complete, self.responsive)
+        dialog = ManualCastDialog(on_complete, self.responsive, manual_mode=True)
         dialog.open()
     
     def on_clear(self, instance):
