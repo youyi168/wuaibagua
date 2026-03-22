@@ -37,6 +37,13 @@ jobs:
       with:
         python-version: '3.10'
     
+    - name: Clear Buildozer cache (force rebuild)
+      run: |
+        echo "🧹 Clearing Buildozer cache to force fresh build..."
+        rm -rf ~/.buildozer
+        rm -rf .buildozer
+        echo "✅ Cache cleared"
+    
     - name: Cache Buildozer dependencies
       uses: actions/cache@v4
       with:
@@ -44,7 +51,7 @@ jobs:
           ~/.buildozer
           ~/.gradle/caches
           ~/.gradle/wrapper
-        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec', 'requirements*.txt') }}
+        key: ${{ runner.os }}-buildozer-${{ github.run_id }}-${{ hashFiles('buildozer.spec', 'requirements*.txt') }}
         restore-keys: |
           ${{ runner.os }}-buildozer-
     
@@ -79,14 +86,32 @@ jobs:
     
     - name: Install Buildozer
       run: |
+        echo "📦 Installing Buildozer..."
         pip3 install --upgrade pip
         pip3 install Cython==0.29.36
         pip3 install buildozer==1.5.0
         pip3 install virtualenv
         echo "$HOME/.local/bin" >> $GITHUB_PATH
+        echo "✅ Buildozer installed"
+        buildozer --version
     
-    - name: Prepare build directory
+    - name: Debug build environment
       run: |
+        echo "=========================================="
+        echo "🔍 Build Environment Debug"
+        echo "=========================================="
+        echo "Python version:"
+        python3 --version
+        
+        echo ""
+        echo "Buildozer version:"
+        buildozer --version
+        
+        echo ""
+        echo "Working directory:"
+        pwd
+        
+        echo ""
         echo "=========================================="
         echo "📦 Project Structure"
         echo "=========================================="
@@ -106,17 +131,25 @@ jobs:
         
         echo ""
         echo "📋 Buildozer config:"
-        cat buildozer.spec | grep -E "^(version|package\.|android\.)" || true
+        cat buildozer.spec | grep -E "^(version|package\.|android\.|source\.)" || true
         
         echo ""
         echo "📊 Python files count:"
         find . -name "*.py" -type f | wc -l
+        
+        echo ""
+        echo "🔍 Checking main module:"
+        ls -la wuaibagua_kivy.py 2>/dev/null || echo "wuaibagua_kivy.py not found"
         
         echo "=========================================="
     
     - name: Build APK with retry
       id: build_apk
       run: |
+        echo "=========================================="
+        echo "🔨 Starting APK Build"
+        echo "=========================================="
+        
         export PATH="$HOME/.local/bin:$PATH"
         
         export PYTHONHTTPSVERIFY=1
@@ -124,25 +157,35 @@ jobs:
         export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
         export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
         
+        echo "📋 Build configuration:"
+        echo "  PATH: $PATH"
+        echo "  PYTHONHTTPSVERIFY: $PYTHONHTTPSVERIFY"
+        echo ""
+        
         MAX_RETRIES=3
         RETRY_COUNT=0
         BUILD_SUCCESS=false
         
+        echo "⏱️ Build started at: $(date)"
+        
         while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$BUILD_SUCCESS" = "false" ]; do
           echo "=========================================="
           echo "🔨 Build attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES"
+          echo "⏱️ Time: $(date)"
           echo "=========================================="
           
           if buildozer android debug 2>&1 | tee build.log; then
             BUILD_SUCCESS=true
             echo "=========================================="
             echo "✅ Build successful!"
+            echo "⏱️ Completed at: $(date)"
             echo "=========================================="
           else
             RETRY_COUNT=$((RETRY_COUNT + 1))
             if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
               echo "=========================================="
               echo "⚠️ Build failed, retrying in 30 seconds..."
+              echo "⏱️ Retry at: $(date)"
               echo "=========================================="
               sleep 30
               rm -rf .buildozer/android/platform/build-*/build/bootstrap_builds
@@ -153,9 +196,16 @@ jobs:
         if [ "$BUILD_SUCCESS" = "false" ]; then
           echo "=========================================="
           echo "❌ Build failed after $MAX_RETRIES attempts"
+          echo "⏱️ Failed at: $(date)"
           echo "=========================================="
+          echo ""
+          echo "📋 Last 50 lines of build log:"
+          tail -50 build.log || true
           exit 1
         fi
+        
+        echo ""
+        echo "📊 Build log saved to: build.log"
       timeout-minutes: 90
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
