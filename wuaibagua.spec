@@ -91,6 +91,23 @@ hiddenimports = [
     'PIL',
     'PIL.Image',
     'pkg_resources',
+    # 本地模块
+    'config',
+    'logger',
+    'cache',
+    'copy',
+    'user',
+    'interpreter',
+    'theme',
+    'share',
+    'sound',
+    'favorite',
+    'history',
+    'quick_topic',
+    'animation',
+    'compact_gua',
+    'statistics',
+    'history_screen',
 ]
 
 # PyInstaller 配置
