@@ -41,7 +41,7 @@ try:
 except Exception as e:
     print(f"[WARN] Could not collect kivy data files: {e}")
 
-# 预定义的隐藏导入（不使用 collect_submodules 避免触发 Kivy）
+# 预定义的隐藏导入（使用 collect_all 收集所有本地模块）
 hiddenimports = [
     'kivy',
     'kivy.app',
@@ -91,7 +91,13 @@ hiddenimports = [
     'PIL',
     'PIL.Image',
     'pkg_resources',
-    # 本地模块
+]
+
+# 使用 PyInstaller hooks 收集所有本地模块
+from PyInstaller.utils.hooks import collect_submodules
+
+# 收集所有本地模块
+local_modules = [
     'config',
     'logger',
     'cache',
@@ -109,6 +115,15 @@ hiddenimports = [
     'statistics',
     'history_screen',
 ]
+
+# 添加到 hiddenimports
+for module in local_modules:
+    try:
+        hiddenimports.extend(collect_submodules(module))
+    except Exception as e:
+        print(f"[WARN] Could not collect {module}: {e}")
+        # 如果 collect_submodules 失败，直接添加模块名
+        hiddenimports.append(module)
 
 # PyInstaller 配置
 a = Analysis(
