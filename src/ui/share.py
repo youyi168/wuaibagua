@@ -35,7 +35,7 @@ class ShareManager:
         dong_yao = result.get('dong_yao', [])
         
         # 基础信息
-        text = f"【{self.app_name】起卦结果\n\n"
+        text = f"【{self.app_name】起卦结果" + "\n\n"
         text += f"📅 时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
         
         # 占卜事项
