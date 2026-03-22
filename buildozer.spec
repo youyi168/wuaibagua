@@ -23,13 +23,9 @@ android.permissions =
     FOREGROUND_SERVICE,
     WAKE_LOCK
 
-android.api = 36
+android.api = 33
 android.minapi = 21
 android.ndk_api = 21
-
-# SDL2 配置优化（解决 Android 16 兼容性问题）
-p4a.bootstrap = sdl2
-p4a.extra_args = --allow-min-api-21
 android.ndk = 25b
 android.skip_update = False
 android.accept_sdk_license = True
