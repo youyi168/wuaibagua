@@ -26,6 +26,9 @@ from kivy.clock import Clock
 from config import Config
 from history import get_history_manager
 from cache import get_cache_manager
+from logger import get_logger, info, success
+from theme import get_theme_manager
+from share import get_share_manager
 
 # 尝试导入 webbrowser（桌面端）
 try:
@@ -34,8 +37,12 @@ try:
 except ImportError:
     WEBBROWSER_AVAILABLE = False
 
+# 初始化日志
+logger = get_logger()
+
 # 打印应用信息
 Config.print_info()
+success('应用启动成功')
 
 
 class ResponsiveUI:
@@ -437,8 +444,13 @@ class MainScreen(BoxLayout):
         self.current_result = None
         self.manual_mode = False
         
-        # 历史记录管理器
+        # 管理器初始化
         self.history_manager = get_history_manager()
+        self.theme_manager = get_theme_manager()
+        self.share_manager = get_share_manager()
+        
+        # 日志
+        info('主界面初始化完成')
         
         # 标题
         title = Label(
@@ -453,6 +465,33 @@ class MainScreen(BoxLayout):
         )
         self.add_widget(title)
         
+        # 顶部工具栏（主题切换 + 分享）
+        toolbar = BoxLayout(
+            size_hint_y=None,
+            height=self.responsive.get_height(45),
+            spacing=self.responsive.get_spacing(10)
+        )
+        
+        # 主题切换按钮
+        self.btn_theme = Button(
+            text="🌙 深色" if self.theme_manager.is_light() else "☀️ 浅色",
+            font_size=self.responsive.get_font_size(15),
+            background_color=(0.3, 0.3, 0.3, 1) if self.theme_manager.is_light() else (0.8, 0.8, 0.8, 1)
+        )
+        self.btn_theme.bind(on_press=self.on_toggle_theme)
+        toolbar.add_widget(self.btn_theme)
+        
+        # 分享按钮
+        self.btn_share = Button(
+            text="📤 分享",
+            font_size=self.responsive.get_font_size(15),
+            background_color=(0.2, 0.5, 0.2, 1)
+        )
+        self.btn_share.bind(on_press=self.on_share)
+        toolbar.add_widget(self.btn_share)
+        
+        self.add_widget(toolbar)
+        
         # 起卦按钮区域
         btn_layout = BoxLayout(
             size_hint_y=None,
@@ -463,7 +502,7 @@ class MainScreen(BoxLayout):
         self.btn_auto = Button(
             text="电脑起卦",
             font_size=self.responsive.get_font_size(18),
-            background_color=(0.55, 0.27, 0.07, 1)
+            background_color=self.theme_manager.get_color('btn_auto')
         )
         self.btn_auto.bind(on_press=self.on_auto_cast)
         btn_layout.add_widget(self.btn_auto)
@@ -471,7 +510,7 @@ class MainScreen(BoxLayout):
         self.btn_manual = Button(
             text="手动起卦",
             font_size=self.responsive.get_font_size(18),
-            background_color=(0.2, 0.4, 0.6, 1)
+            background_color=self.theme_manager.get_color('btn_manual')
         )
         self.btn_manual.bind(on_press=self.on_manual_cast)
         btn_layout.add_widget(self.btn_manual)
@@ -484,7 +523,7 @@ class MainScreen(BoxLayout):
             font_size=self.responsive.get_font_size(18),
             size_hint_y=None,
             height=self.responsive.get_height(50),
-            background_color=(0.5, 0.5, 0.5, 1)
+            background_color=self.theme_manager.get_color('btn_clear')
         )
         self.btn_clear.bind(on_press=self.on_clear)
         self.add_widget(self.btn_clear)
@@ -585,6 +624,33 @@ class MainScreen(BoxLayout):
         self.bian_gua_display.gua_name_label.text = "无变卦"
         self.dong_info.text = "动爻：无"
         self.result_label.text = "点击「电脑起卦」或「手动起卦」开始"
+    
+    def on_toggle_theme(self, instance):
+        """切换主题"""
+        new_theme = self.theme_manager.toggle_theme()
+        
+        # 更新按钮文字
+        if new_theme == 'dark':
+            self.btn_theme.text = "☀️ 浅色"
+            self.btn_theme.background_color = (0.8, 0.8, 0.8, 1)
+            info('已切换到深色模式')
+        else:
+            self.btn_theme.text = "🌙 深色"
+            self.btn_theme.background_color = (0.3, 0.3, 0.3, 1)
+            info('已切换到浅色模式')
+        
+        # TODO: 重新应用主题到所有 UI 组件
+        success(f'主题已切换：{self.theme_manager.get_theme_name()}')
+    
+    def on_share(self, instance):
+        """分享卦象结果"""
+        if not self.current_result:
+            info('分享失败：没有起卦结果')
+            return
+        
+        # 使用系统分享菜单
+        self.share_manager.share_system(self.current_result)
+        info('已打开分享菜单')
     
     def on_search(self, instance):
         """打开百度搜索"""
