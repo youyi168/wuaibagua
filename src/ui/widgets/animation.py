@@ -12,7 +12,7 @@ from kivy.metrics import dp, sp
 from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle, Ellipse
 import random
-from logger import info, debug
+from utils.logger import info, debug
 
 
 class CoinAnimation(Label):

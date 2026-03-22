@@ -8,8 +8,8 @@
 import os
 import json
 from datetime import datetime, timedelta
-from config import Config
-from logger import info, debug
+from utils.config import Config
+from utils.logger import info, debug
 
 
 class ReminderManager:

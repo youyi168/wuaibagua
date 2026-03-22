@@ -22,18 +22,18 @@ from kivy.metrics import dp, sp
 from kivy.core.window import Window
 from kivy.clock import Clock
 
-# 导入配置和缓存模块
-from config import Config
-from history import get_history_manager
-from cache import get_cache_manager
-from logger import get_logger, info, success
-from theme import get_theme_manager
-from share import get_share_manager
-from compact_gua import CompactGuaDisplay
-from copy import copy_to_clipboard
-from user import get_user_manager, get_daily_seed
-from interpreter import get_interpreter
-from quick_topic import create_quick_topic_bar
+# 导入配置和缓存模块（使用新的模块化导入）
+from utils.config import Config
+from utils.logger import get_logger, info, success
+from utils.cache import get_cache_manager
+from utils.copy import copy_to_clipboard
+from core.user import get_user_manager, get_daily_seed
+from core.interpreter import get_interpreter
+from features.history.history import get_history_manager
+from ui.theme import get_theme_manager
+from ui.share import get_share_manager
+from ui.widgets.compact_gua import CompactGuaDisplay
+from ui.widgets.quick_topic import create_quick_topic_bar
 
 # Kivy 文本输入组件
 from kivy.uix.textinput import TextInput

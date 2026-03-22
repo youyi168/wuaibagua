@@ -9,7 +9,7 @@ import logging
 import os
 import sys
 from datetime import datetime
-from config import Config
+from utils.config import Config
 
 
 class LoggerManager:

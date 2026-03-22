@@ -7,7 +7,7 @@
 
 from kivy.properties import ListProperty, DictProperty
 from kivy.config import ConfigParser
-from config import Config
+from utils.config import Config
 import os
 
 
