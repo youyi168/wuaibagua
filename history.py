@@ -52,12 +52,13 @@ class HistoryManager:
         except Exception as e:
             print(f'[HISTORY] 保存历史记录失败：{e}')
     
-    def add_record(self, result, manual_mode=False):
+    def add_record(self, result, manual_mode=False, topic=''):
         """添加起卦记录
         
         Args:
             result: 起卦结果字典（包含 ben_gua, bian_gua, dong_yao 等）
             manual_mode: 是否为手动起卦
+            topic: 占卜事项
         """
         if not Config.HISTORY_ENABLED:
             return
@@ -88,6 +89,9 @@ class HistoryManager:
                 
                 # 起卦方式
                 'mode': 'manual' if manual_mode else 'auto',
+                
+                # 占卜事项
+                'topic': topic if topic else None,
                 
                 # 六爻详情（可选，占用空间较大）
                 # 'yao_list': yao_list

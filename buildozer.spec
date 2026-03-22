@@ -4,7 +4,7 @@ package.name = woaibagua
 package.domain = org.woaibagua
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf,svg
-version = 1.2.6
+version = 1.2.7
 icon.filename = icon.png
 requirements = python3,kivy,pyjnius
 # 使用清华镜像下载 Python 源码

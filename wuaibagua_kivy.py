@@ -31,6 +31,9 @@ from theme import get_theme_manager
 from share import get_share_manager
 from compact_gua import CompactGuaDisplay
 
+# Kivy 文本输入组件
+from kivy.uix.textinput import TextInput
+
 # 尝试导入 webbrowser（桌面端）
 try:
     import webbrowser
@@ -444,6 +447,7 @@ class MainScreen(BoxLayout):
         self.engine = DivinationEngine()
         self.current_result = None
         self.manual_mode = False
+        self.divination_topic = ''  # 占卜事项
         
         # 管理器初始化
         self.history_manager = get_history_manager()
@@ -492,6 +496,39 @@ class MainScreen(BoxLayout):
         toolbar.add_widget(self.btn_share)
         
         self.add_widget(toolbar)
+        
+        # 占卜事项输入框
+        topic_layout = BoxLayout(
+            orientation='vertical',
+            size_hint_y=None,
+            height=self.responsive.get_height(90),
+            spacing=self.responsive.get_spacing(5)
+        )
+        
+        topic_label = Label(
+            text="📝 占卜事项（可选）",
+            font_size=self.responsive.get_font_size(14),
+            size_hint_y=None,
+            height=self.responsive.get_height(25),
+            halign='left',
+            color=(0.5, 0.3, 0.1, 1)
+        )
+        topic_layout.add_widget(topic_label)
+        
+        self.topic_input = TextInput(
+            text='',
+            hint_text='例如：求财运、问感情、测事业...',
+            font_size=self.responsive.get_font_size(15),
+            multiline=False,
+            write_tab=False,
+            background_color=(1, 1, 1, 0.95),
+            foreground_color=(0, 0, 0, 1),
+            padding=(10, 10)
+        )
+        self.topic_input.bind(on_text_validate=lambda x: self.focus_next())
+        topic_layout.add_widget(self.topic_input)
+        
+        self.add_widget(topic_layout)
         
         # 起卦按钮区域
         btn_layout = BoxLayout(
@@ -601,19 +638,41 @@ class MainScreen(BoxLayout):
     
     def on_auto_cast(self, instance):
         """自动起卦"""
+        # 保存占卜事项
+        topic = self.topic_input.text.strip()
+        self.divination_topic = topic
+        
         results = self.engine.cast_by_computer()
         self.current_result = self.engine.analyze_gua(results)
         self.display_result()
-        # 保存到历史记录
-        self.history_manager.add_record(self.current_result, manual_mode=False)
+        
+        # 保存到历史记录（包含占卜事项）
+        self.history_manager.add_record(
+            self.current_result,
+            manual_mode=False,
+            topic=topic
+        )
+        
+        info(f'电脑起卦：{self.current_result["ben_gua"]["name"]}' + 
+             (f' - 事项：{topic}' if topic else ''))
     
     def on_manual_cast(self, instance):
         """手动起卦"""
+        # 保存占卜事项
+        topic = self.topic_input.text.strip()
+        self.divination_topic = topic
+        
         def on_complete(results, manual_mode=True):
             self.current_result = self.engine.analyze_gua(results)
             self.display_result()
-            # 保存到历史记录
-            self.history_manager.add_record(self.current_result, manual_mode=manual_mode)
+            # 保存到历史记录（包含占卜事项）
+            self.history_manager.add_record(
+                self.current_result,
+                manual_mode=manual_mode,
+                topic=topic
+            )
+            info(f'手动起卦：{self.current_result["ben_gua"]["name"]}' + 
+                 (f' - 事项：{topic}' if topic else ''))
         
         dialog = ManualCastDialog(on_complete, self.responsive, manual_mode=True)
         dialog.open()
@@ -655,13 +714,30 @@ class MainScreen(BoxLayout):
         self.share_manager.share_system(self.current_result)
         info('已打开分享菜单')
     
+    def focus_next(self):
+        """输入框回车后聚焦到起卦按钮"""
+        self.btn_auto.focus = True
+    
     def on_search(self, instance):
-        """打开百度搜索"""
+        """打开百度搜索（带占卜事项）"""
         if not self.current_result:
             return
         
         gua_name = self.current_result['ben_gua']['name']
-        query = f"周易 {gua_name} 详解"
+        
+        # 获取占卜事项
+        topic = self.topic_input.text.strip()
+        self.divination_topic = topic
+        
+        # 构建搜索关键词
+        if topic:
+            # 有占卜事项：包含卦名 + 事项
+            query = f"周易 {gua_name} {topic} 详解"
+            info(f'搜索：{query}')
+        else:
+            # 无占卜事项：只搜索卦名
+            query = f"周易 {gua_name} 详解"
+        
         url = f"https://www.baidu.com/s?wd={quote(query)}"
         
         try:

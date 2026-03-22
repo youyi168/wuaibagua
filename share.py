@@ -16,12 +16,13 @@ class ShareManager:
     def __init__(self):
         self.app_name = Config.APP_NAME
     
-    def generate_share_text(self, result, include_detail=True):
+    def generate_share_text(self, result, include_detail=True, topic=''):
         """生成分享文本
         
         Args:
             result: 起卦结果字典
             include_detail: 是否包含详细信息
+            topic: 占卜事项
             
         Returns:
             分享文本字符串
@@ -35,7 +36,13 @@ class ShareManager:
         
         # 基础信息
         text = f"【{self.app_name】起卦结果\n\n"
-        text += f"📅 时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
+        text += f"📅 时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+        
+        # 占卜事项
+        if topic:
+            text += f"📝 事项：{topic}\n"
+        
+        text += "\n"
         
         # 本卦
         text += f"🔮 本卦：{ben_gua.get('name', '未知')}\n"
