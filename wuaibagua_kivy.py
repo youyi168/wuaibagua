@@ -32,6 +32,8 @@ from share import get_share_manager
 from compact_gua import CompactGuaDisplay
 from copy import copy_to_clipboard
 from user import get_user_manager, get_daily_seed
+from interpreter import get_interpreter
+from quick_topic import create_quick_topic_bar
 
 # Kivy 文本输入组件
 from kivy.uix.textinput import TextInput
@@ -546,28 +548,29 @@ class MainScreen(BoxLayout):
         
         self.add_widget(toolbar)
         
-        # 占卜事项输入框
+        # 占卜事项区域（快捷输入 + 手动输入）
         topic_layout = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
-            height=self.responsive.get_height(90),
+            height=self.responsive.get_height(130),
             spacing=self.responsive.get_spacing(5)
         )
         
-        topic_label = Label(
-            text="📝 占卜事项（可选）",
-            font_size=self.responsive.get_font_size(14),
+        # 快捷事项栏
+        self.quick_topic_bar = create_quick_topic_bar(self.on_topic_select)
+        topic_layout.add_widget(self.quick_topic_bar)
+        
+        # 手动输入框
+        input_layout = BoxLayout(
             size_hint_y=None,
-            height=self.responsive.get_height(25),
-            halign='left',
-            color=(0.5, 0.3, 0.1, 1)
+            height=self.responsive.get_height(40),
+            spacing=self.responsive.get_spacing(5)
         )
-        topic_layout.add_widget(topic_label)
         
         self.topic_input = TextInput(
             text='',
-            hint_text='例如：求财运、问感情、测事业...',
-            font_size=self.responsive.get_font_size(15),
+            hint_text='或手动输入事项...',
+            font_size=self.responsive.get_font_size(14),
             multiline=False,
             write_tab=False,
             background_color=(1, 1, 1, 0.95),
@@ -575,7 +578,20 @@ class MainScreen(BoxLayout):
             padding=(10, 10)
         )
         self.topic_input.bind(on_text_validate=lambda x: self.focus_next())
-        topic_layout.add_widget(self.topic_input)
+        input_layout.add_widget(self.topic_input)
+        
+        # 清空按钮
+        clear_topic_btn = Button(
+            text='❌',
+            font_size=self.responsive.get_font_size(14),
+            size_hint_x=None,
+            width=self.responsive.get_height(40),
+            background_color=(0.6, 0.6, 0.6, 1)
+        )
+        clear_topic_btn.bind(on_press=lambda x: self.clear_topic())
+        input_layout.add_widget(clear_topic_btn)
+        
+        topic_layout.add_widget(input_layout)
         
         self.add_widget(topic_layout)
         
@@ -893,6 +909,17 @@ class MainScreen(BoxLayout):
         except Exception as e:
             error(f'打开历史记录失败：{e}')
     
+    def on_topic_select(self, topic):
+        """选择快捷事项"""
+        self.topic_input.text = topic
+        info(f'选择事项：{topic}')
+    
+    def clear_topic(self):
+        """清空事项"""
+        self.topic_input.text = ''
+        self.divination_topic = ''
+        info('已清空事项')
+    
     def focus_next(self):
         """输入框回车后聚焦到起卦按钮"""
         self.btn_auto.focus = True
@@ -951,19 +978,24 @@ class MainScreen(BoxLayout):
         self.display_jie_gua()
     
     def display_jie_gua(self):
-        """显示解卦（本卦 + 变卦对比 + 动爻详解）"""
+        """显示解卦（智能解读版）"""
         result = self.current_result
-        ben_gua = result['ben_gua']
-        bian_gua = result['bian_gua']
-        dong_yao = result['dong_yao']
-        yao_list = result['yao_list']
-        bian_yao_list = result.get('bian_yao_list', [])
+        topic = self.divination_topic
         
+        # 使用智能解读器
+        interpreter = get_interpreter()
+        text = interpreter.interpret(result, topic)
+        
+        # 添加传统卦辞爻辞
+        text += "\n"
+        text += "[b]▌完整卦辞爻辞[/b]\n"
+        
+        ben_gua = result['ben_gua']
         ben_gua_name = ben_gua['name']
         ben_gua_data = self.engine.gua_data.get_gua_info(ben_gua_name)
+        text += ben_gua_data
         
-        # 构建对比视图文本
-        text = ""
+        self.result_label.text = text
         
         # ========== 1. 本卦变卦对比 ==========
         text += "[b]▌本卦 ⇄ 变卦[/b]\n"
