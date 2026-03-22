@@ -31,8 +31,8 @@ from interpreter import get_interpreter
 from history import get_history_manager
 from theme import get_theme_manager
 from share import get_share_manager
-from widgets.compact_gua import CompactGuaDisplay
-from widgets.quick_topic import create_quick_topic_bar
+from compact_gua import CompactGuaDisplay
+from quick_topic import create_quick_topic_bar
 
 # Kivy 文本输入组件
 from kivy.uix.textinput import TextInput
