@@ -6,12 +6,16 @@
 """
 
 import os
+import threading
 from kivy.core.audio import SoundLoader
 from logger import info, debug
 
 
 class SoundManager:
     """音效管理器"""
+    
+    _instance = None
+    _lock = threading.Lock()
     
     # 音效文件路径
     SOUND_FILES = {
@@ -27,6 +31,14 @@ class SoundManager:
         self.enabled = True
         self.volume = 0.5
         self._load_sounds()
+    
+    @classmethod
+    def get_instance(cls):
+        """线程安全的单例获取方法"""
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = cls()
+            return cls._instance
     
     def _load_sounds(self):
         """加载音效"""
@@ -112,15 +124,10 @@ class SoundManager:
         }
 
 
-# 全局单例
-_sound_manager = None
-
+# 全局单例（使用线程安全的 get_instance）
 def get_sound_manager():
-    """获取音效管理器单例"""
-    global _sound_manager
-    if _sound_manager is None:
-        _sound_manager = SoundManager()
-    return _sound_manager
+    """获取音效管理器单例（线程安全）"""
+    return SoundManager.get_instance()
 
 
 # 快捷函数

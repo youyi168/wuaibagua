@@ -5,6 +5,7 @@
 提供卦象分布、吉凶分布等统计图表
 """
 
+import threading
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout

@@ -46,12 +46,33 @@ class Config:
     
     @classmethod
     def get_config_dir(cls):
-        """获取配置目录（用户数据）"""
+        """获取配置目录（用户数据）
+        
+        Android 平台优化：使用应用私有存储目录
+        - 避免外部存储权限问题
+        - 应用卸载时自动清理
+        """
+        # Android 平台：使用 Kivy 的应用配置目录
+        try:
+            from kivy.app import App
+            app = App.get_running_app()
+            if app:
+                # 使用 Kivy 的 get_application_config 方法
+                # 在 Android 上会返回 /storage/emulated/0/Android/data/<package>/files/
+                config_path = app.get_application_config()
+                config_dir = os.path.dirname(config_path)
+                os.makedirs(config_dir, exist_ok=True)
+                return config_dir
+        except (ImportError, AttributeError):
+            pass
+        
+        # 桌面平台：使用标准路径
         if sys.platform == 'win32':
             return os.path.join(os.getenv('APPDATA'), cls.APP_NAME)
         elif sys.platform == 'darwin':
             return os.path.join(os.path.expanduser('~/Library/Application Support'), cls.APP_NAME)
         else:
+            # Linux/Android 回退方案
             return os.path.join(os.path.expanduser('~'), '.' + cls.APP_NAME.lower())
     
     @classmethod

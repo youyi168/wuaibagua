@@ -5,11 +5,15 @@
 提供智能解读、吉凶判断、事项分析等功能
 """
 
+import threading
 from logger import info, debug
 
 
 class GuaInterpreter:
     """卦象解读器"""
+    
+    _instance = None
+    _lock = threading.Lock()
     
     # 传统吉凶卦分类
     AUSPICIOUS_GUA = [
@@ -36,6 +40,14 @@ class GuaInterpreter:
     
     def __init__(self):
         self.interpretations = self._load_interpretations()
+    
+    @classmethod
+    def get_instance(cls):
+        """线程安全的单例获取方法"""
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = cls()
+            return cls._instance
     
     def _load_interpretations(self):
         """加载解读数据"""
@@ -384,12 +396,7 @@ class GuaInterpreter:
         return "以上解读仅供参考，具体事宜需结合实际情况综合判断。"
 
 
-# 全局单例
-_interpreter = None
-
+# 全局单例（使用线程安全的 get_instance）
 def get_interpreter():
-    """获取解读器单例"""
-    global _interpreter
-    if _interpreter is None:
-        _interpreter = GuaInterpreter()
-    return _interpreter
+    """获取解读器单例（线程安全）"""
+    return GuaInterpreter.get_instance()

@@ -9,10 +9,16 @@ from kivy.properties import ListProperty, DictProperty
 from kivy.config import ConfigParser
 from config import Config
 import os
+import json
+import threading
+import tempfile
 
 
 class ThemeManager:
     """主题管理器"""
+    
+    _instance = None
+    _lock = threading.Lock()
     
     # 浅色主题
     LIGHT_THEME = {
@@ -91,7 +97,16 @@ class ThemeManager:
     def __init__(self):
         self.current_theme = 'light'
         self.theme_file = self._get_theme_file()
+        self._theme_lock = threading.Lock()  # 保护主题切换操作
         self._load_theme_preference()
+    
+    @classmethod
+    def get_instance(cls):
+        """线程安全的单例获取方法"""
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = cls()
+            return cls._instance
     
     def _get_theme_file(self):
         """获取主题配置文件路径"""
@@ -102,7 +117,6 @@ class ThemeManager:
         """加载主题偏好"""
         if os.path.exists(self.theme_file):
             try:
-                import json
                 with open(self.theme_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.current_theme = data.get('theme', 'light')
@@ -110,16 +124,26 @@ class ThemeManager:
                 pass
     
     def _save_theme_preference(self):
-        """保存主题偏好"""
-        try:
-            import json
-            config_dir = Config.get_config_dir()
-            os.makedirs(config_dir, exist_ok=True)
-            
-            with open(self.theme_file, 'w', encoding='utf-8') as f:
-                json.dump({'theme': self.current_theme}, f)
-        except Exception as e:
-            print(f'[THEME] 保存主题配置失败：{e}')
+        """保存主题偏好（使用原子操作）"""
+        with self._theme_lock:
+            try:
+                config_dir = Config.get_config_dir()
+                os.makedirs(config_dir, exist_ok=True)
+                
+                # 原子写入：先写临时文件，再重命名
+                fd, temp_path = tempfile.mkstemp(suffix='.json.tmp', dir=config_dir)
+                try:
+                    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                        json.dump({'theme': self.current_theme}, f)
+                    # 原子重命名
+                    os.replace(temp_path, self.theme_file)
+                except:
+                    # 清理临时文件
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
+                    raise
+            except Exception as e:
+                print(f'[THEME] 保存主题配置失败：{e}')
     
     def get_theme(self):
         """获取当前主题"""
@@ -146,21 +170,23 @@ class ThemeManager:
         Args:
             theme_name: 'light' 或 'dark'
         """
-        if theme_name in ['light', 'dark']:
-            self.current_theme = theme_name
-            self._save_theme_preference()
-            print(f'[THEME] 主题已切换为：{theme_name}')
-            return True
-        return False
+        with self._theme_lock:
+            if theme_name in ['light', 'dark']:
+                self.current_theme = theme_name
+                self._save_theme_preference()
+                print(f'[THEME] 主题已切换为：{theme_name}')
+                return True
+            return False
     
     def toggle_theme(self):
         """切换主题"""
-        if self.current_theme == 'light':
-            self.set_theme('dark')
-            return 'dark'
-        else:
-            self.set_theme('light')
-            return 'light'
+        with self._theme_lock:
+            if self.current_theme == 'light':
+                self.set_theme('dark')
+                return 'dark'
+            else:
+                self.set_theme('light')
+                return 'light'
     
     def is_dark(self):
         """是否为深色模式"""
@@ -188,15 +214,10 @@ class ThemeManager:
         button.background_color = color
 
 
-# 全局单例
-_theme_manager = None
-
+# 全局单例（使用线程安全的 get_instance）
 def get_theme_manager():
-    """获取主题管理器单例"""
-    global _theme_manager
-    if _theme_manager is None:
-        _theme_manager = ThemeManager()
-    return _theme_manager
+    """获取主题管理器单例（线程安全）"""
+    return ThemeManager.get_instance()
 
 
 def apply_theme_to_widget(widget, theme_manager):
