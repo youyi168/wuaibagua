@@ -31,6 +31,11 @@ warn_on_root = 1
 # 使用国内镜像源加速下载
 # Python for Android 源码镜像（清华源）
 p4a.source_url = https://mirrors.tuna.tsinghua.edu.cn/git/python-for-android.git
+
+# 【关键修复】使用自定义 AndroidManifest.xml 强制禁用 Vulkan
+# 解决 Adreno Vulkan 驱动 0800.60 在 Android 13+ 上的崩溃问题
+p4a.android-manifest.overrides = android:renderengine="opengl",android:graphics.opengl="es20"
+p4a.android-manifest.template = templates/android/AndroidManifest.xml
 # 备用镜像（阿里云）
 # p4a.source_url = https://code.aliyun.com/python-for-android/python-for-android.git
 

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    自定义 AndroidManifest.xml 覆盖配置
+    用于禁用 Vulkan，强制使用 OpenGL ES 2.0
+    解决 Adreno Vulkan 驱动 0800.60 在 Android 13+ 上的崩溃问题
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="{{ package }}"
+    android:versionCode="{{ version_code }}"
+    android:versionName="{{ version_name }}">
+
+    <uses-sdk
+        android:minSdkVersion="{{ min_sdk_version }}"
+        android:targetSdkVersion="{{ target_sdk_version }}" />
+
+    <!-- 禁用 Vulkan，强制使用 OpenGL ES -->
+    <application
+        android:label="{{ app_name }}"
+        android:icon="@drawable/icon"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true">
+        
+        <!-- 关键配置：强制使用 OpenGL ES 渲染引擎 -->
+        <meta-data
+            android:name="android.renderengine"
+            android:value="opengl" />
+        
+        <!-- 禁用 Vulkan 图形 API -->
+        <meta-data
+            android:name="android.graphics.opengl"
+            android:value="es20" />
+        
+        <!-- 设置最大宽高比，避免某些设备的渲染问题 -->
+        <meta-data
+            android:name="android.max_aspect"
+            android:value="2.1" />
+        
+        <!-- 禁用多窗口模式，避免渲染上下文冲突 -->
+        <meta-data
+            android:name="android.allow_multiple_resumed_activities"
+            android:value="false" />
+        
+        <activity
+            android:name="org.kivy.android.PythonActivity"
+            android:label="{{ app_name }}"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|keyboardHidden|screenSize|keyboard"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+            
+            <!-- 进一步确保使用 OpenGL ES -->
+            <meta-data
+                android:name="android.renderengine"
+                android:value="opengl" />
+            
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+    <!-- 明确声明使用 OpenGL ES 2.0 -->
+    <uses-feature
+        android:glEsVersion="0x00020000"
+        android:required="true" />
+
+</manifest>
