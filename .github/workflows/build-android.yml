@@ -158,7 +158,7 @@ jobs:
         
         # 也检查 bin 目录
         if [ -d "bin" ]; then
-          cp -v bin/*.apk release/ 2>/dev/null || true
+          cp -v .buildozer/android/bin/*.apk release/ 2>/dev/null || true
         fi
         
         echo "=== Release directory contents ==="
@@ -174,7 +174,7 @@ jobs:
       with:
         name: woaibagua-apk-${{ github.run_number }}
         path: |
-          bin/*.apk
+          .buildozer/android/bin/*.apk
           release/*.apk
         if-no-files-found: warn
         retention-days: 30
