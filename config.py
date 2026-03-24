@@ -25,10 +25,8 @@ class Config:
     @staticmethod
     def get_app_dir():
         """获取应用根目录"""
-            return os.path.dirname(sys.executable)
-        else:
-            # 开发环境
-            return os.path.dirname(os.path.abspath(__file__))
+        # Android 环境
+        return os.path.dirname(os.path.abspath(__file__))
     
     @classmethod
     def get_data_dir(cls):
