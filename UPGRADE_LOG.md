@@ -1,5 +1,33 @@
 # 升级日志
 
+## v1.1.1 更新日志
+
+### 2026-03-24 重构
+
+#### 平台策略调整
+- **专注 Android 平台** - 不再开发测试 Windows 版本
+- **删除 Windows 相关代码** - 简化代码库
+
+#### 删除的文件
+- `build-windows.bat` - Windows 打包脚本
+- `一键打包-Windows.bat` - Windows 打包脚本
+- `wuaibagua.spec` - PyInstaller 配置
+- `我爱八卦测试.spec` - PyInstaller 配置
+- `wuaibagua_kivy.py` - 旧版本入口文件
+- `WINDOWS 打包指南.md` - Windows 文档
+- `SUGGESTIONS_COMPLETE.md` - 过时文档
+- `PROJECT_CHECK_REPORT.md` - 过时文档
+- `RELEASE_GUIDE.md` - 过时文档
+- `GitHub Actions 自动打包指南.md` - 过时文档
+
+#### 清理的代码
+- `main.py` - 删除 PyInstaller 相关代码（frozen/_MEIPASS）
+- `main.py` - 删除 Windows 字体路径
+- `config.py` - 删除 Windows 路径处理
+- `README.md` - 重写，只保留 Android 说明
+
+---
+
 ## v1.1.0 → v1.2.0 开发日志
 
 ### 2026-03-24 重构记录

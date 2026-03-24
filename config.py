@@ -25,10 +25,6 @@ class Config:
     @staticmethod
     def get_app_dir():
         """获取应用根目录"""
-        if getattr(sys, 'frozen', False):
-            # PyInstaller 打包后的环境
-            if hasattr(sys, '_MEIPASS'):
-                return sys._MEIPASS
             return os.path.dirname(sys.executable)
         else:
             # 开发环境
