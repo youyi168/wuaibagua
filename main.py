@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 我爱八卦 - 金钱卦算卦软件 (Android 版)
-版本：v1.1.1
-功能：电脑起卦、手动起卦、本地卦象解释、分享功能
+功能：电脑起卦、手动起卦、今日运势、本地卦象解释、分享功能
 """
 
 import os
 import sys
 import random
+import hashlib
+from datetime import datetime
 
 # 导入完整卦象计算模块（符合《图解周易》）
 try:
@@ -93,6 +94,61 @@ def show_toast(message):
             print(f'[TOAST] {message}')
     except Exception as e:
         print(f'[ERROR] Toast failed: {e}')
+
+
+def get_device_id():
+    """获取设备识别码（Android）"""
+    try:
+        if ANDROID_CLIPBOARD_AVAILABLE:
+            Settings = autoclass('android.provider.Settings$Secure')
+            app = App.get_running_app()
+            if app:
+                context = app.getApplicationContext()
+                resolver = context.getContentResolver()
+                android_id = Settings.Secure.getString(resolver, 'android_id')
+                return android_id if android_id else 'default'
+        return 'default'
+    except Exception as e:
+        print(f'[ERROR] get_device_id: {e}')
+        return 'default'
+
+
+def get_daily_gua():
+    """
+    今日运势算法
+    根据日期 + 设备 ID 生成 deterministic 卦象
+    """
+    try:
+        # 获取今日日期
+        today = datetime.now().strftime('%Y%m%d')
+        device_id = get_device_id()
+        
+        # 组合种子
+        seed_str = f"{today}_{device_id}"
+        seed_hash = hashlib.sha256(seed_str.encode()).hexdigest()
+        
+        # 用 hash 生成 6 爻（从下往上）
+        yao_list = []
+        for i in range(6):
+            # 取 hash 的一部分转换为数字
+            byte_val = int(seed_hash[i*4:(i+1)*4], 16)
+            # 映射到 6/7/8/9（考虑老阴老阳）
+            mod = byte_val % 100
+            if mod < 10:
+                yao = 6  # 老阴
+            elif mod < 45:
+                yao = 7  # 少阳
+            elif mod < 55:
+                yao = 8  # 少阴
+            else:
+                yao = 9  # 老阳
+            yao_list.append(yao)
+        
+        return yao_list
+    except Exception as e:
+        print(f'[ERROR] get_daily_gua: {e}')
+        # Fallback 到随机
+        return [random.randint(6, 9) for _ in range(6)]
 
 
 # ==================== 手动起卦弹窗 ====================
@@ -360,7 +416,7 @@ class WuaibaguaApp(App):
     
     def build(self):
         """构建应用界面"""
-        self.title = '我爱八卦 v1.1.1'
+        self.title = '我爱八卦'
         
         # 设置全局字体
         from kivy.uix.label import Label
@@ -371,31 +427,18 @@ class WuaibaguaApp(App):
         # 主布局
         main_layout = BoxLayout(orientation='vertical', padding=dp(20), spacing=dp(10))
         
-        # 标题
+        # 标题（移除版本号）
         title = Label(
-            text='我爱八卦\nv1.1.1',
+            text='我爱八卦',
             markup=True,
             size_hint_y=None,
-            height=dp(80),
-            font_size=dp(24),
+            height=dp(60),
+            font_size=dp(28),
             bold=True
         )
         main_layout.add_widget(title)
         
-        # 起卦方式
-        method_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
-        
-        self.btn_auto = Button(text='电脑起卦', font_size=dp(18))
-        self.btn_auto.bind(on_press=self.auto_gua)
-        method_layout.add_widget(self.btn_auto)
-        
-        self.btn_manual = Button(text='手动起卦', font_size=dp(18))
-        self.btn_manual.bind(on_press=self.manual_gua)
-        method_layout.add_widget(self.btn_manual)
-        
-        main_layout.add_widget(method_layout)
-        
-        # 卦象显示
+        # 卦象显示区域（移到上方）
         self.gua_result_label = Label(
             text='点击按钮开始起卦',
             markup=True,
@@ -407,7 +450,24 @@ class WuaibaguaApp(App):
         self.gua_result_label.bind(size=self.gua_result_label.setter('text_size'))
         main_layout.add_widget(self.gua_result_label)
         
-        # 功能按钮（优化布局）
+        # 起卦按钮（移到下方）
+        method_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
+        
+        self.btn_auto = Button(text='电脑起卦', font_size=dp(16))
+        self.btn_auto.bind(on_press=self.auto_gua)
+        method_layout.add_widget(self.btn_auto)
+        
+        self.btn_manual = Button(text='手动起卦', font_size=dp(16))
+        self.btn_manual.bind(on_press=self.manual_gua)
+        method_layout.add_widget(self.btn_manual)
+        
+        self.btn_daily = Button(text='今日运势', font_size=dp(16))
+        self.btn_daily.bind(on_press=self.daily_gua)
+        method_layout.add_widget(self.btn_daily)
+        
+        main_layout.add_widget(method_layout)
+        
+        # 功能按钮（最底部）
         func_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
         
         self.btn_explain = Button(text='解释', font_size=dp(15))
@@ -439,6 +499,11 @@ class WuaibaguaApp(App):
     def manual_gua(self, instance):
         """手动起卦"""
         show_manual_gua_popup(self)
+    
+    def daily_gua(self, instance):
+        """今日运势（根据日期 + 设备 ID）"""
+        yao_list = get_daily_gua()
+        self.display_gua(yao_list, '今日运势')
     
     def display_gua(self, yao_list, method):
         """显示卦象"""
