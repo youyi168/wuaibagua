@@ -18,7 +18,15 @@ except ImportError:
     WEBBROWSER_AVAILABLE = False
     print('[WARN] webbrowser module not available')
 
-# 导入卦象解释数据
+# 导入简单卦象计算（保守版本，避免闪退）
+try:
+    import gua_simple
+    GUA_SIMPLE_AVAILABLE = True
+except ImportError:
+    GUA_SIMPLE_AVAILABLE = False
+    print('[WARN] gua_simple module not available')
+
+# 导入旧版卦象解释数据（备用）
 try:
     import gua_interpret
     GUA_INTERPRET_AVAILABLE = True
@@ -193,9 +201,74 @@ def get_gua_explanation(gua_name):
     return gua_interpret.get_gua_interpret(gua_name)
 
 
+def show_gua_explanation_txt(gua_name, txt_content):
+    """
+    显示卦象解释（txt 文件完整内容，简单版本）
+    
+    Args:
+        gua_name: 卦名
+        txt_content: txt 文件完整内容
+    """
+    try:
+        # 创建弹窗内容
+        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(8))
+        
+        # 标题
+        title_label = Label(
+            text=f'[b]{gua_name}[/b]',
+            markup=True,
+            size_hint_y=None,
+            height=dp(45),
+            font_size=dp(18),
+            bold=True
+        )
+        layout.add_widget(title_label)
+        
+        # 滚动区域
+        scroll = ScrollView()
+        
+        # 完整 txt 内容（不做任何修改）
+        content_label = Label(
+            text=txt_content,
+            markup=False,
+            size_hint_y=None,
+            halign='left',
+            valign='top',
+            font_size=dp(13),
+            padding=(8, 8)
+        )
+        content_label.bind(size=content_label.setter('text_size'))
+        scroll.add_widget(content_label)
+        
+        layout.add_widget(scroll)
+        
+        # 关闭按钮
+        close_btn = Button(
+            text='关闭',
+            size_hint_y=None,
+            height=dp(45),
+            font_size=dp(15)
+        )
+        
+        popup = Popup(
+            title='卦象详解',
+            content=layout,
+            size_hint=(0.92, 0.85),
+            auto_dismiss=False
+        )
+        
+        close_btn.bind(on_press=popup.dismiss)
+        layout.add_widget(close_btn)
+        
+        popup.open()
+    except Exception as e:
+        print(f'[ERROR] show_gua_explanation_txt failed: {e}')
+        show_toast('❌ 显示失败')
+
+
 def show_gua_explanation_popup(gua_name):
     """
-    显示卦象解释弹窗
+    显示卦象解释弹窗（旧版，兼容）
     
     Args:
         gua_name: 卦名
@@ -400,7 +473,7 @@ class WuaibaguaApp(App):
         self.display_gua(yao_list, '手动起卦')
     
     def display_gua(self, yao_list, method):
-        """显示卦象"""
+        """显示卦象（简单版本，避免闪退）"""
         # 卦象符号映射
         yao_symbols = {
             6: '⚋',  # 老阴
@@ -415,23 +488,43 @@ class WuaibaguaApp(App):
         for i, yao in enumerate(reversed(yao_list)):
             gua_text += f'{yao_symbols.get(yao, "⚊")}  {yao}\n'
         
-        # 简单卦名（示例）
-        gua_name = '乾为天'  # 实际需要完整的卦象计算逻辑
+        # 使用简单卦象计算
+        gua_name = '未知卦'
+        if GUA_SIMPLE_AVAILABLE:
+            try:
+                gua_name = gua_simple.get_gua_name_simple(yao_list)
+            except Exception as e:
+                print(f'[ERROR] get_gua_name failed: {e}')
+                gua_name = '乾为天'  # fallback
+        
         gua_text += f'\n[b]卦名：{gua_name}[/b]'
         
         self.gua_result_label.text = gua_text
         self.current_gua = gua_name
         
+        # 读取 txt 文件内容（简单方式）
+        self.current_gua_txt = None
+        if GUA_SIMPLE_AVAILABLE:
+            try:
+                self.current_gua_txt = gua_simple.get_gua_txt_simple(gua_name)
+            except Exception as e:
+                print(f'[ERROR] get_gua_txt failed: {e}')
+        
         # 显示提示
-        show_toast('✅ 起卦完成')
+        show_toast(f'✅ {gua_name}')
     
     def show_explanation(self, instance):
-        """显示卦象解释"""
+        """显示卦象解释（简单版本）"""
         if not self.current_gua:
             show_toast('❌ 请先起卦')
             return
         
-        show_gua_explanation_popup(self.current_gua)
+        # 优先使用 txt 文件内容
+        if hasattr(self, 'current_gua_txt') and self.current_gua_txt:
+            show_gua_explanation_txt(self.current_gua, self.current_gua_txt)
+        else:
+            # Fallback 到旧版
+            show_gua_explanation_popup(self.current_gua)
     
     def copy_result(self, instance):
         """复制卦象结果"""
