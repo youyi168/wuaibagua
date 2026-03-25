@@ -201,6 +201,108 @@ def get_gua_explanation(gua_name):
     return gua_interpret.get_gua_interpret(gua_name)
 
 
+def show_manual_gua_popup(app):
+    """
+    手动起卦弹窗（让用户选择每一爻）
+    
+    Args:
+        app: WuaibaguaApp 实例
+    """
+    try:
+        # 创建弹窗
+        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
+        
+        # 标题
+        title_label = Label(
+            text='[b]手动起卦[/b]\n请选择每一爻',
+            markup=True,
+            size_hint_y=None,
+            height=dp(50),
+            font_size=dp(18),
+            bold=True
+        )
+        layout.add_widget(title_label)
+        
+        # 存储用户选择的爻
+        yao_selections = []
+        
+        # 创建 6 个选择器（从下往上：初爻→上爻）
+        yao_names = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻']
+        yao_options = ['少阳 ⚊', '少阴 ⚋', '老阳 ⚊⭕', '老阴 ⚋✕']
+        yao_values = [7, 8, 9, 6]  # 对应的值
+        
+        for i in range(6):
+            row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(40), spacing=dp(10))
+            
+            # 爻名标签
+            name_label = Label(
+                text=yao_names[i],
+                size_hint_x=0.3,
+                font_size=dp(15)
+            )
+            row.add_widget(name_label)
+            
+            # 选择器
+            from kivy.uix.spinner import Spinner
+            spinner = Spinner(
+                text=yao_options[0],
+                values=yao_options,
+                size_hint_x=0.7
+            )
+            spinner.yao_index = i
+            spinner.yao_values = yao_values
+            yao_selections.append(spinner)
+            row.add_widget(spinner)
+            
+            layout.add_widget(row)
+        
+        # 按钮区域
+        btn_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
+        
+        # 确定按钮
+        confirm_btn = Button(text='确定', font_size=dp(16))
+        
+        def on_confirm(instance):
+            """确认选择"""
+            try:
+                yao_list = []
+                for spinner in yao_selections:
+                    idx = spinner.values.index(spinner.text)
+                    yao_list.append(spinner.yao_values[idx])
+                
+                # 关闭弹窗
+                popup.dismiss()
+                
+                # 显示卦象
+                app.display_gua(yao_list, '手动起卦')
+            except Exception as e:
+                print(f'[ERROR] Manual gua confirm failed: {e}')
+                show_toast('❌ 选择失败')
+        
+        confirm_btn.bind(on_press=on_confirm)
+        btn_layout.add_widget(confirm_btn)
+        
+        # 取消按钮
+        cancel_btn = Button(text='取消', font_size=dp(16))
+        cancel_btn.bind(on_press=lambda x: popup.dismiss())
+        btn_layout.add_widget(cancel_btn)
+        
+        layout.add_widget(btn_layout)
+        
+        # 创建弹窗
+        popup = Popup(
+            title='手动起卦',
+            content=layout,
+            size_hint=(0.9, 0.8),
+            auto_dismiss=False
+        )
+        
+        popup.open()
+    except Exception as e:
+        print(f'[ERROR] show_manual_gua_popup failed: {e}')
+        show_toast('❌ 弹窗失败')
+
+
 def show_gua_explanation_txt(gua_name, txt_content):
     """
     显示卦象解释（txt 文件完整内容，简单版本）
@@ -438,7 +540,7 @@ class WuaibaguaApp(App):
         self.gua_result_label.bind(size=self.gua_result_label.setter('text_size'))
         main_layout.add_widget(self.gua_result_label)
         
-        # 功能按钮
+        # 功能按钮（移除长按复制按钮）
         func_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
         
         self.btn_explain = Button(
@@ -448,11 +550,12 @@ class WuaibaguaApp(App):
         self.btn_explain.bind(on_press=self.show_explanation)
         func_layout.add_widget(self.btn_explain)
         
-        self.btn_copy = LongPressButton(
-            text='长按复制',
-            font_size=dp(16),
-            on_long_press_callback=self.copy_result
+        # 复制按钮（点击复制，不再长按）
+        self.btn_copy = Button(
+            text='复制卦象',
+            font_size=dp(16)
         )
+        self.btn_copy.bind(on_press=self.copy_result)
         func_layout.add_widget(self.btn_copy)
         
         main_layout.add_widget(func_layout)
@@ -467,51 +570,66 @@ class WuaibaguaApp(App):
         self.display_gua(yao_list, '电脑起卦')
     
     def manual_gua(self, instance):
-        """手动起卦"""
-        # 简化版：随机生成
-        yao_list = [random.randint(6, 9) for _ in range(6)]
-        self.display_gua(yao_list, '手动起卦')
+        """手动起卦（弹窗选择每一爻）"""
+        # 显示手动起卦弹窗
+        show_manual_gua_popup(self)
     
     def display_gua(self, yao_list, method):
-        """显示卦象（简单版本，避免闪退）"""
-        # 卦象符号映射
-        yao_symbols = {
-            6: '⚋',  # 老阴
-            7: '⚊',  # 少阳
-            8: '⚋',  # 少阴
-            9: '⚊',  # 老阳
-        }
-        
-        # 生成卦象文本
-        gua_text = f'[b]{method}[/b]\n\n'
-        gua_text += '卦象：\n'
-        for i, yao in enumerate(reversed(yao_list)):
-            gua_text += f'{yao_symbols.get(yao, "⚊")}  {yao}\n'
-        
-        # 使用简单卦象计算
-        gua_name = '未知卦'
-        if GUA_SIMPLE_AVAILABLE:
-            try:
-                gua_name = gua_simple.get_gua_name_simple(yao_list)
-            except Exception as e:
-                print(f'[ERROR] get_gua_name failed: {e}')
-                gua_name = '乾为天'  # fallback
-        
-        gua_text += f'\n[b]卦名：{gua_name}[/b]'
-        
-        self.gua_result_label.text = gua_text
-        self.current_gua = gua_name
-        
-        # 读取 txt 文件内容（简单方式）
-        self.current_gua_txt = None
-        if GUA_SIMPLE_AVAILABLE:
-            try:
-                self.current_gua_txt = gua_simple.get_gua_txt_simple(gua_name)
-            except Exception as e:
-                print(f'[ERROR] get_gua_txt failed: {e}')
-        
-        # 显示提示
-        show_toast(f'✅ {gua_name}')
+        """显示卦象（修复版，正确显示爻辞和变卦）"""
+        try:
+            # 卦象符号映射（带变卦标记）
+            yao_symbols = {
+                6: '⚋ ✕',  # 老阴（变爻）
+                7: '⚊',    # 少阳
+                8: '⚋',    # 少阴
+                9: '⚊ ⭕',  # 老阳（变爻）
+            }
+            
+            # 爻名
+            yao_names = ['初', '二', '三', '四', '五', '上']
+            
+            # 生成卦象文本（从下往上显示）
+            gua_text = f'[b]{method}[/b]\n\n'
+            
+            # 显示 6 爻（上爻→初爻）
+            for i in range(5, -1, -1):
+                yao = yao_list[i]
+                symbol = yao_symbols.get(yao, '⚊')
+                yao_type = '九' if yao in [7, 9] else '六'
+                gua_text += f'{yao_names[i]}{yao_type}: {symbol}\n'
+            
+            # 使用简单卦象计算
+            gua_name = '乾为天'  # default fallback
+            if GUA_SIMPLE_AVAILABLE:
+                try:
+                    gua_name = gua_simple.get_gua_name_simple(yao_list)
+                except Exception as e:
+                    print(f'[ERROR] get_gua_name failed: {e}')
+            
+            gua_text += f'\n[b]卦名：{gua_name}[/b]'
+            
+            # 检查是否有变爻
+            changing_yao = [y for y in yao_list if y in [6, 9]]
+            if changing_yao:
+                gua_text += '\n[b]有变爻[/b]'
+            
+            self.gua_result_label.text = gua_text
+            self.current_gua = gua_name
+            self.current_yao_list = yao_list
+            
+            # 读取 txt 文件内容
+            self.current_gua_txt = None
+            if GUA_SIMPLE_AVAILABLE:
+                try:
+                    self.current_gua_txt = gua_simple.get_gua_txt_simple(gua_name)
+                except Exception as e:
+                    print(f'[ERROR] get_gua_txt failed: {e}')
+            
+            # 显示提示
+            show_toast(f'✅ {gua_name}')
+        except Exception as e:
+            print(f'[ERROR] display_gua failed: {e}')
+            show_toast('❌ 显示失败')
     
     def show_explanation(self, instance):
         """显示卦象解释（简单版本）"""
