@@ -144,21 +144,22 @@ jobs:
     - name: Find and copy APK
       run: |
         echo "=== Searching for APK files ==="
-        find . -name "*.apk" -type f 2>/dev/null | tee /tmp/apk_files.txt
         
         mkdir -p release
         
-        # 复制找到的 APK 文件
-        if [ -s /tmp/apk_files.txt ]; then
-          while IFS= read -r apk; do
-            echo "Found: $apk"
-            cp -v "$apk" release/ 2>/dev/null || true
-          done < /tmp/apk_files.txt
-        fi
+        # 只复制通用 debug APK（不区分架构）
+        # Buildozer 1.5.0 默认生成一个通用 APK
+        find .buildozer -name "*-debug.apk" -type f ! -name "*arm64*" ! -name "*armeabi*" | head -1 | while read apk; do
+          echo "Found main APK: $apk"
+          cp -v "$apk" release/
+        done
         
-        # 也检查 bin 目录
-        if [ -d "bin" ]; then
-          cp -v .buildozer/android/platform/build-*/dists/*/bin/*.apk release/ 2>/dev/null || true
+        # 如果没有找到，尝试复制第一个 APK
+        if [ ! -f "release/"*.apk ]; then
+          find . -name "*.apk" -type f | head -1 | while read apk; do
+            echo "Found APK: $apk"
+            cp -v "$apk" release/
+          done
         fi
         
         echo "=== Release directory contents ==="
@@ -173,9 +174,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: woaibagua-apk-${{ github.run_number }}
-        path: |
-          .buildozer/android/platform/build-*/dists/*/bin/*.apk
-          release/*.apk
+        path: release/*.apk
         if-no-files-found: warn
         retention-days: 30
     
