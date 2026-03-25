@@ -358,54 +358,187 @@ def show_settings_popup():
 
 # ==================== 卦象解释弹窗 ====================
 
-def show_gua_explanation(gua_name, txt_content):
-    """显示卦象解释"""
+def show_gua_explanation_detail(gua_name, detail_data, yao_list, changing_gua_name=None):
+    """
+    显示详细卦象解释（含变卦）
+    包含：卦辞、大象、爻辞、白话、变卦
+    """
     try:
-        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(8))
+        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
         
         # 标题
         title = Label(
-            text=gua_name,
+            text=f'【{gua_name}】',
             size_hint_y=None,
-            height=dp(45),
-            font_size=dp(18),
+            height=dp(50),
+            font_size=dp(20),
             bold=True
         )
         layout.add_widget(title)
         
         # 滚动区域
         scroll = ScrollView()
+        content_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(12))
+        content_layout.bind(minimum_height=content_layout.setter('height'))
         
-        # 完整 txt 内容
-        content = Label(
-            text=txt_content,
-            markup=False,
-            size_hint_y=None,
-            halign='left',
-            valign='top',
-            font_size=dp(13),
-            padding=(8, 8)
-        )
-        content.bind(size=content.setter('text_size'))
-        scroll.add_widget(content)
+        # 卦辞
+        if detail_data.get('gua_ci'):
+            section_title = Label(
+                text='【卦辞】',
+                size_hint_y=None,
+                height=dp(30),
+                font_size=dp(16),
+                bold=True,
+                halign='left'
+            )
+            content_layout.add_widget(section_title)
+            
+            gua_ci_label = Label(
+                text=detail_data['gua_ci'],
+                size_hint_y=None,
+                halign='left',
+                valign='top',
+                font_size=dp(15),
+                padding=(10, 5)
+            )
+            gua_ci_label.bind(size=gua_ci_label.setter('text_size'))
+            content_layout.add_widget(gua_ci_label)
         
+        # 大象
+        if detail_data.get('da_xiang'):
+            section_title = Label(
+                text='【大象】',
+                size_hint_y=None,
+                height=dp(30),
+                font_size=dp(16),
+                bold=True,
+                halign='left'
+            )
+            content_layout.add_widget(section_title)
+            
+            da_xiang_label = Label(
+                text=detail_data['da_xiang'],
+                size_hint_y=None,
+                halign='left',
+                valign='top',
+                font_size=dp(15),
+                padding=(10, 5)
+            )
+            da_xiang_label.bind(size=da_xiang_label.setter('text_size'))
+            content_layout.add_widget(da_xiang_label)
+        
+        # 爻辞
+        yao_ci_list = detail_data.get('yao_ci', [])
+        if yao_ci_list:
+            section_title = Label(
+                text='【爻辞】',
+                size_hint_y=None,
+                height=dp(30),
+                font_size=dp(16),
+                bold=True,
+                halign='left'
+            )
+            content_layout.add_widget(section_title)
+            
+            for i, yao_data in enumerate(yao_ci_list):
+                yao_name = yao_data.get('name', '')
+                yao_text = yao_data.get('text', '')
+                yao_xiang = yao_data.get('xiang', '')
+                
+                # 标记当前爻（变爻）
+                current_yao = yao_list[i] if i < len(yao_list) else 7
+                is_changing = current_yao in [6, 9]
+                mark = '★ ' if is_changing else '  '
+                
+                yao_label = Label(
+                    text=f'{mark}{yao_name}: {yao_text}',
+                    size_hint_y=None,
+                    halign='left',
+                    valign='top',
+                    font_size=dp(14),
+                    padding=(10, 3)
+                )
+                yao_label.bind(size=yao_label.setter('text_size'))
+                content_layout.add_widget(yao_label)
+                
+                # 象曰
+                if yao_xiang:
+                    xiang_label = Label(
+                        text=f'  象曰：{yao_xiang}',
+                        size_hint_y=None,
+                        halign='left',
+                        valign='top',
+                        font_size=dp(13),
+                        text_color=(0.6, 0.6, 0.6, 1),
+                        padding=(10, 0)
+                    )
+                    xiang_label.bind(size=xiang_label.setter('text_size'))
+                    content_layout.add_widget(xiang_label)
+        
+        # 变卦
+        if changing_gua_name:
+            section_title = Label(
+                text='【变卦】',
+                size_hint_y=None,
+                height=dp(30),
+                font_size=dp(16),
+                bold=True,
+                halign='left'
+            )
+            content_layout.add_widget(section_title)
+            
+            changing_label = Label(
+                text=f'变卦：{changing_gua_name}',
+                size_hint_y=None,
+                halign='left',
+                valign='top',
+                font_size=dp(15),
+                padding=(10, 5)
+            )
+            changing_label.bind(size=changing_label.setter('text_size'))
+            content_layout.add_widget(changing_label)
+        
+        # 白话解释
+        if detail_data.get('bai_hua'):
+            section_title = Label(
+                text='【白话解释】',
+                size_hint_y=None,
+                height=dp(30),
+                font_size=dp(16),
+                bold=True,
+                halign='left'
+            )
+            content_layout.add_widget(section_title)
+            
+            bai_hua_label = Label(
+                text=detail_data['bai_hua'],
+                size_hint_y=None,
+                halign='left',
+                valign='top',
+                font_size=dp(14),
+                padding=(10, 5)
+            )
+            bai_hua_label.bind(size=bai_hua_label.setter('text_size'))
+            content_layout.add_widget(bai_hua_label)
+        
+        scroll.add_widget(content_layout)
         layout.add_widget(scroll)
         
-        # 关闭
-        close_btn = Button(text='关闭', size_hint_y=None, height=dp(45), font_size=dp(15))
+        # 关闭按钮
+        close_btn = Button(text='关闭', size_hint_y=None, height=dp(50), font_size=dp(16))
         close_btn.bind(on_press=lambda x: popup.dismiss())
         layout.add_widget(close_btn)
         
         popup = Popup(
             title='卦象详解',
             content=layout,
-            size_hint=(0.92, 0.85),
+            size_hint=(0.95, 0.9),
             auto_dismiss=False
         )
         
         popup.open()
     except Exception as e:
-        print(f'[ERROR] show_gua_explanation failed: {e}')
+        print(f'[ERROR] show_gua_explanation_detail failed: {e}')
         show_toast('❌ 显示失败')
 
 
@@ -506,22 +639,31 @@ class WuaibaguaApp(App):
         self.display_gua(yao_list, '今日运势')
     
     def display_gua(self, yao_list, method):
-        """显示卦象"""
+        """显示卦象（传统格式 + 变卦）"""
         try:
             if GUA_CALC_AVAILABLE:
-                text, gua_name = gua_calculator.format_gua_display(yao_list, method)
+                # 传统格式显示
+                text, gua_name, changing_gua_name = gua_calculator.format_gua_display_traditional(yao_list, method)
+                
+                # 保存变卦信息
+                self.current_changing_gua = changing_gua_name
             else:
                 text = f'{method}\n\n卦名：未知卦'
                 gua_name = '未知卦'
+                self.current_changing_gua = None
             
+            # 使用等宽字体显示卦象
             self.gua_result_label.text = text
+            self.gua_result_label.font_size = dp(14)
+            self.gua_result_label.halign = 'left'
+            
             self.current_gua = gua_name
             self.current_yao_list = yao_list
             
-            # 读取 txt
-            self.current_gua_txt = None
+            # 读取详细数据（离线）
+            self.current_gua_detail = None
             if GUA_CALC_AVAILABLE:
-                self.current_gua_txt = gua_calculator.get_gua_txt(gua_name)
+                self.current_gua_detail = gua_calculator.get_gua_detail(gua_name)
             
             show_toast(f'✅ {gua_name}')
         except Exception as e:
@@ -529,15 +671,21 @@ class WuaibaguaApp(App):
             show_toast('❌ 显示失败')
     
     def show_explanation(self, instance):
-        """显示解释"""
+        """显示解释（详细版，含变卦）"""
         if not self.current_gua:
             show_toast('❌ 请先起卦')
             return
         
-        if self.current_gua_txt:
-            show_gua_explanation(self.current_gua, self.current_gua_txt)
+        # 使用离线详细数据
+        if self.current_gua_detail:
+            show_gua_explanation_detail(
+                self.current_gua,
+                self.current_gua_detail,
+                self.current_yao_list,
+                self.current_changing_gua
+            )
         else:
-            show_toast('❌ 无解释数据')
+            show_toast('❌ 无详细数据')
     
     def share_gua(self, instance):
         """分享卦象"""
