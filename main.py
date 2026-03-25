@@ -40,6 +40,25 @@ from kivy.core.text import LabelBase
 from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle
 
+# ==================== 注册中文字体 ====================
+# 解决中文显示方块问题
+def register_chinese_font():
+    """注册中文字体到 Kivy"""
+    font_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
+    font_path = os.path.join(font_dir, 'NotoSansSC-Regular.ttf')
+    
+    if os.path.exists(font_path):
+        LabelBase.register(name='NotoSansSC', fn_regular=font_path)
+        print(f'[INFO] 中文字体已注册：{font_path}')
+    else:
+        print(f'[WARN] 中文字体文件不存在：{font_path}')
+        # 尝试使用系统字体
+        LabelBase.register(name='NotoSansSC', fn_regular='/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc')
+        print('[INFO] 使用系统中文字体')
+
+# 在应用启动前注册字体
+register_chinese_font()
+
 # Android 剪贴板
 try:
     from jnius import autoclass
@@ -292,6 +311,14 @@ class WuaibaguaApp(App):
     def build(self):
         """构建应用界面"""
         self.title = '我爱八卦 v1.1.1'
+        
+        # 设置全局默认字体为中文字体
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
+        
+        # 设置默认字体
+        Label.font_name = 'NotoSansSC'
+        Button.font_name = 'NotoSansSC'
         
         # 主布局
         main_layout = BoxLayout(orientation='vertical', padding=dp(20), spacing=dp(10))
