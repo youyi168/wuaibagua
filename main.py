@@ -389,7 +389,7 @@ def share_qq(text, popup):
 # ==================== 设置弹窗 ====================
 
 def show_liuyao_popup(panduan_text):
-    """六爻排盘弹窗"""
+    """六爻排盘弹窗（使用 ASCII，避免字体问题）"""
     try:
         layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
         
@@ -406,15 +406,14 @@ def show_liuyao_popup(panduan_text):
         # 滚动区域
         scroll = ScrollView()
         
-        # 排盘内容（使用等宽字体）
+        # 排盘内容（使用 ASCII，确保显示）
         content = Label(
             text=panduan_text,
             markup=False,
             size_hint_y=None,
             halign='left',
             valign='top',
-            font_size=dp(13),
-            font_name='Yijing',
+            font_size=dp(14),
             padding=(10, 10)
         )
         content.bind(size=content.setter('text_size'))
@@ -437,6 +436,8 @@ def show_liuyao_popup(panduan_text):
         popup.open()
     except Exception as e:
         print(f'[ERROR] show_liuyao_popup failed: {e}')
+        import traceback
+        traceback.print_exc()
         show_toast('❌ 排盘失败')
 
 
@@ -804,12 +805,18 @@ class WuaibaguaApp(App):
     def show_explanation(self, instance):
         """显示解释（详细版，含变卦）"""
         try:
+            print(f'[DEBUG] show_explanation called')
+            print(f'  current_gua: {self.current_gua}')
+            print(f'  current_gua_detail: {self.current_gua_detail is not None}')
+            
             if not self.current_gua:
+                print('[DEBUG] 未起卦')
                 show_toast('❌ 请先起卦')
                 return
             
             # 使用离线详细数据
             if self.current_gua_detail:
+                print(f'[DEBUG] 显示解释：{self.current_gua}')
                 show_gua_explanation_detail(
                     self.current_gua,
                     self.current_gua_detail,
@@ -817,9 +824,12 @@ class WuaibaguaApp(App):
                     self.current_changing_gua
                 )
             else:
+                print(f'[DEBUG] 无详细数据：{self.current_gua}')
                 show_toast(f'❌ {self.current_gua} 暂无详细数据')
         except Exception as e:
             print(f'[ERROR] show_explanation failed: {e}')
+            import traceback
+            traceback.print_exc()
             show_toast('❌ 打开失败')
     
     def show_liuyao(self, instance):

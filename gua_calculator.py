@@ -356,22 +356,32 @@ def format_gua_detail_display(gua_name, yao_list):
 
 
 def format_liuyao_simple(yao_list, gua_name, method='起卦'):
-    """六爻排盘（简化版，避免 Vulkan）"""
+    """
+    六爻排盘（ASCII 版，避免字体问题）
+    使用纯 ASCII 字符，确保所有设备正常显示
+    """
     lines = []
-    lines.append(f'【{method}】六爻排盘')
+    lines.append(f'[ {method} ] 六爻排盘')
     lines.append('')
     lines.append(f'卦名：{gua_name}')
     lines.append('')
-    lines.append('爻位  爻象  阴阳')
-    lines.append('─' * 30)
+    lines.append('爻位   爻象   阴阳')
+    lines.append('-' * 30)
+    
+    # ASCII 爻符号
+    yao_ascii = {
+        6: '-- -- X',  # 老阴
+        7: '-----',    # 少阳
+        8: '-- --',    # 少阴
+        9: '----- O',  # 老阳
+    }
     
     for i in range(5, -1, -1):
         yao = yao_list[i]
         yao_name = get_yao_name(i, yao)
-        yinyang = '阳' if yao in [7, 9] else '阴'
-        symbol = YAO_SYMBOLS.get(yao, '───')
-        mark = CHANGING_MARKS.get(yao, '')
-        line = f'{yao_name:4} {symbol} {yinyang:2} {mark}'
+        yinyang = 'Yang' if yao in [7, 9] else 'Yin'
+        symbol = yao_ascii.get(yao, '-----')
+        line = f'{yao_name:4} {symbol:8} {yinyang}'
         lines.append(line)
     
     lines.append('')
