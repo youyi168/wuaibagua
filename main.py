@@ -39,31 +39,27 @@ def register_fonts():
     
     # 注册中文字体
     font_path = os.path.join(font_dir, 'NotoSansSC-Regular.ttf')
-    if os.path.exists(font_path):
+    if os.path.exists(font_path) and os.path.getsize(font_path) > 0:
         LabelBase.register(name='NotoSansSC', fn_regular=font_path)
-        print(f'[INFO] 中文字体已注册：{font_path}')
+        print(f'[INFO] 中文字体已注册')
     else:
-        print(f'[WARN] 中文字体文件不存在')
+        print(f'[WARN] 中文字体文件不存在或损坏')
     
-    # 注册易卦专用字体（优先级：Symbola > NotoSansSymbols > seguisym）
+    # 注册易卦专用字体（使用已有且有效的字体）
     yijing_fonts = [
-        'Symbola.ttf',
-        'Symbola-hint.ttf',
-        'NotoSansSymbols-Regular.ttf',  # 已有
-        'seguisym.ttf',                  # 已有
-        'YijingSymbols.ttf',
-        'YJSymbols.ttf',
+        'NotoSansSymbols-Regular.ttf',  # 258KB，已有 ✅
+        'seguisym.ttf',                  # 2.5MB，已有 ✅
     ]
     
     for font_name in yijing_fonts:
         font_path = os.path.join(font_dir, font_name)
-        if os.path.exists(font_path):
+        if os.path.exists(font_path) and os.path.getsize(font_path) > 0:
             LabelBase.register(name='Yijing', fn_regular=font_path)
-            print(f'[INFO] 易卦字体已注册：{font_path}')
+            print(f'[INFO] 易卦字体已注册：{font_name}')
             return
     
-    # 如果找不到专用字体，使用中文字体 fallback
-    print(f'[WARN] 易卦专用字体未找到，将使用中文字体显示卦象符号')
+    # fallback 到中文字体
+    print(f'[WARN] 易卦专用字体未找到，使用中文字体')
 
 # 在应用启动前注册字体
 register_fonts()
@@ -256,14 +252,17 @@ def show_manual_gua_popup(app):
         
         layout.add_widget(btn_layout)
         
-        # 弹窗
+        # 弹窗（调整位置，避免太靠下）
         popup = Popup(
             title='手动起卦',
             content=layout,
-            size_hint=(0.9, 0.75),
+            size_hint=(0.9, 0.7),
             auto_dismiss=False
         )
         
+        # 居中显示
+        from kivy.core.window import Window
+        popup.pos = (Window.width - popup.width) / 2, (Window.height - popup.height) / 2
         popup.open()
     except Exception as e:
         print(f'[ERROR] show_manual_gua_popup failed: {e}')
