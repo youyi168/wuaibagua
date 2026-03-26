@@ -6,6 +6,10 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf,svg
 version = 1.1.1
 icon.filename = icon.png
+# 启动图配置（拉伸覆盖全屏）
+presplash.filename = splash.jpg
+android.windowLayout = fill_parent
+android.launchscreen = true
 requirements = python3,kivy,pyjnius
 # 使用旧版 Kivy 避免 Vulkan 问题
 # kivy==2.1.0 比最新版更稳定
