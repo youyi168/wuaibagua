@@ -488,6 +488,190 @@ def show_settings_popup():
 
 # ==================== 卦象解释弹窗 ====================
 
+def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_gua_name=None, duangua_result=None):
+    """
+    显示卦象解释和断卦结果（完整版）
+    
+    包含：
+    - 卦名、卦辞、大象
+    - 爻辞（带变爻标记）
+    - 断卦方法
+    - 变卦信息
+    """
+    try:
+        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
+        
+        # 标题
+        title = Label(
+            text=f'【{gua_name}】详解',
+            size_hint_y=None,
+            height=dp(45),
+            font_size=dp(18),
+            bold=True
+        )
+        layout.add_widget(title)
+        
+        # 滚动区域
+        scroll = ScrollView()
+        content_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(12))
+        content_layout.bind(minimum_height=content_layout.setter('height'))
+        
+        # 卦辞
+        if detail_data and detail_data.get('gua_ci'):
+            section = Label(
+                text='【卦辞】',
+                size_hint_y=None,
+                height=dp(30),
+                font_size=dp(16),
+                bold=True,
+                halign='left'
+            )
+            content_layout.add_widget(section)
+            
+            text = Label(
+                text=detail_data['gua_ci'],
+                size_hint_y=None,
+                halign='left',
+                valign='top',
+                font_size=dp(15),
+                padding=(10, 5)
+            )
+            text.bind(size=text.setter('text_size'))
+            content_layout.add_widget(text)
+        
+        # 大象
+        if detail_data and detail_data.get('da_xiang'):
+            section = Label(
+                text='【大象】',
+                size_hint_y=None,
+                height=dp(30),
+                font_size=dp(16),
+                bold=True,
+                halign='left'
+            )
+            content_layout.add_widget(section)
+            
+            text = Label(
+                text=detail_data['da_xiang'],
+                size_hint_y=None,
+                halign='left',
+                valign='top',
+                font_size=dp(15),
+                padding=(10, 5)
+            )
+            text.bind(size=text.setter('text_size'))
+            content_layout.add_widget(text)
+        
+        # 断卦方法
+        if duangua_result:
+            section = Label(
+                text='【断卦方法】',
+                size_hint_y=None,
+                height=dp(30),
+                font_size=dp(16),
+                bold=True,
+                halign='left'
+            )
+            content_layout.add_widget(section)
+            
+            text = Label(
+                text=duangua_result['duan_gua_method'],
+                size_hint_y=None,
+                halign='left',
+                valign='top',
+                font_size=dp(15),
+                padding=(10, 5)
+            )
+            text.bind(size=text.setter('text_size'))
+            content_layout.add_widget(text)
+            
+            # 动爻数
+            text = Label(
+                text=f'动爻数：{duangua_result["dong_yao_count"]}',
+                size_hint_y=None,
+                halign='left',
+                font_size=dp(14),
+                padding=(10, 3)
+            )
+            content_layout.add_widget(text)
+            
+            # 变卦
+            if duangua_result['zhi_gua']:
+                text = Label(
+                    text=f'变卦：{duangua_result["zhi_gua"]}',
+                    size_hint_y=None,
+                    halign='left',
+                    font_size=dp(14),
+                    padding=(10, 3)
+                )
+                content_layout.add_widget(text)
+        
+        # 爻辞
+        if detail_data and detail_data.get('yao_ci'):
+            section = Label(
+                text='【爻辞】',
+                size_hint_y=None,
+                height=dp(30),
+                font_size=dp(16),
+                bold=True,
+                halign='left'
+            )
+            content_layout.add_widget(section)
+            
+            for yao in detail_data['yao_ci']:
+                yao_name = yao.get('name', '')
+                yao_text = yao.get('text', '')
+                xiang = yao.get('xiang', '')
+                
+                # 标记变爻
+                yao_type = 9 if '九' in yao_name else 6
+                is_changing = yao_type in [6, 9]
+                mark = ' ⭕' if yao_type == 9 else ' ✕' if yao_type == 6 else ''
+                
+                yao_label = Label(
+                    text=f'{yao_name}{mark}: {yao_text}',
+                    size_hint_y=None,
+                    halign='left',
+                    valign='top',
+                    font_size=dp(14),
+                    padding=(10, 3)
+                )
+                yao_label.bind(size=yao_label.setter('text_size'))
+                content_layout.add_widget(yao_label)
+                
+                if xiang:
+                    xiang_label = Label(
+                        text=f'  象曰：{xiang}',
+                        size_hint_y=None,
+                        halign='left',
+                        font_size=dp(13),
+                        text_color=(0.6, 0.6, 0.6, 1),
+                        padding=(10, 0)
+                    )
+                    xiang_label.bind(size=xiang_label.setter('text_size'))
+                    content_layout.add_widget(xiang_label)
+        
+        scroll.add_widget(content_layout)
+        layout.add_widget(scroll)
+        
+        # 关闭按钮
+        close_btn = Button(text='关闭', size_hint_y=None, height=dp(50), font_size=dp(16))
+        close_btn.bind(on_press=lambda x: popup.dismiss())
+        layout.add_widget(close_btn)
+        
+        popup = Popup(
+            title='卦象详解',
+            content=layout,
+            size_hint=(0.95, 0.9),
+            auto_dismiss=False
+        )
+        
+        popup.open()
+    except Exception as e:
+        print(f'[ERROR] show_gua_explanation_with_duangua failed: {e}')
+        show_toast('❌ 显示失败')
+
+
 def show_gua_explanation_detail(gua_name, detail_data, yao_list, changing_gua_name=None):
     """
     显示详细卦象解释（含变卦）
@@ -713,34 +897,38 @@ class WuaibaguaApp(App):
         self.gua_result_label.bind(size=self.gua_result_label.setter('text_size'))
         main_layout.add_widget(self.gua_result_label)
         
-        # 起卦按钮（移到下方）
+        # 起卦按钮（三行布局）
         method_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(10))
         
         # 第一行：电脑起卦、手动起卦
         row1 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
-        
-        self.btn_auto = Button(text='电脑起卦', font_size=dp(16))
+        self.btn_auto = Button(text='电脑起卦', font_size=dp(15))
         self.btn_auto.bind(on_press=self.auto_gua)
         row1.add_widget(self.btn_auto)
-        
-        self.btn_manual = Button(text='手动起卦', font_size=dp(16))
+        self.btn_manual = Button(text='手动起卦', font_size=dp(15))
         self.btn_manual.bind(on_press=self.manual_gua)
         row1.add_widget(self.btn_manual)
-        
         method_layout.add_widget(row1)
         
-        # 第二行：金钱起卦、今日运势
+        # 第二行：金钱起卦、时间起卦
         row2 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
-        
-        self.btn_jinqian = Button(text='金钱起卦', font_size=dp(16))
+        self.btn_jinqian = Button(text='金钱起卦', font_size=dp(15))
         self.btn_jinqian.bind(on_press=self.jinqian_gua)
         row2.add_widget(self.btn_jinqian)
-        
-        self.btn_daily = Button(text='今日运势', font_size=dp(16))
-        self.btn_daily.bind(on_press=self.daily_gua)
-        row2.add_widget(self.btn_daily)
-        
+        self.btn_time = Button(text='时间起卦', font_size=dp(15))
+        self.btn_time.bind(on_press=self.time_gua)
+        row2.add_widget(self.btn_time)
         method_layout.add_widget(row2)
+        
+        # 第三行：蓍草起卦、今日运势
+        row3 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
+        self.btn_shicao = Button(text='蓍草起卦', font_size=dp(15))
+        self.btn_shicao.bind(on_press=self.shicao_gua)
+        row3.add_widget(self.btn_shicao)
+        self.btn_daily = Button(text='今日运势', font_size=dp(15))
+        self.btn_daily.bind(on_press=self.daily_gua)
+        row3.add_widget(self.btn_daily)
+        method_layout.add_widget(row3)
         
         main_layout.add_widget(method_layout)
         
@@ -792,6 +980,17 @@ class WuaibaguaApp(App):
         yao_list = gua_calculator.jinqian_qigua()
         self.display_gua(yao_list, '金钱起卦')
     
+    def time_gua(self, instance):
+        """时间起卦（梅花易数）"""
+        now = datetime.now()
+        yao_list = gua_calculator.time_qigua(now.year, now.month, now.day, now.hour, now.minute)
+        self.display_gua(yao_list, '时间起卦')
+    
+    def shicao_gua(self, instance):
+        """蓍草起卦（周易传统）"""
+        yao_list = gua_calculator.shicao_qigua()
+        self.display_gua(yao_list, '蓍草起卦')
+    
     def display_gua(self, yao_list, method):
         """显示卦象（修复版）"""
         try:
@@ -817,11 +1016,15 @@ class WuaibaguaApp(App):
             
             # 读取详细数据
             self.current_gua_detail = None
+            self.current_duangua_result = None
             if GUA_CALC_AVAILABLE:
                 print(f'[DEBUG] 读取卦象数据：{gua_name}')
                 self.current_gua_detail = gua_calculator.get_gua_detail(gua_name)
+                # 断卦逻辑
+                self.current_duangua_result = gua_calculator.duangua_logic(yao_list)
                 if self.current_gua_detail:
                     print(f'[DEBUG] ✅ 读取成功：卦辞={self.current_gua_detail.get("gua_ci", "")[:20]}...')
+                    print(f'[DEBUG] 断卦：{self.current_duangua_result["duan_gua_method"]}')
                 else:
                     print(f'[DEBUG] ❌ 读取失败：{gua_name}')
             
@@ -831,33 +1034,22 @@ class WuaibaguaApp(App):
             show_toast('❌ 显示失败')
     
     def show_explanation(self, instance):
-        """显示解释（详细版，含变卦）"""
+        """显示解释（详细版，含断卦结果）"""
         try:
-            print(f'[DEBUG] show_explanation called')
-            print(f'  current_gua: {self.current_gua}')
-            print(f'  current_gua_detail: {self.current_gua_detail is not None}')
-            
             if not self.current_gua:
-                print('[DEBUG] 未起卦')
                 show_toast('❌ 请先起卦')
                 return
             
-            # 使用离线详细数据
-            if self.current_gua_detail:
-                print(f'[DEBUG] 显示解释：{self.current_gua}')
-                show_gua_explanation_detail(
-                    self.current_gua,
-                    self.current_gua_detail,
-                    self.current_yao_list,
-                    self.current_changing_gua
-                )
-            else:
-                print(f'[DEBUG] 无详细数据：{self.current_gua}')
-                show_toast(f'❌ {self.current_gua} 暂无详细数据')
+            # 显示详细解释和断卦结果
+            show_gua_explanation_with_duangua(
+                self.current_gua,
+                self.current_gua_detail,
+                self.current_yao_list,
+                self.current_changing_gua,
+                self.current_duangua_result
+            )
         except Exception as e:
             print(f'[ERROR] show_explanation failed: {e}')
-            import traceback
-            traceback.print_exc()
             show_toast('❌ 打开失败')
     
     def show_liuyao(self, instance):
