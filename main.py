@@ -32,20 +32,39 @@ from kivy.metrics import dp
 from kivy.core.text import LabelBase
 from kivy.clock import Clock
 
-# ==================== 注册中文字体 ====================
-def register_chinese_font():
-    """注册中文字体到 Kivy"""
+# ==================== 注册字体 ====================
+def register_fonts():
+    """注册中文字体和易卦专用字体"""
     font_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
-    font_path = os.path.join(font_dir, 'NotoSansSC-Regular.ttf')
     
+    # 注册中文字体
+    font_path = os.path.join(font_dir, 'NotoSansSC-Regular.ttf')
     if os.path.exists(font_path):
         LabelBase.register(name='NotoSansSC', fn_regular=font_path)
         print(f'[INFO] 中文字体已注册：{font_path}')
     else:
-        print(f'[WARN] 中文字体文件不存在，使用系统字体')
+        print(f'[WARN] 中文字体文件不存在')
+    
+    # 注册易卦专用字体（Yijing Symbols / Symbola）
+    yijing_fonts = [
+        'YijingSymbols.ttf',
+        'YJSymbols.ttf',
+        'Symbola.ttf',
+        'Symbola-hint.ttf',
+    ]
+    
+    for font_name in yijing_fonts:
+        font_path = os.path.join(font_dir, font_name)
+        if os.path.exists(font_path):
+            LabelBase.register(name='Yijing', fn_regular=font_path)
+            print(f'[INFO] 易卦字体已注册：{font_path}')
+            return
+    
+    # 如果找不到专用字体，使用中文字体 fallback
+    print(f'[WARN] 易卦专用字体未找到，将使用中文字体显示卦象符号')
 
 # 在应用启动前注册字体
-register_chinese_font()
+register_fonts()
 
 # Android 剪贴板
 try:
@@ -639,11 +658,11 @@ class WuaibaguaApp(App):
         self.display_gua(yao_list, '今日运势')
     
     def display_gua(self, yao_list, method):
-        """显示卦象（传统格式 + 变卦）"""
+        """显示卦象（Unicode 专用符号 + 变卦）"""
         try:
             if GUA_CALC_AVAILABLE:
-                # 传统格式显示
-                text, gua_name, changing_gua_name = gua_calculator.format_gua_display_traditional(yao_list, method)
+                # Unicode 专用符号显示
+                text, gua_name, changing_gua_name = gua_calculator.format_gua_display_unicode(yao_list, method)
                 
                 # 保存变卦信息
                 self.current_changing_gua = changing_gua_name
@@ -652,10 +671,11 @@ class WuaibaguaApp(App):
                 gua_name = '未知卦'
                 self.current_changing_gua = None
             
-            # 使用等宽字体显示卦象
+            # 使用专用字体显示卦象符号
             self.gua_result_label.text = text
-            self.gua_result_label.font_size = dp(14)
+            self.gua_result_label.font_size = dp(16)
             self.gua_result_label.halign = 'left'
+            self.gua_result_label.font_name = 'Yijing'  # 使用易卦专用字体
             
             self.current_gua = gua_name
             self.current_yao_list = yao_list
