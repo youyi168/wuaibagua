@@ -3,7 +3,7 @@ title = 我爱八卦
 package.name = woaibagua
 package.domain = org.woaibagua
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf,svg
+source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf,svg,db
 version = 1.1.1
 icon.filename = icon.png
 # 启动图配置（拉伸覆盖全屏）
