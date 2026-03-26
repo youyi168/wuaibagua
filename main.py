@@ -338,6 +338,58 @@ def share_qq(text, popup):
 
 # ==================== 设置弹窗 ====================
 
+def show_liuyao_popup(panduan_text):
+    """六爻排盘弹窗"""
+    try:
+        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
+        
+        # 标题
+        title = Label(
+            text='六爻排盘',
+            size_hint_y=None,
+            height=dp(45),
+            font_size=dp(18),
+            bold=True
+        )
+        layout.add_widget(title)
+        
+        # 滚动区域
+        scroll = ScrollView()
+        
+        # 排盘内容（使用等宽字体）
+        content = Label(
+            text=panduan_text,
+            markup=False,
+            size_hint_y=None,
+            halign='left',
+            valign='top',
+            font_size=dp(13),
+            font_name='Yijing',
+            padding=(10, 10)
+        )
+        content.bind(size=content.setter('text_size'))
+        scroll.add_widget(content)
+        
+        layout.add_widget(scroll)
+        
+        # 关闭按钮
+        close_btn = Button(text='关闭', size_hint_y=None, height=dp(45), font_size=dp(15))
+        close_btn.bind(on_press=lambda x: popup.dismiss())
+        layout.add_widget(close_btn)
+        
+        popup = Popup(
+            title='六爻排盘',
+            content=layout,
+            size_hint=(0.95, 0.85),
+            auto_dismiss=False
+        )
+        
+        popup.open()
+    except Exception as e:
+        print(f'[ERROR] show_liuyao_popup failed: {e}')
+        show_toast('❌ 排盘失败')
+
+
 def show_settings_popup():
     """设置弹窗"""
     try:
@@ -624,15 +676,19 @@ class WuaibaguaApp(App):
         # 功能按钮（最底部）
         func_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
         
-        self.btn_explain = Button(text='解释', font_size=dp(15))
+        self.btn_explain = Button(text='解释', font_size=dp(14))
         self.btn_explain.bind(on_press=self.show_explanation)
         func_layout.add_widget(self.btn_explain)
         
-        self.btn_share = Button(text='分享', font_size=dp(15))
+        self.btn_liuyao = Button(text='六爻', font_size=dp(14))
+        self.btn_liuyao.bind(on_press=self.show_liuyao)
+        func_layout.add_widget(self.btn_liuyao)
+        
+        self.btn_share = Button(text='分享', font_size=dp(14))
         self.btn_share.bind(on_press=self.share_gua)
         func_layout.add_widget(self.btn_share)
         
-        self.btn_settings = Button(text='设置', font_size=dp(15))
+        self.btn_settings = Button(text='设置', font_size=dp(14))
         self.btn_settings.bind(on_press=lambda x: show_settings_popup())
         func_layout.add_widget(self.btn_settings)
         
@@ -714,6 +770,25 @@ class WuaibaguaApp(App):
         except Exception as e:
             print(f'[ERROR] show_explanation failed: {e}')
             show_toast('❌ 打开失败')
+    
+    def show_liuyao(self, instance):
+        """显示六爻排盘"""
+        try:
+            if not self.current_gua:
+                show_toast('❌ 请先起卦')
+                return
+            
+            if GUA_CALC_AVAILABLE:
+                pandan_text = gua_calculator.format_liuyao_panduan(
+                    self.current_yao_list,
+                    self.current_gua
+                )
+                show_liuyao_popup(pandan_text)
+            else:
+                show_toast('❌ 排盘模块不可用')
+        except Exception as e:
+            print(f'[ERROR] show_liuyao failed: {e}')
+            show_toast('❌ 排盘失败')
     
     def share_gua(self, instance):
         """分享卦象"""
