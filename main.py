@@ -714,19 +714,33 @@ class WuaibaguaApp(App):
         main_layout.add_widget(self.gua_result_label)
         
         # 起卦按钮（移到下方）
-        method_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
+        method_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(10))
+        
+        # 第一行：电脑起卦、手动起卦
+        row1 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
         
         self.btn_auto = Button(text='电脑起卦', font_size=dp(16))
         self.btn_auto.bind(on_press=self.auto_gua)
-        method_layout.add_widget(self.btn_auto)
+        row1.add_widget(self.btn_auto)
         
         self.btn_manual = Button(text='手动起卦', font_size=dp(16))
         self.btn_manual.bind(on_press=self.manual_gua)
-        method_layout.add_widget(self.btn_manual)
+        row1.add_widget(self.btn_manual)
+        
+        method_layout.add_widget(row1)
+        
+        # 第二行：金钱起卦、今日运势
+        row2 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
+        
+        self.btn_jinqian = Button(text='金钱起卦', font_size=dp(16))
+        self.btn_jinqian.bind(on_press=self.jinqian_gua)
+        row2.add_widget(self.btn_jinqian)
         
         self.btn_daily = Button(text='今日运势', font_size=dp(16))
         self.btn_daily.bind(on_press=self.daily_gua)
-        method_layout.add_widget(self.btn_daily)
+        row2.add_widget(self.btn_daily)
+        
+        method_layout.add_widget(row2)
         
         main_layout.add_widget(method_layout)
         
@@ -772,6 +786,11 @@ class WuaibaguaApp(App):
         """今日运势（根据日期 + 设备 ID）"""
         yao_list = get_daily_gua()
         self.display_gua(yao_list, '今日运势')
+    
+    def jinqian_gua(self, instance):
+        """金钱起卦（三枚铜钱摇六次）"""
+        yao_list = gua_calculator.jinqian_qigua()
+        self.display_gua(yao_list, '金钱起卦')
     
     def display_gua(self, yao_list, method):
         """显示卦象（修复版）"""

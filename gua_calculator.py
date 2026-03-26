@@ -1,3 +1,4 @@
+import random
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -292,6 +293,50 @@ def get_gua_detail(gua_name):
     except Exception as e:
         print(f'[ERROR] get_gua_detail failed: {e}')
         return None
+
+
+def jinqian_qigua():
+    """
+    金钱起卦法（六爻预测传统方法）
+    
+    原理：
+    - 三枚铜钱，每枚有字为阴（值 2），无字为阳（值 3）
+    - 摇六次，每次得一爻（从下往上）
+    - 总和：6(老阴)、7(少阳)、8(少阴)、9(老阳)
+    
+    概率分布：
+    - 6(老阴): 1/8 (2+2+2)
+    - 7(少阳): 3/8 (2+2+3, 2+3+2, 3+2+2)
+    - 8(少阴): 3/8 (2+3+3, 3+2+3, 3+3+2)
+    - 9(老阳): 1/8 (3+3+3)
+    
+    Returns:
+        list: 6 爻列表 [初爻，二爻，..., 上爻]
+    """
+    yao_list = []
+    
+    for i in range(6):  # 摇六次
+        # 三枚铜钱
+        qian1 = random.choice([2, 3])  # 2=字 (阴), 3=背 (阳)
+        qian2 = random.choice([2, 3])
+        qian3 = random.choice([2, 3])
+        
+        # 总和
+        total = qian1 + qian2 + qian3
+        
+        # 转换为爻值
+        if total == 6:
+            yao = 6  # 老阴
+        elif total == 7:
+            yao = 7  # 少阳
+        elif total == 8:
+            yao = 8  # 少阴
+        elif total == 9:
+            yao = 9  # 老阳
+        
+        yao_list.append(yao)
+    
+    return yao_list
 
 
 def format_gua_display(yao_list, method='起卦'):
