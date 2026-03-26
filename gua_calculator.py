@@ -152,38 +152,129 @@ def get_yao_name(position, yao):
 
 
 def get_gua_detail(gua_name):
-    """获取卦象详细数据"""
-    GUA_DATA = {
-        '乾为天': {
-            'gua_ci': '元亨利贞',
-            'da_xiang': '天行健，君子以自强不息',
-            'yao_ci': [
-                {'name': '初九', 'text': '潜龙勿用', 'xiang': '潜龙勿用，阳在下也'},
-                {'name': '九二', 'text': '见龙在田，利见大人', 'xiang': '见龙在田，德施普也'},
-                {'name': '九三', 'text': '君子终日乾乾，夕惕若厉，无咎', 'xiang': '终日乾乾，反复道也'},
-                {'name': '九四', 'text': '或跃在渊，无咎', 'xiang': '或跃在渊，进无咎也'},
-                {'name': '九五', 'text': '飞龙在天，利见大人', 'xiang': '飞龙在天，大人造也'},
-                {'name': '上九', 'text': '亢龙有悔', 'xiang': '亢龙有悔，盈不可久也'},
-                {'name': '用九', 'text': '见群龙无首，吉', 'xiang': '用九，天德不可为首也'},
-            ],
-            'bai_hua': '乾卦象征天，刚健中正。大吉大利。',
-        },
-        '坤为地': {
-            'gua_ci': '元亨，利牝马之贞',
-            'da_xiang': '地势坤，君子以厚德载物',
-            'yao_ci': [
-                {'name': '初六', 'text': '履霜，坚冰至', 'xiang': '履霜坚冰，阴始凝也'},
-                {'name': '六二', 'text': '直方大，不习无不利', 'xiang': '六二之动，直以方也'},
-                {'name': '六三', 'text': '含章可贞', 'xiang': '含章可贞，以时发也'},
-                {'name': '六四', 'text': '括囊，无咎无誉', 'xiang': '括囊无咎，慎不害也'},
-                {'name': '六五', 'text': '黄裳元吉', 'xiang': '黄裳元吉，文在中也'},
-                {'name': '上六', 'text': '龙战于野，其血玄黄', 'xiang': '龙战于野，其道穷也'},
-                {'name': '用六', 'text': '利永贞', 'xiang': '用六永贞，以大终也'},
-            ],
-            'bai_hua': '坤卦象征地，柔顺承载。',
-        },
+    """
+    从 txt 文件读取卦象详细数据（符合《图解周易》）
+    
+    Args:
+        gua_name: 卦名全称（如'乾为天'）
+    
+    Returns:
+        dict: 包含卦辞、大象、爻辞、白话解释
+    """
+    # 卦名全称→简称映射
+    FULL_TO_SHORT = {
+        '乾为天': '乾', '坤为地': '坤', '水雷屯': '屯', '山水蒙': '蒙',
+        '水天需': '需', '天水讼': '讼', '地水师': '师', '水地比': '比',
+        '风天小畜': '小畜', '天泽履': '履', '地天泰': '泰', '天地否': '否',
+        '天火同人': '同人', '火天大有': '大有', '地山谦': '谦', '雷地豫': '豫',
+        '泽雷随': '随', '山风蛊': '蛊', '地泽临': '临', '风地观': '观',
+        '火雷噬嗑': '噬嗑', '山火贲': '贲', '山地剥': '剥', '地雷复': '复',
+        '天雷无妄': '无妄', '山天大畜': '大畜', '山雷颐': '颐', '泽风大过': '大过',
+        '坎为水': '坎', '离为火': '离', '泽山咸': '咸', '雷风恒': '恒',
+        '天山遁': '遯', '雷天大壮': '大壮', '火地晋': '晋', '地火明夷': '明夷',
+        '风火家人': '家人', '火泽睽': '睽', '水山蹇': '蹇', '雷水解': '解',
+        '山泽损': '损', '风雷益': '益', '泽天夬': '夬', '天风姤': '姤',
+        '泽地萃': '萃', '地风升': '升', '泽水困': '困', '水风井': '井',
+        '泽火革': '革', '火风鼎': '鼎', '震为雷': '震', '艮为山': '艮',
+        '风山渐': '渐', '雷泽归妹': '归妹', '雷火丰': '丰', '火山旅': '旅',
+        '巽为风': '巽', '兑为泽': '兑', '风水涣': '涣', '水泽节': '节',
+        '风泽中孚': '中孚', '雷山小过': '小过', '水火既济': '既济', '火水未济': '未济',
     }
-    return GUA_DATA.get(gua_name)
+    
+    try:
+        # 获取简称
+        short_name = FULL_TO_SHORT.get(gua_name)
+        if not short_name:
+            print(f'[WARN] 未找到卦名简称：{gua_name}')
+            return None
+        
+        # 读取 txt 文件
+        import os
+        txt_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', f'{short_name}卦.txt')
+        
+        if not os.path.exists(txt_file):
+            print(f'[WARN] txt 文件不存在：{txt_file}')
+            return None
+        
+        with open(txt_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 解析 txt 文件内容
+        result = {
+            'gua_ci': '',      # 卦辞
+            'da_xiang': '',    # 大象
+            'yao_ci': [],      # 爻辞列表
+            'bai_hua': '',     # 白话解释
+            'full_text': content,  # 完整原文
+        }
+        
+        lines = content.strip().split('\n')
+        
+        # 提取卦辞（第三行，格式如"乾：元，亨，利，贞。"）
+        for line in lines:
+            line_stripped = line.strip()
+            # 匹配"卦名：内容"格式，卦名为 1-2 个字（注意中文冒号：）
+            if ('：' in line_stripped or ':' in line_stripped) and not line_stripped.startswith('【') and not line_stripped.startswith('《') and not line_stripped.startswith('第'):
+                # 使用中文冒号分割
+                if '：' in line_stripped:
+                    parts = line_stripped.split('：', 1)
+                else:
+                    parts = line_stripped.split(':', 1)
+                if len(parts[0]) <= 2:  # 卦名通常 1-2 个字（乾、坤、需等）
+                    result['gua_ci'] = parts[1].strip().rstrip('.')
+                    break
+        
+        # 提取大象（《象》曰：...）
+        for line in lines:
+            if '《象》曰' in line or '象曰' in line:
+                if '君子' in line:  # 大象通常包含"君子"
+                    result['da_xiang'] = line.replace('《象》曰：', '').replace('象曰：', '').strip()
+                    break
+        
+        # 提取爻辞
+        yao_patterns = ['初九', '初六', '九二', '六二', '九三', '六三', '九四', '六四', 
+                        '九五', '六五', '上九', '上六', '用九', '用六']
+        
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            for pattern in yao_patterns:
+                if line.startswith(pattern + '，') or line.startswith(pattern + ','):
+                    yao_data = {'name': '', 'text': '', 'xiang': ''}
+                    
+                    # 提取爻名和爻辞
+                    if '，' in line:
+                        parts = line.split('，', 1)
+                        yao_data['name'] = parts[0]
+                        yao_data['text'] = parts[1].rstrip('。').strip()
+                    elif ',' in line:
+                        parts = line.split(',', 1)
+                        yao_data['name'] = parts[0]
+                        yao_data['text'] = parts[1].rstrip('。').strip()
+                    else:
+                        yao_data['name'] = line[:2]
+                        yao_data['text'] = line[2:].strip()
+                    
+                    # 查找对应的象曰（往后找 3 行）
+                    for j in range(i+1, min(i+4, len(lines))):
+                        xiang_line = lines[j]
+                        if '《象》曰' in xiang_line or '象曰' in xiang_line:
+                            if '君子' not in xiang_line:  # 排除大象
+                                yao_data['xiang'] = xiang_line.replace('《象》曰：', '').replace('象曰：', '').rstrip('。').strip()
+                                break
+                    
+                    result['yao_ci'].append(yao_data)
+                    break
+            i += 1
+        
+        # 白话解释（使用完整 txt 内容）
+        result['bai_hua'] = content
+        
+        return result
+    
+    except Exception as e:
+        print(f'[ERROR] get_gua_detail failed: {e}')
+        return None
 
 
 def format_gua_display(yao_list, method='起卦'):
