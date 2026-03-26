@@ -660,11 +660,11 @@ class WuaibaguaApp(App):
         self.display_gua(yao_list, '今日运势')
     
     def display_gua(self, yao_list, method):
-        """显示卦象（Unicode 专用符号 + 变卦）"""
+        """显示卦象（修复版）"""
         try:
             if GUA_CALC_AVAILABLE:
-                # Unicode 专用符号显示
-                text, gua_name, changing_gua_name = gua_calculator.format_gua_display_unicode(yao_list, method)
+                # 使用修复后的显示函数
+                text, gua_name, changing_gua_name = gua_calculator.format_gua_display(yao_list, method)
                 
                 # 保存变卦信息
                 self.current_changing_gua = changing_gua_name
@@ -673,16 +673,18 @@ class WuaibaguaApp(App):
                 gua_name = '未知卦'
                 self.current_changing_gua = None
             
-            # 使用专用字体显示卦象符号
+            # 显示卦象
             self.gua_result_label.text = text
-            self.gua_result_label.font_size = dp(16)
+            self.gua_result_label.font_size = dp(15)
             self.gua_result_label.halign = 'left'
-            self.gua_result_label.font_name = 'Yijing'  # 使用易卦专用字体
+            self.gua_result_label.valign = 'top'
+            # 使用 Yijing 字体显示符号
+            self.gua_result_label.font_name = 'Yijing'
             
             self.current_gua = gua_name
             self.current_yao_list = yao_list
             
-            # 读取详细数据（离线）
+            # 读取详细数据
             self.current_gua_detail = None
             if GUA_CALC_AVAILABLE:
                 self.current_gua_detail = gua_calculator.get_gua_detail(gua_name)
@@ -694,20 +696,24 @@ class WuaibaguaApp(App):
     
     def show_explanation(self, instance):
         """显示解释（详细版，含变卦）"""
-        if not self.current_gua:
-            show_toast('❌ 请先起卦')
-            return
-        
-        # 使用离线详细数据
-        if self.current_gua_detail:
-            show_gua_explanation_detail(
-                self.current_gua,
-                self.current_gua_detail,
-                self.current_yao_list,
-                self.current_changing_gua
-            )
-        else:
-            show_toast('❌ 无详细数据')
+        try:
+            if not self.current_gua:
+                show_toast('❌ 请先起卦')
+                return
+            
+            # 使用离线详细数据
+            if self.current_gua_detail:
+                show_gua_explanation_detail(
+                    self.current_gua,
+                    self.current_gua_detail,
+                    self.current_yao_list,
+                    self.current_changing_gua
+                )
+            else:
+                show_toast(f'❌ {self.current_gua} 暂无详细数据')
+        except Exception as e:
+            print(f'[ERROR] show_explanation failed: {e}')
+            show_toast('❌ 打开失败')
     
     def share_gua(self, instance):
         """分享卦象"""
