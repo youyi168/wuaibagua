@@ -829,7 +829,7 @@ class WuaibaguaApp(App):
                 return
             
             if GUA_CALC_AVAILABLE:
-                pandan_text = gua_calculator.format_liuyao_panduan(
+                pandan_text = gua_calculator.format_liuyao_simple(
                     self.current_yao_list,
                     self.current_gua
                 )
