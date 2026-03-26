@@ -1,105 +1,88 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-64 卦完整计算（严格按《周易》传统）
-修复：字体、卦名映射、六爻 Vulkan 闪退
+64 卦完整计算（按《图解周易》标准逻辑）
+
+排盘规则：
+1. 从下往上画爻：初爻→二爻→三爻→四爻→五爻→上爻
+2. 下卦（内卦）：初爻、二爻、三爻
+3. 上卦（外卦）：四爻、五爻、上爻
+4. 卦名 = 上卦名 + 下卦名
+
+二进制（从下往上）：
+乾☰=111, 坤☷=000, 震☳=100, 坎☵=010
+艮☶=001, 巽☴=110, 离☲=101, 兑☱=011
 """
 
-# ==================== 基础数据 ====================
-
-TRIGRAM_UNICODE = {
-    '111': '☰', '000': '☷', '100': '☳',
-    '010': '☵', '001': '☶', '110': '☴',
-    '101': '☲', '011': '☱',
+# 八卦定义
+TRIGRAMS = {
+    '111': '乾', '000': '坤', '100': '震', '010': '坎',
+    '001': '艮', '110': '巽', '101': '离', '011': '兑',
 }
 
-TRIGRAM_INFO = {
-    '111': {'name': '乾', 'element': '天'},
-    '000': {'name': '坤', 'element': '地'},
-    '100': {'name': '震', 'element': '雷'},
-    '010': {'name': '坎', 'element': '水'},
-    '001': {'name': '艮', 'element': '山'},
-    '110': {'name': '巽', 'element': '风'},
-    '101': {'name': '离', 'element': '火'},
-    '011': {'name': '兑', 'element': '泽'},
-}
-
-# 64 卦映射（无重复键，与 txt 文件一一对应）
+# 64 卦完整映射（上卦 + 下卦 → 卦名）
+# 二进制格式：下卦 (3 位) + 上卦 (3 位) = 6 位
 HEXAGRAM_NAMES = {
-    '111111': '乾为天',
-    '000000': '坤为地',
-    '100010': '水雷屯',
-    '010001': '山水蒙',
-    '111010': '水天需',
-    '010111': '天水讼',
-    '000010': '地水师',
-    '010000': '水地比',
-    '110111': '风天小畜',
-    '111011': '天泽履',
-    '111000': '地天泰',
-    '000111': '天地否',
-    '101111': '天火同人',
-    '111101': '火地晋',
-    '000100': '地火明夷',
-    '110100': '风火家人',
-    '101101': '火泽睽',
-    '010011': '水山蹇',
-    '001010': '雷水解',
-    '110010': '山泽损',
-    '100110': '风雷益',
-    '111100': '泽天夬',
-    '011111': '天风姤',
-    '011100': '泽地萃',
-    '000110': '地风升',
-    '011010': '泽水困',
-    '010110': '水风井',
-    '101110': '泽火革',
-    '101100': '火风鼎',
-    '001001': '震为雷',
-    '100100': '艮为山',
-    '001000': '风山渐',
-    '001011': '雷泽归妹',
-    '001100': '雷火丰',
-    '100110': '火山旅',
-    '011011': '巽为风',
-    '110110': '兑为泽',
-    '011001': '风水涣',
-    '010111': '水泽节',
-    '110011': '风泽中孚',
-    '100101': '雷山小过',
-    '010101': '水火既济',
-    '101010': '火水未济',
+    '000000': '坤为地', '000001': '山地剥', '000010': '水地比', '000011': '泽地萃',
+    '000100': '雷地豫', '000101': '火地晋', '000110': '风地观', '000111': '天地否',
+    '001000': '地山谦', '001001': '艮为山', '001010': '水山蹇', '001011': '泽山咸',
+    '001100': '雷山小过', '001101': '火山旅', '001110': '山风蛊', '001111': '天山遁',
+    '010000': '地水师', '010001': '山火贲', '010010': '坎为水', '010011': '泽水困',
+    '010100': '雷水解', '010101': '火水未济', '010110': '风水涣', '010111': '天水讼',
+    '011000': '地泽临', '011001': '山泽损', '011010': '水泽节', '011011': '兑为泽',
+    '011100': '雷泽归妹', '011101': '火泽睽', '011110': '风泽中孚', '011111': '天泽履',
+    '100000': '地雷复', '100001': '山雷颐', '100010': '水雷屯', '100011': '泽雷随',
+    '100100': '震为雷', '100101': '火雷噬嗑', '100110': '风雷益', '100111': '天雷无妄',
+    '101000': '地火明夷', '101001': '山水蒙', '101010': '水火既济', '101011': '泽火革',
+    '101100': '雷火丰', '101101': '离为火', '101110': '风火家人', '101111': '天火同人',
+    '110000': '地风升', '110001': '风山渐', '110010': '水风井', '110011': '泽风大过',
+    '110100': '雷风恒', '110101': '火风鼎', '110110': '巽为风', '110111': '天风姤',
+    '111000': '地天泰', '111001': '山天大畜', '111010': '水天需', '111011': '泽天夬',
+    '111100': '雷天大壮', '111101': '火天大有', '111110': '风天小畜', '111111': '乾为天',
 }
 
-UNICODE_MAP = {
-    '111111': '䷀', '000000': '䷁', '100010': '䷂', '010001': '䷃',
-    '111010': '䷄', '010111': '䷅', '000010': '䷆', '010000': '䷇',
-    '110111': '䷈', '111011': '䷉', '111000': '䷊', '000111': '䷋',
-    '101111': '䷌', '111101': '䷍', '000100': '䷎', '110100': '䷏',
-    '101101': '䷐', '010011': '䷑', '001010': '䷒', '110010': '䷓',
-    '100110': '䷔', '111100': '䷕', '011111': '䷖', '011100': '䷗',
-    '000110': '䷘', '011010': '䷙', '010110': '䷚', '101110': '䷛',
-    '101100': '䷜', '001001': '䷝', '100100': '䷞', '001000': '䷟',
-    '001011': '䷠', '001100': '䷡', '100110': '䷢', '011011': '䷣',
-    '110110': '䷤', '011001': '䷥', '010111': '䷦', '110011': '䷧',
-    '100101': '䷨', '010101': '䷩', '101010': '䷪',
-}
+# 验证映射表
+_values = list(HEXAGRAM_NAMES.values())
+if len(set(_values)) < 64:
+    from collections import Counter
+    print("⚠️  警告：HEXAGRAM_NAMES 有重复卦名")
+    for name, count in Counter(_values).items():
+        if count > 1:
+            print(f"  {name}: {count} 次")
 
+# 爻符号（ASCII 确保显示）
 YAO_SYMBOLS = {6: '- -', 7: '───', 8: '- -', 9: '───'}
 CHANGING_MARKS = {6: '✕', 9: '○'}
 YAO_POSITIONS = ['初', '二', '三', '四', '五', '上']
 
 
-# ==================== 核心函数 ====================
-
 def get_gua_name(yao_list):
-    """根据 6 爻获取卦名"""
+    """
+    根据 6 爻获取卦名（符合《图解周易》）
+    
+    Args:
+        yao_list: [初爻，二爻，三爻，四爻，五爻，上爻]
+                  每个爻为 6/7/8/9
+                  6=老阴，7=少阳，8=少阴，9=老阳
+    
+    Returns:
+        str: 卦名
+    """
     try:
-        binary = ''.join('1' if y in [7, 9] else '0' for y in yao_list)
+        # 转换为二进制（从下往上）
+        # 阳爻 (7,9) = 1, 阴爻 (6,8) = 0
+        binary = ''
+        for yao in yao_list:
+            binary += '1' if yao in [7, 9] else '0'
+        
+        # 查表获取卦名
         gua_name = HEXAGRAM_NAMES.get(binary)
+        
         if gua_name:
             return gua_name
-        print(f'[DEBUG] 未找到卦名：binary={binary}')
+        
+        # 调试输出
+        print(f'[DEBUG] 未找到卦名：binary={binary}, yao_list={yao_list}')
         return '未知卦'
     except Exception as e:
         print(f'[ERROR] get_gua_name: {e}')
@@ -107,6 +90,7 @@ def get_gua_name(yao_list):
 
 
 def get_binary(yao_list):
+    """获取卦象二进制表示"""
     return ''.join('1' if y in [7, 9] else '0' for y in yao_list)
 
 
@@ -120,36 +104,49 @@ def get_hexagram_unicode(gua_name):
                 break
         if not binary:
             return ''
-        return UNICODE_MAP.get(binary, '')
+        
+        # Unicode 编码计算（U+4DC0 开始）
+        index = int(binary, 2)
+        return chr(0x4DC0 + index)
     except Exception as e:
         print(f'[ERROR] get_hexagram_unicode: {e}')
         return ''
 
 
 def get_changing_gua(yao_list):
-    """计算变卦"""
+    """
+    计算变卦（符合《图解周易》）
+    老阳 (9) 变阴，老阴 (6) 变阳
+    """
     try:
         changed_yao = []
         has_changing = False
+        
         for yao in yao_list:
-            if yao == 9:
-                changed_yao.append(8)
+            if yao == 9:  # 老阳变阴
+                changed_yao.append(8)  # 变为少阴
                 has_changing = True
-            elif yao == 6:
-                changed_yao.append(7)
+            elif yao == 6:  # 老阴变阳
+                changed_yao.append(7)  # 变为少阳
                 has_changing = True
             else:
                 changed_yao.append(yao)
+        
         if not has_changing:
             return None, None
-        return changed_yao, get_gua_name(changed_yao)
+        
+        changed_gua_name = get_gua_name(changed_yao)
+        return changed_yao, changed_gua_name
     except Exception as e:
         print(f'[ERROR] get_changing_gua: {e}')
         return None, None
 
 
 def get_yao_name(position, yao):
-    """获取爻名"""
+    """
+    获取爻名（符合《周易》命名规则）
+    阳爻称"九"，阴爻称"六"
+    """
     yao_type = '九' if yao in [7, 9] else '六'
     return f'{YAO_POSITIONS[position]}{yao_type}'
 
@@ -190,7 +187,10 @@ def get_gua_detail(gua_name):
 
 
 def format_gua_display(yao_list, method='起卦'):
-    """显示卦象"""
+    """
+    显示卦象（符合《图解周易》传统）
+    从上爻→初爻显示
+    """
     lines = [f'{method}', '']
     
     gua_name = get_gua_name(yao_list)
@@ -202,6 +202,7 @@ def format_gua_display(yao_list, method='起卦'):
     
     changed_yao, changed_gua_name = get_changing_gua(yao_list)
     
+    # 从上爻→初爻显示
     for i in range(5, -1, -1):
         yao = yao_list[i]
         symbol = YAO_SYMBOLS.get(yao, '───')
@@ -220,16 +221,6 @@ def format_gua_display(yao_list, method='起卦'):
             lines.append(f'变卦：{changed_symbol} {changed_gua_name}')
         else:
             lines.append(f'变卦：{changed_gua_name}')
-    
-    binary = get_binary(yao_list)
-    upper, lower = binary[3:6], binary[0:3]
-    upper_symbol = TRIGRAM_UNICODE.get(upper, '')
-    lower_symbol = TRIGRAM_UNICODE.get(lower, '')
-    upper_name = TRIGRAM_INFO.get(upper, {}).get('name', '')
-    lower_name = TRIGRAM_INFO.get(lower, {}).get('name', '')
-    
-    if upper_symbol and lower_symbol:
-        lines.append(f'上卦：{upper_symbol} {upper_name}  下卦：{lower_symbol} {lower_name}')
     
     return '\n'.join(lines), gua_name, changed_gua_name
 
@@ -273,14 +264,8 @@ def format_gua_detail_display(gua_name, yao_list):
     return '\n'.join(lines)
 
 
-# ==================== 六爻排盘（简化版，避免 Vulkan 闪退） ====================
-
 def format_liuyao_simple(yao_list, gua_name, method='起卦'):
-    """
-    六爻排盘（简化版）
-    避免复杂图形渲染导致 Vulkan 驱动闪退
-    使用纯文本显示
-    """
+    """六爻排盘（简化版，避免 Vulkan）"""
     lines = []
     lines.append(f'【{method}】六爻排盘')
     lines.append('')
@@ -289,20 +274,17 @@ def format_liuyao_simple(yao_list, gua_name, method='起卦'):
     lines.append('爻位  爻象  阴阳')
     lines.append('─' * 30)
     
-    # 从初爻往上（显示从上往下）
     for i in range(5, -1, -1):
         yao = yao_list[i]
         yao_name = get_yao_name(i, yao)
         yinyang = '阳' if yao in [7, 9] else '阴'
         symbol = YAO_SYMBOLS.get(yao, '───')
         mark = CHANGING_MARKS.get(yao, '')
-        
         line = f'{yao_name:4} {symbol} {yinyang:2} {mark}'
         lines.append(line)
     
     lines.append('')
     
-    # 变卦信息
     _, changed_gua_name = get_changing_gua(yao_list)
     if changed_gua_name:
         lines.append(f'变卦：{changed_gua_name}')
@@ -312,10 +294,34 @@ def format_liuyao_simple(yao_list, gua_name, method='起卦'):
 
 if __name__ == '__main__':
     # 测试
+    print("=" * 60)
+    print("64 卦映射表验证")
+    print("=" * 60)
+    
+    keys = list(HEXAGRAM_NAMES.keys())
+    values = list(HEXAGRAM_NAMES.values())
+    print(f"总卦数：{len(values)}")
+    print(f"唯一卦数：{len(set(values))}")
+    
+    if len(set(values)) == 64:
+        print("\n✅ 64 卦完整，无重复！")
+    else:
+        from collections import Counter
+        repeats = [(n, c) for n, c in Counter(values).items() if c > 1]
+        if repeats:
+            print("\n❌ 有重复卦名:")
+            for name, count in repeats:
+                print(f"  {name}: {count} 次")
+    
+    # 测试几个卦
+    print("\n" + "=" * 60)
+    print("卦象计算测试")
+    print("=" * 60)
+    
     tests = [
-        ([9, 9, 9, 9, 9, 9], '乾为天'),
-        ([6, 6, 6, 6, 6, 6], '坤为地'),
-        ([9, 9, 9, 8, 9, 8], '水天需'),
+        ([9, 9, 9, 9, 9, 9], '乾为天'),  # 111111
+        ([6, 6, 6, 6, 6, 6], '坤为地'),  # 000000
+        ([9, 9, 9, 8, 9, 8], '水天需'),  # 111010
     ]
     
     for yao_list, expected in tests:
