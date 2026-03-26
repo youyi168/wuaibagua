@@ -171,7 +171,7 @@ def get_gua_detail(gua_name):
         '火雷噬嗑': '噬嗑', '山火贲': '贲', '山地剥': '剥', '地雷复': '复',
         '天雷无妄': '无妄', '山天大畜': '大畜', '山雷颐': '颐', '泽风大过': '大过',
         '坎为水': '坎', '离为火': '离', '泽山咸': '咸', '雷风恒': '恒',
-        '天山遁': '遯', '雷天大壮': '大壮', '火地晋': '晋', '地火明夷': '明夷',
+        '天山遁': '遁', '雷天大壮': '大壮', '火地晋': '晋', '地火明夷': '明夷',
         '风火家人': '家人', '火泽睽': '睽', '水山蹇': '蹇', '雷水解': '解',
         '山泽损': '损', '风雷益': '益', '泽天夬': '夬', '天风姤': '姤',
         '泽地萃': '萃', '地风升': '升', '泽水困': '困', '水风井': '井',
@@ -188,12 +188,22 @@ def get_gua_detail(gua_name):
             print(f'[WARN] 未找到卦名简称：{gua_name}')
             return None
         
-        # 读取 txt 文件
+        # 读取 txt 文件（尝试多个路径）
         import os
+        
+        # 路径 1: 打包后的 APK 路径
         txt_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', f'{short_name}卦.txt')
         
+        # 路径 2: 开发环境路径（上级目录）
         if not os.path.exists(txt_file):
-            print(f'[WARN] txt 文件不存在：{txt_file}')
+            txt_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', f'{short_name}卦.txt')
+        
+        # 路径 3: 当前工作目录
+        if not os.path.exists(txt_file):
+            txt_file = f'data/{short_name}卦.txt'
+        
+        if not os.path.exists(txt_file):
+            print(f'[WARN] txt 文件不存在：{txt_file} (卦名：{gua_name}, 简称：{short_name})')
             return None
         
         with open(txt_file, 'r', encoding='utf-8') as f:

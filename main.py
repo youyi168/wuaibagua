@@ -154,10 +154,16 @@ def show_toast(message):
             Toast = autoclass('android.widget.Toast')
             
             app = App.get_running_app()
-            if app:
+            if app and hasattr(app, 'getApplicationContext'):
                 context = app.getApplicationContext()
                 toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
                 toast.show()
+            else:
+                # Fallback: 使用 mActivity
+                if app and hasattr(app, 'mActivity'):
+                    context = app.mActivity.getApplicationContext()
+                    toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
+                    toast.show()
         else:
             print(f'[TOAST] {message}')
     except Exception as e:
