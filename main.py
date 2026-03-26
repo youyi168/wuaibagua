@@ -781,13 +781,11 @@ class WuaibaguaApp(App):
                 gua_name = '未知卦'
                 self.current_changing_gua = None
             
-            # 显示卦象
+            # 显示卦象（使用默认字体，ASCII 符号）
             self.gua_result_label.text = text
-            self.gua_result_label.font_size = dp(15)
+            self.gua_result_label.font_size = dp(16)
             self.gua_result_label.halign = 'left'
             self.gua_result_label.valign = 'top'
-            # 使用 Yijing 字体显示符号
-            self.gua_result_label.font_name = 'Yijing'
             
             self.current_gua = gua_name
             self.current_yao_list = yao_list
