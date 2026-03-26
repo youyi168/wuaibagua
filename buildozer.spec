@@ -7,6 +7,10 @@ source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf,svg
 version = 1.1.1
 icon.filename = icon.png
 requirements = python3,kivy,pyjnius
+# 使用旧版 Kivy 避免 Vulkan 问题
+# kivy==2.1.0 比最新版更稳定
+p4a.requirements = kivy==2.1.0
+
 # 使用清华镜像下载 Python 源码
 hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11.5.tgz
 orientation = portrait
@@ -34,8 +38,9 @@ p4a.source_url = https://mirrors.tuna.tsinghua.edu.cn/git/python-for-android.git
 
 # 【关键修复】使用自定义 AndroidManifest.xml 强制禁用 Vulkan
 # 解决 Adreno Vulkan 驱动 0800.60 在 Android 13+ 上的崩溃问题
-p4a.android-manifest.overrides = android:renderengine="opengl",android:graphics.opengl="es20"
+# OPPO/一加/真我设备必配
 p4a.android-manifest.template = templates/android/AndroidManifest.xml
+p4a.android-manifest.overrides = android:renderengine="opengl",android:graphics.opengl="es20"
 # 备用镜像（阿里云）
 # p4a.source_url = https://code.aliyun.com/python-for-android/python-for-android.git
 

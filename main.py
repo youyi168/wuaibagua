@@ -31,6 +31,46 @@ from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.core.text import LabelBase
 from kivy.clock import Clock
+from kivy.graphics import Instruction
+
+# ==================== OPPO 设备 Vulkan 检测与禁用 ====================
+def disable_vulkan_if_needed():
+    """
+    检测 OPPO 设备并禁用 Vulkan 渲染
+    解决 Adreno Vulkan 驱动 Bug 导致的闪退
+    """
+    try:
+        if ANDROID_CLIPBOARD_AVAILABLE:
+            Build = autoclass('android.os.Build')
+            manufacturer = Build.MANUFACTURER.lower()
+            model = Build.MODEL.lower()
+            android_version = Build.VERSION.RELEASE
+            
+            # OPPO/一加/真我设备检测
+            oppo_brands = ['oppo', 'oneplus', 'realme', '一加', '欧珀']
+            is_oppo = any(brand in manufacturer or brand in model for brand in oppo_brands)
+            
+            if is_oppo and int(android_version.split('.')[0]) >= 13:
+                print(f'[WARN] 检测到 OPPO 设备 Android {android_version}，禁用 Vulkan')
+                print(f'[WARN] 设备：{manufacturer} {model}')
+                
+                # 强制使用 OpenGL ES 2.0
+                from kivy.config import Config
+                Config.set('graphics', 'backend', 'gl')
+                Config.set('graphics', 'gl_backend', 'gl')
+                Config.write()
+                
+                # 禁用硬件加速的某些特性
+                Window.clearcolor = (0, 0, 0, 1)
+                
+                return True
+    except Exception as e:
+        print(f'[ERROR] disable_vulkan_if_needed: {e}')
+    
+    return False
+
+# 在应用启动前检测
+disable_vulkan_if_needed()
 
 # ==================== 注册字体 ====================
 def register_fonts():
