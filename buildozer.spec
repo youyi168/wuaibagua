@@ -19,7 +19,7 @@ p4a.requirements = kivy==2.1.0
 hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11.5.tgz
 orientation = portrait
 fullscreen = 0
-android.permissions = VIBRATE
+android.permissions = VIBRATE,INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE
 android.api = 33
 android.minapi = 21
 android.ndk_api = 21

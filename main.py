@@ -747,7 +747,8 @@ class WuaibaguaApp(App):
         # 状态
         self.current_gua = None
         self.current_yao_list = None
-        self.current_gua_txt = None
+        self.current_gua_detail = None
+        self.current_changing_gua = None
         
         return main_layout
     
