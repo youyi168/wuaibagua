@@ -191,20 +191,27 @@ def get_gua_detail(gua_name):
         # 读取 txt 文件（尝试多个路径）
         import os
         
-        # 路径 1: 打包后的 APK 路径
-        txt_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', f'{short_name}卦.txt')
+        # 路径 1: 当前工作目录（APK 中）
+        txt_file = f'data/{short_name}卦.txt'
         
-        # 路径 2: 开发环境路径（上级目录）
+        # 路径 2: gua_calculator.py 同级目录
+        if not os.path.exists(txt_file):
+            txt_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', f'{short_name}卦.txt')
+        
+        # 路径 3: 上级目录（开发环境）
         if not os.path.exists(txt_file):
             txt_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', f'{short_name}卦.txt')
         
-        # 路径 3: 当前工作目录
-        if not os.path.exists(txt_file):
-            txt_file = f'data/{short_name}卦.txt'
-        
         if not os.path.exists(txt_file):
             print(f'[WARN] txt 文件不存在：{txt_file} (卦名：{gua_name}, 简称：{short_name})')
-            return None
+            # Fallback: 返回基本数据
+            return {
+                'gua_ci': f'{gua_name}卦辞',
+                'da_xiang': f'{gua_name}大象',
+                'yao_ci': [],
+                'bai_hua': f'{gua_name}白话解释',
+                'full_text': '',
+            }
         
         with open(txt_file, 'r', encoding='utf-8') as f:
             content = f.read()

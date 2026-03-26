@@ -799,7 +799,12 @@ class WuaibaguaApp(App):
             # 读取详细数据
             self.current_gua_detail = None
             if GUA_CALC_AVAILABLE:
+                print(f'[DEBUG] 读取卦象数据：{gua_name}')
                 self.current_gua_detail = gua_calculator.get_gua_detail(gua_name)
+                if self.current_gua_detail:
+                    print(f'[DEBUG] ✅ 读取成功：卦辞={self.current_gua_detail.get("gua_ci", "")[:20]}...')
+                else:
+                    print(f'[DEBUG] ❌ 读取失败：{gua_name}')
             
             show_toast(f'✅ {gua_name}')
         except Exception as e:
