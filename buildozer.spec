@@ -21,8 +21,8 @@ android.accept_sdk_license = True
 android.archs = arm64-v8a, armeabi-v7a
 android.allow_backup = True
 
-# 包含数据目录和字体目录
-source.include_dirs = data,fonts
+# 包含数据目录和字体目录（封装到 APK 内）
+source.include_dirs = data,fonts,resources
 
 [buildozer]
 log_level = 2

@@ -45,12 +45,14 @@ def register_fonts():
     else:
         print(f'[WARN] 中文字体文件不存在')
     
-    # 注册易卦专用字体（Yijing Symbols / Symbola）
+    # 注册易卦专用字体（优先级：Symbola > NotoSansSymbols > seguisym）
     yijing_fonts = [
-        'YijingSymbols.ttf',
-        'YJSymbols.ttf',
         'Symbola.ttf',
         'Symbola-hint.ttf',
+        'NotoSansSymbols-Regular.ttf',  # 已有
+        'seguisym.ttf',                  # 已有
+        'YijingSymbols.ttf',
+        'YJSymbols.ttf',
     ]
     
     for font_name in yijing_fonts:
