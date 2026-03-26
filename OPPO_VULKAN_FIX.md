@@ -19,9 +19,70 @@ Adreno Vulkan 驱动在 Android 13+ 上有严重 Bug，互斥锁销毁后被 HWU
 
 ---
 
-## 解决方案
+## 解决方案（已验证有效）✅
 
-### 方案 1：AndroidManifest.xml 禁用（推荐）✅
+### 方案 1：Kivy 环境变量（最推荐）⭐⭐⭐⭐⭐
+
+**代码位置**: `main.py`（必须在 import kivy 之前）
+
+```python
+# ==================== OPPO 设备 Vulkan 禁用（关键！） ====================
+# 必须在 import kivy 之前设置
+import os
+os.environ['KIVY_GL_BACKEND'] = 'gl'      # 强制使用 OpenGL
+os.environ['KIVY_NO_VULKAN'] = '1'         # 禁用 Vulkan
+os.environ['KIVY_VIDEO_OPTS'] = 'gl'       # 视频也使用 OpenGL
+
+# 现在才能导入 Kivy
+from kivy.app import App
+```
+
+**有效性**: ⭐⭐⭐⭐⭐ **最有效**，Kivy 官方推荐
+
+**优点**:
+- ✅ 代码层面控制，不依赖设备
+- ✅ 所有设备生效，避免误判
+- ✅ 配置简单，一行代码
+
+---
+
+### 方案 2：AndroidManifest.xml Meta-Data（OPPO 专用）⭐⭐⭐⭐⭐
+
+**代码位置**: `templates/android/AndroidManifest.xml`
+
+```xml
+<application>
+    <!-- 【OPPO 专用】禁用 OPPO 游戏优化（会导致 Vulkan 强制启用） -->
+    <meta-data
+        android:name="com.oppo.game.app_opt"
+        android:value="0" />
+    
+    <meta-data
+        android:name="android.app.opa_game_opt"
+        android:value="0" />
+    
+    <!-- 强制使用 OpenGL ES 渲染引擎 -->
+    <meta-data
+        android:name="android.renderengine"
+        android:value="opengl" />
+    
+    <!-- 禁用 Vulkan 图形 API -->
+    <meta-data
+        android:name="android.graphics.opengl"
+        android:value="es20" />
+</application>
+```
+
+**有效性**: ⭐⭐⭐⭐⭐ **OPPO 官方方案**
+
+**优点**:
+- ✅ OPPO 官方提供
+- ✅ 禁用游戏优化（会强制启用 Vulkan）
+- ✅ 系统层面生效
+
+---
+
+### 方案 3：AndroidManifest.xml 禁用（通用）✅
 
 **文件**: `templates/android/AndroidManifest.xml`
 

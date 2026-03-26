@@ -3,9 +3,19 @@
 """
 我爱八卦 - 金钱卦算卦软件 (Android 版)
 功能：电脑起卦、手动起卦、今日运势、本地卦象解释、分享功能
+
+【重要】OPPO 设备 Vulkan 禁用
+必须在 import kivy 之前设置环境变量！
 """
 
+# ==================== OPPO 设备 Vulkan 禁用（关键！） ====================
+# 必须在 import kivy 之前设置
 import os
+os.environ['KIVY_GL_BACKEND'] = 'gl'      # 强制使用 OpenGL
+os.environ['KIVY_NO_VULKAN'] = '1'         # 禁用 Vulkan
+os.environ['KIVY_VIDEO_OPTS'] = 'gl'       # 视频也使用 OpenGL
+
+# ==================== 标准导入 ====================
 import sys
 import random
 import hashlib
@@ -19,6 +29,7 @@ except ImportError:
     GUA_CALC_AVAILABLE = False
     print('[WARN] gua_calculator module not available')
 
+# 现在才能导入 Kivy
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout

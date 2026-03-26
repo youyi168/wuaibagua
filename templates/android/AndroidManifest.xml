@@ -20,6 +20,15 @@
         android:hardwareAccelerated="true"
         android:largeHeap="true">
         
+        <!-- 【OPPO 专用】禁用 OPPO 游戏优化（会导致 Vulkan 强制启用） -->
+        <meta-data
+            android:name="com.oppo.game.app_opt"
+            android:value="0" />
+        
+        <meta-data
+            android:name="android.app.opa_game_opt"
+            android:value="0" />
+        
         <!-- 关键配置：强制使用 OpenGL ES 渲染引擎 -->
         <meta-data
             android:name="android.renderengine"
