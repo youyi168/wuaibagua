@@ -279,41 +279,42 @@ def get_gua_detail(gua_name):
 
 def format_gua_display(yao_list, method='起卦'):
     """
-    显示卦象（符合《图解周易》传统）
+    显示卦象（ASCII 版，兼容所有设备）
     从上爻→初爻显示
     """
-    lines = [f'{method}', '']
+    lines = [f'[ {method} ]', '']
     
     gua_name = get_gua_name(yao_list)
-    hexagram_symbol = get_hexagram_unicode(gua_name)
-    
-    if hexagram_symbol:
-        lines.append(f'{hexagram_symbol}  {gua_name}')
-        lines.append('')
+    lines.append(f'卦名：{gua_name}')
+    lines.append('')
     
     changed_yao, changed_gua_name = get_changing_gua(yao_list)
+    
+    # ASCII 爻符号
+    yao_ascii = {
+        6: '-- -- X',  # 老阴
+        7: '-----',    # 少阳
+        8: '-- --',    # 少阴
+        9: '----- O',  # 老阳
+    }
     
     # 从上爻→初爻显示
     for i in range(5, -1, -1):
         yao = yao_list[i]
-        symbol = YAO_SYMBOLS.get(yao, '───')
         yao_name = get_yao_name(i, yao)
-        mark = CHANGING_MARKS.get(yao, '')
-        if mark:
-            lines.append(f'{yao_name:4} {symbol}  {mark}')
-        else:
-            lines.append(f'{yao_name:4} {symbol}')
+        symbol = yao_ascii.get(yao, '-----')
+        lines.append(f'{yao_name:4} {symbol}')
     
-    lines.extend(['', f'卦名：{gua_name}'])
+    lines.append('')
     
     if changed_gua_name:
-        changed_symbol = get_hexagram_unicode(changed_gua_name)
-        if changed_symbol:
-            lines.append(f'变卦：{changed_symbol} {changed_gua_name}')
-        else:
-            lines.append(f'变卦：{changed_gua_name}')
+        lines.append(f'变卦：{changed_gua_name}')
     
     return '\n'.join(lines), gua_name, changed_gua_name
+
+
+# 别名，保持兼容
+format_gua_display_ascii = format_gua_display
 
 
 def format_gua_detail_display(gua_name, yao_list):
