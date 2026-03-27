@@ -490,15 +490,22 @@ def show_settings_popup():
 
 def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_gua_name=None, duangua_result=None):
     """
-    显示卦象解释和断卦结果（完整版）
+    显示卦象解释和断卦结果（数据库完整版）
     
     包含：
-    - 卦名、卦辞、大象
-    - 爻辞（带变爻标记）
+    - 卦名、卦辞、白话解释
+    - 卦象分析（大象）
+    - 人生启示
+    - 爻辞（带变爻标记、象传）
     - 断卦方法
     - 变卦信息
     """
     try:
+        import gua_db
+        
+        # 从数据库获取完整数据
+        db_data = gua_db.get_gua_by_name(gua_name)
+        
         layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
         
         # 标题
@@ -517,7 +524,7 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
         content_layout.bind(minimum_height=content_layout.setter('height'))
         
         # 卦辞
-        if detail_data and detail_data.get('gua_ci'):
+        if db_data and db_data.get('description'):
             section = Label(
                 text='【卦辞】',
                 size_hint_y=None,
@@ -529,7 +536,7 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
             content_layout.add_widget(section)
             
             text = Label(
-                text=detail_data['gua_ci'],
+                text=db_data['description'],
                 size_hint_y=None,
                 halign='left',
                 valign='top',
@@ -539,10 +546,10 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
             text.bind(size=text.setter('text_size'))
             content_layout.add_widget(text)
         
-        # 大象
-        if detail_data and detail_data.get('da_xiang'):
+        # 白话解释
+        if db_data and db_data.get('bai_hua'):
             section = Label(
-                text='【大象】',
+                text='【白话解释】',
                 size_hint_y=None,
                 height=dp(30),
                 font_size=dp(16),
@@ -552,11 +559,57 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
             content_layout.add_widget(section)
             
             text = Label(
-                text=detail_data['da_xiang'],
+                text=db_data['bai_hua'],
                 size_hint_y=None,
                 halign='left',
                 valign='top',
-                font_size=dp(15),
+                font_size=dp(14),
+                padding=(10, 5)
+            )
+            text.bind(size=text.setter('text_size'))
+            content_layout.add_widget(text)
+        
+        # 卦象分析（大象）
+        if db_data and db_data.get('guan_xiang'):
+            section = Label(
+                text='【卦象分析】',
+                size_hint_y=None,
+                height=dp(30),
+                font_size=dp(16),
+                bold=True,
+                halign='left'
+            )
+            content_layout.add_widget(section)
+            
+            text = Label(
+                text=db_data['guan_xiang'],
+                size_hint_y=None,
+                halign='left',
+                valign='top',
+                font_size=dp(14),
+                padding=(10, 5)
+            )
+            text.bind(size=text.setter('text_size'))
+            content_layout.add_widget(text)
+        
+        # 人生启示
+        if db_data and db_data.get('ren_sheng'):
+            section = Label(
+                text='【人生启示】',
+                size_hint_y=None,
+                height=dp(30),
+                font_size=dp(16),
+                bold=True,
+                halign='left'
+            )
+            content_layout.add_widget(section)
+            
+            text = Label(
+                text=db_data['ren_sheng'],
+                size_hint_y=None,
+                halign='left',
+                valign='top',
+                font_size=dp(14),
                 padding=(10, 5)
             )
             text.bind(size=text.setter('text_size'))
@@ -606,50 +659,58 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
                 )
                 content_layout.add_widget(text)
         
-        # 爻辞
-        if detail_data and detail_data.get('yao_ci'):
-            section = Label(
-                text='【爻辞】',
-                size_hint_y=None,
-                height=dp(30),
-                font_size=dp(16),
-                bold=True,
-                halign='left'
-            )
-            content_layout.add_widget(section)
-            
-            for yao in detail_data['yao_ci']:
-                yao_name = yao.get('name', '')
-                yao_text = yao.get('text', '')
-                xiang = yao.get('xiang', '')
-                
-                # 标记变爻
-                yao_type = 9 if '九' in yao_name else 6
-                is_changing = yao_type in [6, 9]
-                mark = ' ⭕' if yao_type == 9 else ' ✕' if yao_type == 6 else ''
-                
-                yao_label = Label(
-                    text=f'{yao_name}{mark}: {yao_text}',
+        # 爻辞（从数据库获取完整数据）
+        if db_data:
+            yao_ci_list = gua_db.get_yao_ci(gua_name)
+            if yao_ci_list:
+                section = Label(
+                    text='【爻辞详解】',
                     size_hint_y=None,
-                    halign='left',
-                    valign='top',
-                    font_size=dp(14),
-                    padding=(10, 3)
+                    height=dp(30),
+                    font_size=dp(16),
+                    bold=True,
+                    halign='left'
                 )
-                yao_label.bind(size=yao_label.setter('text_size'))
-                content_layout.add_widget(yao_label)
+                content_layout.add_widget(section)
                 
-                if xiang:
-                    xiang_label = Label(
-                        text=f'  象曰：{xiang}',
+                for yao in yao_ci_list:
+                    yao_name = yao['yao_name']
+                    yao_text = yao['yao_text']
+                    xiang_text = yao.get('xiang_text', '')
+                    
+                    # 查找对应爻的阴阳
+                    yao_type = 7  # 默认少阳
+                    if '九' in yao_name:
+                        yao_type = 9
+                    elif '六' in yao_name:
+                        yao_type = 6
+                    
+                    # 标记变爻
+                    is_changing = yao_type in [6, 9]
+                    mark = ' ⭕' if yao_type == 9 else ' ✕' if yao_type == 6 else ''
+                    
+                    yao_label = Label(
+                        text=f'{yao_name}{mark}: {yao_text}',
                         size_hint_y=None,
                         halign='left',
-                        font_size=dp(13),
-                        text_color=(0.6, 0.6, 0.6, 1),
-                        padding=(10, 0)
+                        valign='top',
+                        font_size=dp(14),
+                        padding=(10, 3)
                     )
-                    xiang_label.bind(size=xiang_label.setter('text_size'))
-                    content_layout.add_widget(xiang_label)
+                    yao_label.bind(size=yao_label.setter('text_size'))
+                    content_layout.add_widget(yao_label)
+                    
+                    if xiang_text:
+                        xiang_label = Label(
+                            text=f'象曰：{xiang_text}',
+                            size_hint_y=None,
+                            halign='left',
+                            font_size=dp(13),
+                            text_color=(0.6, 0.6, 0.6, 1),
+                            padding=(10, 0)
+                        )
+                        xiang_label.bind(size=xiang_label.setter('text_size'))
+                        content_layout.add_widget(xiang_label)
         
         scroll.add_widget(content_layout)
         layout.add_widget(scroll)
