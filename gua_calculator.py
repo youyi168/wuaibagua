@@ -426,128 +426,41 @@ def format_gua_display(yao_list, method='起卦'):
 
 def get_gua_detail(gua_name):
     """
-    从 txt 文件读取卦象详细数据
+    从数据库读取卦象详细数据
     
     Args:
         gua_name: 卦名全称
     
     Returns:
-        dict: 包含卦辞、大象、爻辞、白话解释
+        dict: 包含卦辞、大象、爻辞
     """
-    # 卦名全称→简称映射
-    FULL_TO_SHORT = {
-        '乾为天': '乾', '坤为地': '坤', '水雷屯': '屯', '山水蒙': '蒙',
-        '水天需': '需', '天水讼': '讼', '地水师': '师', '水地比': '比',
-        '风天小畜': '小畜', '天泽履': '履', '地天泰': '泰', '天地否': '否',
-        '天火同人': '同人', '火天大有': '大有', '地山谦': '谦', '雷地豫': '豫',
-        '泽雷随': '随', '山风蛊': '蛊', '地泽临': '临', '风地观': '观',
-        '火雷噬嗑': '噬嗑', '山火贲': '贲', '山地剥': '剥', '地雷复': '复',
-        '天雷无妄': '无妄', '山天大畜': '大畜', '山雷颐': '颐', '泽风大过': '大过',
-        '坎为水': '坎', '离为火': '离', '泽山咸': '咸', '雷风恒': '恒',
-        '天山遁': '遁', '雷天大壮': '大壮', '火地晋': '晋', '地火明夷': '明夷',
-        '风火家人': '家人', '火泽睽': '睽', '水山蹇': '蹇', '雷水解': '解',
-        '山泽损': '损', '风雷益': '益', '泽天夬': '夬', '天风姤': '姤',
-        '泽地萃': '萃', '地风升': '升', '泽水困': '困', '水风井': '井',
-        '泽火革': '革', '火风鼎': '鼎', '震为雷': '震', '艮为山': '艮',
-        '风山渐': '渐', '雷泽归妹': '归妹', '雷火丰': '丰', '火山旅': '旅',
-        '巽为风': '巽', '兑为泽': '兑', '风水涣': '涣', '水泽节': '节',
-        '风泽中孚': '中孚', '雷山小过': '小过', '水火既济': '既济', '火水未济': '未济',
-    }
-    
     try:
-        short_name = FULL_TO_SHORT.get(gua_name)
-        if not short_name:
-            print(f'[WARN] 未找到卦名简称：{gua_name}')
+        import gua_db
+        
+        # 从数据库查询
+        gua_data = gua_db.get_gua_by_name(gua_name)
+        if not gua_data:
+            print(f'[WARN] 数据库中未找到：{gua_name}')
             return None
         
-        # 多路径查找（适配 Android 打包）
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        txt_file = os.path.join(base_dir, 'data', f'{short_name}卦.txt')
+        # 查询爻辞
+        yao_ci_list = gua_db.get_yao_ci(gua_name)
         
-        # 如果找不到，尝试相对路径
-        if not os.path.exists(txt_file):
-            txt_file = f'data/{short_name}卦.txt'
-        
-        if not os.path.exists(txt_file):
-            print(f'[WARN] txt 文件不存在：{txt_file}')
-            return None
-        
-        with open(txt_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        # 解析
+        # 构建返回结果
         result = {
-            'gua_ci': '',
-            'da_xiang': '',
-            'yao_ci': [],
-            'bai_hua': content,
-            'full_text': content,
+            'gua_ci': gua_data.get('description', ''),
+            'da_xiang': gua_data.get('da_xiang', ''),
+            'yao_ci': yao_ci_list,
+            'bai_hua': gua_data.get('description', '') + '\n' + gua_data.get('da_xiang', ''),
+            'full_text': gua_data.get('description', ''),
         }
-        
-        lines = content.strip().split('\n')
-        
-        # 提取卦辞
-        for line in lines:
-            line_stripped = line.strip()
-            if ('：' in line_stripped or ':' in line_stripped) and not line_stripped.startswith('【') and not line_stripped.startswith('《'):
-                if '：' in line_stripped:
-                    parts = line_stripped.split('：', 1)
-                else:
-                    parts = line_stripped.split(':', 1)
-                if len(parts[0]) <= 2:
-                    result['gua_ci'] = parts[1].strip().rstrip('.')
-                    break
-        
-        # 提取大象
-        for line in lines:
-            if '《象》曰' in line or '象曰' in line:
-                if '君子' in line:
-                    result['da_xiang'] = line.replace('《象》曰：', '').replace('象曰：', '').strip()
-                    break
-        
-        # 提取爻辞
-        yao_patterns = ['初九', '初六', '九二', '六二', '九三', '六三', '九四', '六四', 
-                        '九五', '六五', '上九', '上六', '用九', '用六']
-        
-        i = 0
-        while i < len(lines):
-            line = lines[i]
-            for pattern in yao_patterns:
-                if line.startswith(pattern + '，') or line.startswith(pattern + ','):
-                    yao_data = {'name': '', 'text': '', 'xiang': ''}
-                    
-                    if '，' in line:
-                        parts = line.split('，', 1)
-                        yao_data['name'] = parts[0]
-                        yao_data['text'] = parts[1].rstrip('。').strip()
-                    elif ',' in line:
-                        parts = line.split(',', 1)
-                        yao_data['name'] = parts[0]
-                        yao_data['text'] = parts[1].rstrip('。').strip()
-                    else:
-                        yao_data['name'] = line[:2]
-                        yao_data['text'] = line[2:].strip()
-                    
-                    # 查找象曰
-                    for j in range(i+1, min(i+4, len(lines))):
-                        xiang_line = lines[j]
-                        if '《象》曰' in xiang_line or '象曰' in xiang_line:
-                            if '君子' not in xiang_line:
-                                yao_data['xiang'] = xiang_line.replace('《象》曰：', '').replace('象曰：', '').rstrip('。').strip()
-                                break
-                    
-                    result['yao_ci'].append(yao_data)
-                    break
-            i += 1
         
         return result
     
     except Exception as e:
-        print(f'[ERROR] get_gua_detail: {e}')
+        print(f'[ERROR] get_gua_detail failed: {e}')
         return None
 
-
-# ==================== 断卦逻辑（ichingshifa 算法） ====================
 
 def duangua_logic(yao_list):
     """
