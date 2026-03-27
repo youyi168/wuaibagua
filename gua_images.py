@@ -45,11 +45,6 @@ def get_hexagram_image_path(binary):
     return HEXAGRAM_IMAGES.get(binary, HEXAGRAM_IMAGES['111111'])
 
 
-def get_yao_name(position, yao_value):
-    """获取爻名"""
-    yao_type = '九' if yao_value in [7, 9] else '六'
-    return f'{YAO_POSITIONS[position]}{yao_type}'
-
 
 def check_images_exist():
     """检查图片文件是否存在"""
