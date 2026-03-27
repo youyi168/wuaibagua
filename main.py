@@ -1053,20 +1053,19 @@ class WuaibaguaApp(App):
             show_toast('❌ 打开失败')
     
     def show_liuyao(self, instance):
-        """显示六爻排盘"""
+        """显示六爻排盘（完整版：六亲 + 六神 + 世应）"""
         try:
             if not self.current_gua:
                 show_toast('❌ 请先起卦')
                 return
             
-            if GUA_CALC_AVAILABLE:
-                pandan_text = gua_calculator.format_liuyao_simple(
-                    self.current_yao_list,
-                    self.current_gua
-                )
-                show_liuyao_popup(pandan_text)
-            else:
-                show_toast('❌ 排盘模块不可用')
+            # 使用完整版六爻排盘
+            from liuyao_paipan import format_liuyao_full
+            pandan_text = format_liuyao_full(
+                self.current_yao_list,
+                self.current_gua
+            )
+            show_liuyao_popup(pandan_text)
         except Exception as e:
             print(f'[ERROR] show_liuyao failed: {e}')
             show_toast('❌ 排盘失败')
