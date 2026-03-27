@@ -5,17 +5,34 @@
 功能：电脑起卦、手动起卦、今日运势、本地卦象解释、分享功能
 
 【重要】OPPO 设备 Vulkan 禁用
-必须在 import kivy 之前设置环境变量！
+必须在 import kivy 之前设置环境变量和 Config！
 """
 
-# ==================== OPPO 设备 Vulkan 禁用（关键！） ====================
-# 必须在 import kivy 之前设置
+# ==================== 第一优先级：在导入 Kivy 之前禁用 Vulkan ====================
+# 这些必须在任何 Kivy 导入之前！
 import os
+
+# 环境变量（影响 Kivy 初始化）
 os.environ['KIVY_GL_BACKEND'] = 'gl'      # 强制使用 OpenGL
 os.environ['KIVY_NO_VULKAN'] = '1'         # 禁用 Vulkan
 os.environ['KIVY_VIDEO_OPTS'] = 'gl'       # 视频也使用 OpenGL
+os.environ['KIVY_GRAPHICS'] = 'gl'         # 图形后端
 
-# ==================== 标准导入 ====================
+# 现在导入 Config（必须在 import kivy 之前！）
+from kivy.config import Config
+
+# Config 设置（必须在 import kivy.app 之前！）
+Config.set('graphics', 'backend', 'gl')        # 强制 OpenGL
+Config.set('graphics', 'gl_backend', 'gl')     # GL 后端
+Config.set('graphics', 'vsync', '0')           # 禁用垂直同步
+Config.set('graphics', 'max_buffers', '1')     # 减少缓冲
+Config.set('input', 'mouse', 'mouse,disable_multitouch,multitouch_on_demand')
+
+# 禁用 Kivy 日志（减少 I/O，避免竞争）
+os.environ['KIVY_NO_CONSOLELOG'] = '1'
+os.environ['KIVY_NO_FILELOG'] = '1'
+
+# ==================== 第二优先级：标准导入 ====================
 import sys
 import random
 import hashlib
@@ -29,7 +46,7 @@ except ImportError:
     GUA_CALC_AVAILABLE = False
     print('[WARN] gua_calculator module not available')
 
-# 现在才能导入 Kivy
+# 现在才能导入 Kivy（Vulkan 已禁用）
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
@@ -44,16 +61,8 @@ from kivy.core.text import LabelBase
 from kivy.clock import Clock
 from kivy.graphics import Instruction
 
-# ==================== OPPO 设备 Vulkan 禁用（关键！） ====================
-# 必须在导入 Kivy 之前设置！
-from kivy.config import Config
-
-# 强制使用 OpenGL，禁用 Vulkan
-Config.set('graphics', 'backend', 'gl')
-Config.set('graphics', 'gl_backend', 'gl')
-Config.set('graphics', 'vsync', '0')  # 禁用垂直同步，减少闪退
-
-# 检测 OPPO 设备并额外配置
+# ==================== 第三优先级：运行时 OPPO 设备检测 ====================
+# 额外加固（针对某些设备忽略 Config 的情况）
 try:
     if ANDROID_CLIPBOARD_AVAILABLE:
         Build = autoclass('android.os.Build')
@@ -65,18 +74,18 @@ try:
         is_oppo = any(brand in manufacturer or brand in model for brand in oppo_brands)
         
         if is_oppo:
-            print(f'[WARN] 检测到 OPPO 设备，强制使用 OpenGL')
-            print(f'[WARN] 设备：{manufacturer} {model}')
+            print(f'[CRITICAL] 检测到 OPPO 设备，强制禁用 Vulkan')
+            print(f'[CRITICAL] 设备：{manufacturer} {model}')
             
-            # OPPO 设备特殊配置
-            Config.set('graphics', 'max_buffers', '1')  # 减少缓冲，减少闪退
-            Config.set('input', 'mouse', 'mouse,disable_multitouch,multitouch_on_demand')
+            # 二次设置（确保覆盖）
+            Config.set('graphics', 'backend', 'gl')
+            Config.set('graphics', 'gl_backend', 'gl')
             
-            # 禁用 Kivy 日志（减少 I/O）
+            # 禁用 Kivy 日志
             import logging
-            logging.getLogger('kivy').setLevel(logging.WARNING)
+            logging.getLogger('kivy').setLevel(logging.CRITICAL)
 except Exception as e:
-    print(f'[ERROR] OPPO 设备检测失败：{e}')
+    print(f'[WARN] OPPO 设备检测失败（正常）: {e}')
 
 # ==================== 注册字体 ====================
 def register_fonts():
