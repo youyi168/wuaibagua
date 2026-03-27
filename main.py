@@ -503,8 +503,12 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
     try:
         import gua_db
         
-        # 从数据库获取完整数据
+        # 从数据库获取完整数据（忽略 detail_data 参数，直接使用数据库）
         db_data = gua_db.get_gua_by_name(gua_name)
+        
+        if not db_data:
+            show_toast(f'❌ 未找到{gua_name}的数据')
+            return
         
         layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
         
@@ -733,51 +737,7 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
         show_toast('❌ 显示失败')
 
 
-def show_gua_explanation_detail(gua_name, detail_data, yao_list, changing_gua_name=None):
-    """
-    显示详细卦象解释（含变卦）
-    包含：卦辞、大象、爻辞、白话、变卦
-    """
-    try:
-        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
-        
-        # 标题
-        title = Label(
-            text=f'【{gua_name}】',
-            size_hint_y=None,
-            height=dp(50),
-            font_size=dp(20),
-            bold=True
-        )
-        layout.add_widget(title)
-        
-        # 滚动区域
-        scroll = ScrollView()
-        content_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(12))
-        content_layout.bind(minimum_height=content_layout.setter('height'))
-        
-        # 卦辞
-        if detail_data.get('gua_ci'):
-            section_title = Label(
-                text='【卦辞】',
-                size_hint_y=None,
-                height=dp(30),
-                font_size=dp(16),
-                bold=True,
-                halign='left'
-            )
-            content_layout.add_widget(section_title)
-            
-            gua_ci_label = Label(
-                text=detail_data['gua_ci'],
-                size_hint_y=None,
-                halign='left',
-                valign='top',
-                font_size=dp(15),
-                padding=(10, 5)
-            )
-            gua_ci_label.bind(size=gua_ci_label.setter('text_size'))
-            content_layout.add_widget(gua_ci_label)
+# 已删除 show_gua_explanation_detail 函数，统一使用 show_gua_explanation_with_duangua 从数据库获取数据
         
         # 大象
         if detail_data.get('da_xiang'):
