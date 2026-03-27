@@ -1097,8 +1097,13 @@ class WuaibaguaApp(App):
                 text = f'{method}\n\n卦名：未知卦'
                 gua_name = '未知卦'
                 self.current_changing_gua = None
+                image_info = {}
             
-            # 显示卦象图片
+            # 显示卦象图片和爻位信息
+            if hasattr(self, 'gua_name_label'):
+                self.gua_name_label.text = f'[b]{gua_name}[/b]'
+            
+            # 设置 64 卦图片和爻位图片
             if hasattr(self, 'hexagram_image') and image_info:
                 # 设置 64 卦图片
                 hex_image_path = image_info.get('hexagram', '')
@@ -1127,9 +1132,12 @@ class WuaibaguaApp(App):
                         
                         # 设置爻位文字
                         self.yao_labels[i].text = f'{yao_names[i]}{yao_type}{mark}'
-                
-                # 保留旧代码兼容性
-                if hasattr(self, 'gua_info_label'):
+                else:
+                    # Fallback: 如果没有图片，只显示文字
+                    print(f'[WARN] 图片加载失败，使用文字显示')
+            
+            # 保留旧代码兼容性
+            if hasattr(self, 'gua_info_label'):
                     yao_lines = []
                     yao_names = ['初', '二', '三', '四', '五', '上']
                     for i in range(5, -1, -1):
