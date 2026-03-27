@@ -322,40 +322,53 @@ def manual_qigua(yao_selections):
 
 def format_gua_display(yao_list, method='起卦'):
     """
-    显示卦象（ASCII 格式）
-    
-    Args:
-        yao_list: 6 爻列表
-        method: 起卦方法名称
+    显示卦象（返回图片路径信息，Kivy UI 显示图片）
     
     Returns:
-        tuple: (显示文本，卦名，变卦卦名)
+        tuple: (显示文本，卦名，变卦名，图片路径字典)
     """
-    lines = [f'[ {method} ]', '']
-    
     gua_name = get_gua_name(yao_list)
-    lines.append(f'卦名：{gua_name}')
-    lines.append('')
-    
     changed_yao, changed_gua_name = get_changing_gua(yao_list)
     
-    # 从上爻→初爻显示
+    # 获取 64 卦图片路径
+    binary = get_binary(yao_list)
+    try:
+        from gua_images import get_hexagram_image_path, get_yao_image_path
+        hexagram_image = get_hexagram_image_path(binary)
+        
+        # 获取每个爻的图片路径
+        yao_images = {}
+        for i in range(6):
+            yao = yao_list[i]
+            yao_images[i] = get_yao_image_path(yao)
+    except:
+        hexagram_image = ''
+        yao_images = {}
+    
+    # 显示文本（简化版）
+    lines = [f'[ {method} ]', '', f'卦名：{gua_name}', '']
+    
+    # 爻位信息
+    yao_names = ['初', '二', '三', '四', '五', '上']
     for i in range(5, -1, -1):
         yao = yao_list[i]
-        symbol = YAO_SYMBOLS.get(yao, '───')
         yao_name = get_yao_name(i, yao)
-        mark = CHANGING_MARKS.get(yao, '')
-        if mark:
-            lines.append(f'{yao_name:4} {symbol}  {mark}')
-        else:
-            lines.append(f'{yao_name:4} {symbol}')
-    
-    lines.append('')
+        yao_type = '阳' if yao in [7, 9] else '阴'
+        mark = ' ⭕' if yao == 9 else ' ✕' if yao == 6 else ''
+        lines.append(f'{yao_name}{yao_type}{mark}')
     
     if changed_gua_name:
+        lines.append('')
         lines.append(f'变卦：{changed_gua_name}')
     
-    return '\n'.join(lines), gua_name, changed_gua_name
+    # 返回图片路径信息
+    image_info = {
+        'hexagram': hexagram_image,
+        'yao': yao_images,
+    }
+    
+    return '\n'.join(lines), gua_name, changed_gua_name, image_info
+
 
 
 def get_gua_detail(gua_name):

@@ -995,11 +995,13 @@ class WuaibaguaApp(App):
         """显示卦象（修复版）"""
         try:
             if GUA_CALC_AVAILABLE:
-                # 使用修复后的显示函数
-                text, gua_name, changing_gua_name = gua_calculator.format_gua_display(yao_list, method)
+                # 使用图片显示函数
+                text, gua_name, changing_gua_name, image_info = gua_calculator.format_gua_display(yao_list, method)
                 
                 # 保存变卦信息
                 self.current_changing_gua = changing_gua_name
+                # 保存图片路径信息
+                self.current_image_info = image_info
             else:
                 text = f'{method}\n\n卦名：未知卦'
                 gua_name = '未知卦'
