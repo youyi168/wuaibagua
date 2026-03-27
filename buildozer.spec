@@ -4,7 +4,7 @@ package.name = woaibagua
 package.domain = org.woaibagua
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf,svg,db
-version = 1.1.2
+version = 1.1.3
 icon.filename = icon.png
 # 启动图配置（拉伸覆盖全屏）
 presplash.filename = splash.jpg
