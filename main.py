@@ -892,12 +892,12 @@ class WuaibaguaApp(App):
         )
         main_layout.add_widget(title)
         
-        # 卦象显示区域
+        # 卦象显示区域（图片和爻位信息一一对应）
         from kivy.uix.image import Image
         
-        gua_display_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(10))
+        gua_display_layout = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=dp(15))
         
-        # 64 卦图片（固定尺寸，不拉伸）
+        # 左侧：64 卦图片（固定尺寸）
         self.hexagram_image = Image(
             source='',
             size_hint=(None, None),
@@ -907,21 +907,42 @@ class WuaibaguaApp(App):
         )
         gua_display_layout.add_widget(self.hexagram_image)
         
-        # 卦名和爻位信息（固定高度）
-        self.gua_info_label = Label(
+        # 右侧：卦名和爻位信息（垂直排列）
+        yao_info_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(5))
+        
+        # 卦名
+        self.gua_name_label = Label(
             text='点击按钮开始起卦',
             markup=True,
             size_hint_y=None,
-            height=dp(180),
-            font_size=dp(14),
-            halign='center',
-            valign='top'
+            height=dp(35),
+            font_size=dp(18),
+            bold=True,
+            halign='center'
         )
-        self.gua_info_label.bind(size=self.gua_info_label.setter('text_size'))
-        gua_display_layout.add_widget(self.gua_info_label)
+        yao_info_layout.add_widget(self.gua_name_label)
         
+        # 6 个爻位信息（从上爻到初爻）
+        self.yao_labels = []
+        yao_names = ['上爻', '五爻', '四爻', '三爻', '二爻', '初爻']
+        for i in range(6):
+            yao_label = Label(
+                text=f'{yao_names[i]}: ',
+                markup=True,
+                size_hint_y=None,
+                height=dp(35),
+                font_size=dp(14),
+                halign='left',
+                valign='middle'
+            )
+            yao_info_layout.add_widget(yao_label)
+            self.yao_labels.append(yao_label)
+        
+        gua_display_layout.add_widget(yao_info_layout)
         main_layout.add_widget(gua_display_layout)
-        self.gua_result_label = self.gua_info_label
+        
+        # 保留引用
+        self.gua_result_label = self.gua_name_label
         
         # 起卦按钮（两行布局，防止混乱）
         method_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8))
@@ -1064,17 +1085,30 @@ class WuaibaguaApp(App):
                     self.hexagram_image.source = hex_image_path
                     self.hexagram_image.reload()
                 
-                # 设置爻位信息文本
-                yao_lines = []
-                yao_names = ['初', '二', '三', '四', '五', '上']
-                for i in range(5, -1, -1):
-                    yao = yao_list[i]
-                    yao_name = yao_names[i]
-                    yao_type = '阳' if yao in [7, 9] else '阴'
-                    mark = ' ⭕' if yao == 9 else ' ✕' if yao == 6 else ''
-                    yao_lines.append(f'{yao_name}{yao_type}{mark}')
+                # 设置卦名
+                if hasattr(self, 'gua_name_label'):
+                    self.gua_name_label.text = f'[b]{gua_name}[/b]'
                 
-                self.gua_info_label.text = f'[b]{gua_name}[/b]\n\n' + '\n'.join(yao_lines)
+                # 设置 6 个爻位信息（从上爻到初爻，与图片一一对应）
+                if hasattr(self, 'yao_labels'):
+                    yao_names = ['上', '五', '四', '三', '二', '初']
+                    for i in range(6):
+                        yao = yao_list[5 - i]  # 从下往上数
+                        yao_type = '阳' if yao in [7, 9] else '阴'
+                        mark = ' ⭕' if yao == 9 else ' ✕' if yao == 6 else ''
+                        self.yao_labels[i].text = f'{yao_names[i]}{yao_type}{mark}'
+                
+                # 保留旧代码兼容性
+                if hasattr(self, 'gua_info_label'):
+                    yao_lines = []
+                    yao_names = ['初', '二', '三', '四', '五', '上']
+                    for i in range(5, -1, -1):
+                        yao = yao_list[i]
+                        yao_name = yao_names[i]
+                        yao_type = '阳' if yao in [7, 9] else '阴'
+                        mark = ' ⭕' if yao == 9 else ' ✕' if yao == 6 else ''
+                        yao_lines.append(f'{yao_name}{yao_type}{mark}')
+                    self.gua_info_label.text = f'[b]{gua_name}[/b]\n\n' + '\n'.join(yao_lines)
             else:
                 # Fallback: 使用文本显示
                 self.gua_result_label.text = text
