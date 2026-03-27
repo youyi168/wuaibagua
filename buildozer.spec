@@ -4,16 +4,16 @@ package.name = woaibagua
 package.domain = org.woaibagua
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf,svg,db
-version = 1.1.1
+version = 1.1.2
 icon.filename = icon.png
 # 启动图配置（拉伸覆盖全屏）
 presplash.filename = splash.jpg
 android.windowLayout = fill_parent
 android.launchscreen = true
-requirements = python3,kivy,pyjnius
-# 使用旧版 Kivy 避免 Vulkan 问题
-# kivy==2.1.0 比最新版更稳定
-p4a.requirements = kivy==2.1.0
+# 【关键修复】升级 Kivy 到 2.3.0 修复 hwui 线程 Bug
+# Kivy 2.1.0 在 Android 13+ 有 hwuiTask mutex 竞争问题导致闪退
+requirements = python3,kivy==2.3.0,pyjnius
+p4a.requirements = kivy==2.3.0
 
 # 使用清华镜像下载 Python 源码
 hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11.5.tgz

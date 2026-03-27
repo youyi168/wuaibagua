@@ -26,7 +26,10 @@ Config.set('graphics', 'backend', 'gl')        # 强制 OpenGL
 Config.set('graphics', 'gl_backend', 'gl')     # GL 后端
 Config.set('graphics', 'vsync', '0')           # 禁用垂直同步
 Config.set('graphics', 'max_buffers', '1')     # 减少缓冲
+Config.set('graphics', 'shaders', '0')         # 禁用着色器（减少 GPU 竞争）
 Config.set('input', 'mouse', 'mouse,disable_multitouch,multitouch_on_demand')
+Config.set('kivy', 'log_level', 'error')       # 只记录错误
+Config.set('kivy', 'log_dir', '/dev/null')     # 禁用日志文件
 
 # 禁用 Kivy 日志（减少 I/O，避免竞争）
 os.environ['KIVY_NO_CONSOLELOG'] = '1'
