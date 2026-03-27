@@ -865,48 +865,55 @@ class WuaibaguaApp(App):
         """构建应用界面"""
         self.title = '我爱八卦'
         
+        # 设置窗口背景色（半透明，不遮挡背景）
+        from kivy.core.window import Window
+        Window.clearcolor = (0.95, 0.95, 0.95, 1)  # 浅灰色背景
+        
         # 设置全局字体
         from kivy.uix.label import Label
         from kivy.uix.button import Button
         Label.font_name = 'NotoSansSC'
         Button.font_name = 'NotoSansSC'
         
-        # 主布局
-        main_layout = BoxLayout(orientation='vertical', padding=dp(20), spacing=dp(10))
+        # 主布局（使用 ScrollView 防止遮挡）
+        from kivy.uix.scrollview import ScrollView
+        main_scroll = ScrollView()
+        main_layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
         
-        # 标题（移除版本号）
+        # 标题
         title = Label(
-            text='我爱八卦',
+            text='[b]我爱八卦[/b]',
             markup=True,
             size_hint_y=None,
-            height=dp(60),
-            font_size=dp(28),
-            bold=True
+            height=dp(50),
+            font_size=dp(24),
+            bold=True,
+            halign='center'
         )
         main_layout.add_widget(title)
         
-        # 卦象显示区域（使用图片）
+        # 卦象显示区域
         from kivy.uix.image import Image
         
-        gua_display_layout = BoxLayout(orientation='vertical', size_hint_y=1, spacing=dp(10))
+        gua_display_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(10))
         
-        # 64 卦图片
+        # 64 卦图片（固定尺寸，不拉伸）
         self.hexagram_image = Image(
             source='',
             size_hint=(None, None),
             size=(120, 260),
-            allow_stretch=True,
-            keep_ratio=False
+            allow_stretch=False,
+            keep_ratio=True
         )
         gua_display_layout.add_widget(self.hexagram_image)
         
-        # 卦名和爻位信息
+        # 卦名和爻位信息（固定高度）
         self.gua_info_label = Label(
             text='点击按钮开始起卦',
             markup=True,
             size_hint_y=None,
-            height=dp(200),
-            font_size=dp(15),
+            height=dp(180),
+            font_size=dp(14),
             halign='center',
             valign='top'
         )
@@ -914,44 +921,65 @@ class WuaibaguaApp(App):
         gua_display_layout.add_widget(self.gua_info_label)
         
         main_layout.add_widget(gua_display_layout)
-        
-        # 保留引用
         self.gua_result_label = self.gua_info_label
         
-        # 起卦按钮（三行布局）
-        method_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(10))
+        # 起卦按钮（两行布局，防止混乱）
+        method_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8))
         
         # 第一行：电脑起卦、手动起卦
-        row1 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
-        self.btn_auto = Button(text='电脑起卦', font_size=dp(15))
+        row1 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
+        self.btn_auto = Button(text='电脑起卦', font_size=dp(14))
         self.btn_auto.bind(on_press=self.auto_gua)
         row1.add_widget(self.btn_auto)
-        self.btn_manual = Button(text='手动起卦', font_size=dp(15))
+        self.btn_manual = Button(text='手动起卦', font_size=dp(14))
         self.btn_manual.bind(on_press=self.manual_gua)
         row1.add_widget(self.btn_manual)
         method_layout.add_widget(row1)
         
         # 第二行：金钱起卦、时间起卦
-        row2 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
-        self.btn_jinqian = Button(text='金钱起卦', font_size=dp(15))
+        row2 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
+        self.btn_jinqian = Button(text='金钱起卦', font_size=dp(14))
         self.btn_jinqian.bind(on_press=self.jinqian_gua)
         row2.add_widget(self.btn_jinqian)
-        self.btn_time = Button(text='时间起卦', font_size=dp(15))
+        self.btn_time = Button(text='时间起卦', font_size=dp(14))
         self.btn_time.bind(on_press=self.time_gua)
         row2.add_widget(self.btn_time)
         method_layout.add_widget(row2)
         
         # 第三行：蓍草起卦、今日运势
-        row3 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
-        self.btn_shicao = Button(text='蓍草起卦', font_size=dp(15))
+        row3 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
+        self.btn_shicao = Button(text='蓍草起卦', font_size=dp(14))
         self.btn_shicao.bind(on_press=self.shicao_gua)
         row3.add_widget(self.btn_shicao)
-        self.btn_daily = Button(text='今日运势', font_size=dp(15))
+        self.btn_daily = Button(text='今日运势', font_size=dp(14))
         self.btn_daily.bind(on_press=self.daily_gua)
         row3.add_widget(self.btn_daily)
         method_layout.add_widget(row3)
         
         main_layout.add_widget(method_layout)
+        
+        # 功能按钮（解释、分享、六爻、设置）
+        func_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
+        self.btn_explain = Button(text='解释', font_size=dp(14))
+        self.btn_explain.bind(on_press=self.show_explanation)
+        func_layout.add_widget(self.btn_explain)
+        self.btn_share = Button(text='分享', font_size=dp(14))
+        self.btn_share.bind(on_press=self.share_gua)
+        func_layout.add_widget(self.btn_share)
+        self.btn_liuyao = Button(text='六爻', font_size=dp(14))
+        self.btn_liuyao.bind(on_press=self.show_liuyao)
+        func_layout.add_widget(self.btn_liuyao)
+        self.btn_settings = Button(text='设置', font_size=dp(14))
+        self.btn_settings.bind(on_press=lambda x: show_settings_popup())
+        func_layout.add_widget(self.btn_settings)
+        
+        main_layout.add_widget(func_layout)
+        
+        # 添加到 ScrollView
+        main_layout.bind(minimum_height=main_layout.setter('height'))
+        main_scroll.add_widget(main_layout)
+        
+        return main_scroll
         
         # 功能按钮（最底部）
         func_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
