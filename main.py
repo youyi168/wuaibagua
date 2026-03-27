@@ -865,9 +865,9 @@ class WuaibaguaApp(App):
         """构建应用界面"""
         self.title = '我爱八卦'
         
-        # 设置窗口背景色（半透明，不遮挡背景）
+        # 设置窗口背景色（白色背景）
         from kivy.core.window import Window
-        Window.clearcolor = (0.95, 0.95, 0.95, 1)  # 浅灰色背景
+        Window.clearcolor = (1, 1, 1, 1)  # 白色背景
         
         # 设置全局字体
         from kivy.uix.label import Label
@@ -880,7 +880,7 @@ class WuaibaguaApp(App):
         main_scroll = ScrollView()
         main_layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
         
-        # 标题
+        # 标题（黑色文字，白色背景）
         title = Label(
             text='[b]我爱八卦[/b]',
             markup=True,
@@ -888,7 +888,8 @@ class WuaibaguaApp(App):
             height=dp(50),
             font_size=dp(24),
             bold=True,
-            halign='center'
+            halign='center',
+            color=(0, 0, 0, 1)  # 黑色
         )
         main_layout.add_widget(title)
         
@@ -910,7 +911,7 @@ class WuaibaguaApp(App):
         # 右侧：卦名和爻位信息（垂直排列）
         yao_info_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(5))
         
-        # 卦名
+        # 卦名（黑色文字）
         self.gua_name_label = Label(
             text='点击按钮开始起卦',
             markup=True,
@@ -918,11 +919,12 @@ class WuaibaguaApp(App):
             height=dp(35),
             font_size=dp(18),
             bold=True,
-            halign='center'
+            halign='center',
+            color=(0, 0, 0, 1)  # 黑色
         )
         yao_info_layout.add_widget(self.gua_name_label)
         
-        # 6 个爻位信息（从上爻到初爻）
+        # 6 个爻位信息（从上爻到初爻，黑色文字）
         self.yao_labels = []
         yao_names = ['上爻', '五爻', '四爻', '三爻', '二爻', '初爻']
         for i in range(6):
@@ -933,7 +935,8 @@ class WuaibaguaApp(App):
                 height=dp(35),
                 font_size=dp(14),
                 halign='left',
-                valign='middle'
+                valign='middle',
+                color=(0, 0, 0, 1)  # 黑色
             )
             yao_info_layout.add_widget(yao_label)
             self.yao_labels.append(yao_label)
@@ -949,30 +952,30 @@ class WuaibaguaApp(App):
         
         # 第一行：电脑起卦、手动起卦
         row1 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
-        self.btn_auto = Button(text='电脑起卦', font_size=dp(14))
+        self.btn_auto = Button(text='电脑起卦', font_size=dp(14), color=(0, 0, 0, 1))
         self.btn_auto.bind(on_press=self.auto_gua)
         row1.add_widget(self.btn_auto)
-        self.btn_manual = Button(text='手动起卦', font_size=dp(14))
+        self.btn_manual = Button(text='手动起卦', font_size=dp(14), color=(0, 0, 0, 1))
         self.btn_manual.bind(on_press=self.manual_gua)
         row1.add_widget(self.btn_manual)
         method_layout.add_widget(row1)
         
         # 第二行：金钱起卦、时间起卦
         row2 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
-        self.btn_jinqian = Button(text='金钱起卦', font_size=dp(14))
+        self.btn_jinqian = Button(text='金钱起卦', font_size=dp(14), color=(0, 0, 0, 1))
         self.btn_jinqian.bind(on_press=self.jinqian_gua)
         row2.add_widget(self.btn_jinqian)
-        self.btn_time = Button(text='时间起卦', font_size=dp(14))
+        self.btn_time = Button(text='时间起卦', font_size=dp(14), color=(0, 0, 0, 1))
         self.btn_time.bind(on_press=self.time_gua)
         row2.add_widget(self.btn_time)
         method_layout.add_widget(row2)
         
         # 第三行：蓍草起卦、今日运势
         row3 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
-        self.btn_shicao = Button(text='蓍草起卦', font_size=dp(14))
+        self.btn_shicao = Button(text='蓍草起卦', font_size=dp(14), color=(0, 0, 0, 1))
         self.btn_shicao.bind(on_press=self.shicao_gua)
         row3.add_widget(self.btn_shicao)
-        self.btn_daily = Button(text='今日运势', font_size=dp(14))
+        self.btn_daily = Button(text='今日运势', font_size=dp(14), color=(0, 0, 0, 1))
         self.btn_daily.bind(on_press=self.daily_gua)
         row3.add_widget(self.btn_daily)
         method_layout.add_widget(row3)
@@ -981,16 +984,16 @@ class WuaibaguaApp(App):
         
         # 功能按钮（解释、分享、六爻、设置）
         func_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
-        self.btn_explain = Button(text='解释', font_size=dp(14))
+        self.btn_explain = Button(text='解释', font_size=dp(14), color=(0, 0, 0, 1))
         self.btn_explain.bind(on_press=self.show_explanation)
         func_layout.add_widget(self.btn_explain)
-        self.btn_share = Button(text='分享', font_size=dp(14))
+        self.btn_share = Button(text='分享', font_size=dp(14), color=(0, 0, 0, 1))
         self.btn_share.bind(on_press=self.share_gua)
         func_layout.add_widget(self.btn_share)
-        self.btn_liuyao = Button(text='六爻', font_size=dp(14))
+        self.btn_liuyao = Button(text='六爻', font_size=dp(14), color=(0, 0, 0, 1))
         self.btn_liuyao.bind(on_press=self.show_liuyao)
         func_layout.add_widget(self.btn_liuyao)
-        self.btn_settings = Button(text='设置', font_size=dp(14))
+        self.btn_settings = Button(text='设置', font_size=dp(14), color=(0, 0, 0, 1))
         self.btn_settings.bind(on_press=lambda x: show_settings_popup())
         func_layout.add_widget(self.btn_settings)
         
