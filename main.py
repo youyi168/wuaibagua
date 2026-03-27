@@ -885,17 +885,38 @@ class WuaibaguaApp(App):
         )
         main_layout.add_widget(title)
         
-        # 卦象显示区域（移到上方）
-        self.gua_result_label = Label(
+        # 卦象显示区域（使用图片）
+        from kivy.uix.image import Image
+        
+        gua_display_layout = BoxLayout(orientation='vertical', size_hint_y=1, spacing=dp(10))
+        
+        # 64 卦图片
+        self.hexagram_image = Image(
+            source='',
+            size_hint=(None, None),
+            size=(120, 260),
+            allow_stretch=True,
+            keep_ratio=False
+        )
+        gua_display_layout.add_widget(self.hexagram_image)
+        
+        # 卦名和爻位信息
+        self.gua_info_label = Label(
             text='点击按钮开始起卦',
             markup=True,
-            size_hint_y=1,
-            font_size=dp(16),
+            size_hint_y=None,
+            height=dp(200),
+            font_size=dp(15),
             halign='center',
             valign='top'
         )
-        self.gua_result_label.bind(size=self.gua_result_label.setter('text_size'))
-        main_layout.add_widget(self.gua_result_label)
+        self.gua_info_label.bind(size=self.gua_info_label.setter('text_size'))
+        gua_display_layout.add_widget(self.gua_info_label)
+        
+        main_layout.add_widget(gua_display_layout)
+        
+        # 保留引用
+        self.gua_result_label = self.gua_info_label
         
         # 起卦按钮（三行布局）
         method_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(10))
@@ -1007,11 +1028,28 @@ class WuaibaguaApp(App):
                 gua_name = '未知卦'
                 self.current_changing_gua = None
             
-            # 显示卦象（使用默认字体，ASCII 符号）
-            self.gua_result_label.text = text
-            self.gua_result_label.font_size = dp(16)
-            self.gua_result_label.halign = 'left'
-            self.gua_result_label.valign = 'top'
+            # 显示卦象图片
+            if hasattr(self, 'hexagram_image') and image_info:
+                # 设置 64 卦图片
+                hex_image_path = image_info.get('hexagram', '')
+                if hex_image_path and os.path.exists(hex_image_path):
+                    self.hexagram_image.source = hex_image_path
+                    self.hexagram_image.reload()
+                
+                # 设置爻位信息文本
+                yao_lines = []
+                yao_names = ['初', '二', '三', '四', '五', '上']
+                for i in range(5, -1, -1):
+                    yao = yao_list[i]
+                    yao_name = yao_names[i]
+                    yao_type = '阳' if yao in [7, 9] else '阴'
+                    mark = ' ⭕' if yao == 9 else ' ✕' if yao == 6 else ''
+                    yao_lines.append(f'{yao_name}{yao_type}{mark}')
+                
+                self.gua_info_label.text = f'[b]{gua_name}[/b]\n\n' + '\n'.join(yao_lines)
+            else:
+                # Fallback: 使用文本显示
+                self.gua_result_label.text = text
             
             self.current_gua = gua_name
             self.current_yao_list = yao_list
