@@ -457,16 +457,19 @@ def get_gua_detail(gua_name):
     try:
         short_name = FULL_TO_SHORT.get(gua_name)
         if not short_name:
+            print(f'[WARN] 未找到卦名简称：{gua_name}')
             return None
         
-        # 多路径查找
-        txt_file = f'data/{short_name}卦.txt'
+        # 多路径查找（适配 Android 打包）
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        txt_file = os.path.join(base_dir, 'data', f'{short_name}卦.txt')
+        
+        # 如果找不到，尝试相对路径
         if not os.path.exists(txt_file):
-            txt_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', f'{short_name}卦.txt')
-        if not os.path.exists(txt_file):
-            txt_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', f'{short_name}卦.txt')
+            txt_file = f'data/{short_name}卦.txt'
         
         if not os.path.exists(txt_file):
+            print(f'[WARN] txt 文件不存在：{txt_file}')
             return None
         
         with open(txt_file, 'r', encoding='utf-8') as f:
