@@ -710,7 +710,7 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
                             size_hint_y=None,
                             halign='left',
                             font_size=dp(13),
-                            text_color=(0.6, 0.6, 0.6, 1),
+                            color=(0.6, 0.6, 0.6, 1),
                             padding=(10, 0)
                         )
                         xiang_label.bind(size=xiang_label.setter('text_size'))
@@ -886,86 +886,61 @@ class WuaibaguaApp(App):
         """构建应用界面"""
         self.title = '我爱八卦'
         
-        # 设置窗口背景为启动画面
-        from kivy.core.window import Window
-        from kivy.uix.image import Image
-        import os
-        
-        # 加载启动画面作为背景
-        splash_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'splash.jpg')
-        if os.path.exists(splash_path):
-            try:
-                # 创建背景图片组件（放在最底层）
-                self.bg_image = Image(
-                    source=splash_path,
-                    size_hint=(1, 1),
-                    allow_stretch=True,
-                    keep_ratio=False
-                )
-                # 添加到布局最前面（最底层）
-                main_scroll.add_widget(self.bg_image)
-            except Exception as e:
-                print(f'[WARN] 无法加载背景图片：{e}')
-                Window.clearcolor = (0.95, 0.95, 0.95, 1)  # 浅灰色背景
-        else:
-            Window.clearcolor = (0.95, 0.95, 0.95, 1)  # 浅灰色背景
-        
         # 设置全局字体
         from kivy.uix.label import Label
         from kivy.uix.button import Button
         Label.font_name = 'NotoSansSC'
         Button.font_name = 'NotoSansSC'
         
+        # 设置窗口背景色（浅色背景，不遮挡内容）
+        from kivy.core.window import Window
+        Window.clearcolor = (0.98, 0.98, 0.98, 1)  # 浅灰色背景
+        
         # 主布局（使用 ScrollView 防止遮挡）
         from kivy.uix.scrollview import ScrollView
         main_scroll = ScrollView()
         main_layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
         
-        # 标题（黑色文字，白色背景）
+        # 标题
         title = Label(
             text='[b]我爱八卦[/b]',
             markup=True,
             size_hint_y=None,
-            height=dp(50),
-            font_size=dp(24),
+            height=dp(45),
+            font_size=dp(22),
             bold=True,
-            halign='center',
-            color=(0, 0, 0, 1)  # 黑色
+            halign='center'
         )
         main_layout.add_widget(title)
         
-        # 卦象显示区域（每一爻图片和爻位信息在同一行）
-        from kivy.uix.image import Image
-        
-        gua_display_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(10))
+        # 卦象显示区域（优化布局）
+        gua_display_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(5))
         
         # 顶部：卦名
         self.gua_name_label = Label(
             text='点击按钮开始起卦',
             markup=True,
             size_hint_y=None,
-            height=dp(40),
-            font_size=dp(18),
+            height=dp(35),
+            font_size=dp(16),
             bold=True,
-            halign='center',
-            color=(0, 0, 0, 1)  # 黑色
+            halign='center'
         )
         gua_display_layout.add_widget(self.gua_name_label)
         
-        # 6 个爻位（每一爻图片 + 爻位信息在同一行）
+        # 6 个爻位（紧凑布局）
         self.yao_images = []
         self.yao_labels = []
-        yao_names = ['上爻', '五爻', '四爻', '三爻', '二爻', '初爻']
         
         for i in range(6):
             # 每一行的布局（图片 + 文字）
-            yao_row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(40), spacing=dp(10))
+            yao_row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(35), spacing=dp(5))
             
             # 爻图片（小图标）
             yao_img = Image(
                 source='',
                 size_hint=(None, None),
-                size=(80, 40),
+                size=(60, 35),
                 allow_stretch=True,
                 keep_ratio=False
             )
@@ -974,13 +949,12 @@ class WuaibaguaApp(App):
             
             # 爻位信息
             yao_label = Label(
-                text=f'{yao_names[i]}: ',
+                text='',
                 markup=True,
                 size_hint_y=None,
-                font_size=dp(14),
+                font_size=dp(13),
                 halign='left',
-                valign='middle',
-                color=(0, 0, 0, 1)  # 黑色
+                valign='middle'
             )
             yao_row.add_widget(yao_label)
             self.yao_labels.append(yao_label)
@@ -992,11 +966,11 @@ class WuaibaguaApp(App):
         # 保留引用
         self.gua_result_label = self.gua_name_label
         
-        # 起卦按钮（两行布局，防止混乱）
-        method_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(8))
+        # 起卦按钮（紧凑布局）
+        method_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(5))
         
         # 第一行：电脑起卦、手动起卦
-        row1 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
+        row1 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(40), spacing=dp(10))
         self.btn_auto = Button(text='电脑起卦', font_size=dp(14), color=(0, 0, 0, 1))
         self.btn_auto.bind(on_press=self.auto_gua)
         row1.add_widget(self.btn_auto)
