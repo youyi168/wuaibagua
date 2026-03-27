@@ -865,9 +865,23 @@ class WuaibaguaApp(App):
         """构建应用界面"""
         self.title = '我爱八卦'
         
-        # 设置窗口背景色（白色背景）
+        # 设置窗口背景为启动画面
         from kivy.core.window import Window
-        Window.clearcolor = (1, 1, 1, 1)  # 白色背景
+        from kivy.core.image import Image as CoreImage
+        import os
+        
+        # 加载启动画面作为背景
+        splash_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'splash.jpg')
+        if os.path.exists(splash_path):
+            try:
+                # 设置背景图片
+                self.splash_image = CoreImage(splash_path)
+                # 注意：Kivy 需要特殊处理才能设置窗口背景图片
+            except Exception as e:
+                print(f'[WARN] 无法加载背景图片：{e}')
+                Window.clearcolor = (1, 1, 1, 1)  # 白色背景
+        else:
+            Window.clearcolor = (1, 1, 1, 1)  # 白色背景
         
         # 设置全局字体
         from kivy.uix.label import Label
@@ -893,55 +907,59 @@ class WuaibaguaApp(App):
         )
         main_layout.add_widget(title)
         
-        # 卦象显示区域（图片和爻位信息一一对应）
+        # 卦象显示区域（每一爻图片和爻位信息在同一行）
         from kivy.uix.image import Image
         
-        gua_display_layout = BoxLayout(orientation='horizontal', size_hint_y=None, spacing=dp(15))
+        gua_display_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(10))
         
-        # 左侧：64 卦图片（固定尺寸）
-        self.hexagram_image = Image(
-            source='',
-            size_hint=(None, None),
-            size=(120, 260),
-            allow_stretch=False,
-            keep_ratio=True
-        )
-        gua_display_layout.add_widget(self.hexagram_image)
-        
-        # 右侧：卦名和爻位信息（垂直排列）
-        yao_info_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(5))
-        
-        # 卦名（黑色文字）
+        # 顶部：卦名
         self.gua_name_label = Label(
             text='点击按钮开始起卦',
             markup=True,
             size_hint_y=None,
-            height=dp(35),
+            height=dp(40),
             font_size=dp(18),
             bold=True,
             halign='center',
             color=(0, 0, 0, 1)  # 黑色
         )
-        yao_info_layout.add_widget(self.gua_name_label)
+        gua_display_layout.add_widget(self.gua_name_label)
         
-        # 6 个爻位信息（从上爻到初爻，黑色文字）
+        # 6 个爻位（每一爻图片 + 爻位信息在同一行）
+        self.yao_images = []
         self.yao_labels = []
         yao_names = ['上爻', '五爻', '四爻', '三爻', '二爻', '初爻']
+        
         for i in range(6):
+            # 每一行的布局（图片 + 文字）
+            yao_row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(40), spacing=dp(10))
+            
+            # 爻图片（小图标）
+            yao_img = Image(
+                source='',
+                size_hint=(None, None),
+                size=(80, 40),
+                allow_stretch=True,
+                keep_ratio=False
+            )
+            yao_row.add_widget(yao_img)
+            self.yao_images.append(yao_img)
+            
+            # 爻位信息
             yao_label = Label(
                 text=f'{yao_names[i]}: ',
                 markup=True,
                 size_hint_y=None,
-                height=dp(35),
                 font_size=dp(14),
                 halign='left',
                 valign='middle',
                 color=(0, 0, 0, 1)  # 黑色
             )
-            yao_info_layout.add_widget(yao_label)
+            yao_row.add_widget(yao_label)
             self.yao_labels.append(yao_label)
+            
+            gua_display_layout.add_widget(yao_row)
         
-        gua_display_layout.add_widget(yao_info_layout)
         main_layout.add_widget(gua_display_layout)
         
         # 保留引用
@@ -1092,13 +1110,22 @@ class WuaibaguaApp(App):
                 if hasattr(self, 'gua_name_label'):
                     self.gua_name_label.text = f'[b]{gua_name}[/b]'
                 
-                # 设置 6 个爻位信息（从上爻到初爻，与图片一一对应）
-                if hasattr(self, 'yao_labels'):
+                # 设置 6 个爻位图片和信息（每一爻图片 + 文字）
+                if hasattr(self, 'yao_images') and hasattr(self, 'yao_labels'):
                     yao_names = ['上', '五', '四', '三', '二', '初']
+                    yao_imgs = image_info.get('yao', {})
+                    
                     for i in range(6):
                         yao = yao_list[5 - i]  # 从下往上数
                         yao_type = '阳' if yao in [7, 9] else '阴'
                         mark = ' ⭕' if yao == 9 else ' ✕' if yao == 6 else ''
+                        
+                        # 设置爻图片
+                        if i in yao_imgs and os.path.exists(yao_imgs[i]):
+                            self.yao_images[i].source = yao_imgs[i]
+                            self.yao_images[i].reload()
+                        
+                        # 设置爻位文字
                         self.yao_labels[i].text = f'{yao_names[i]}{yao_type}{mark}'
                 
                 # 保留旧代码兼容性
