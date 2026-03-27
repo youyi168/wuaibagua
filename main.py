@@ -867,21 +867,27 @@ class WuaibaguaApp(App):
         
         # 设置窗口背景为启动画面
         from kivy.core.window import Window
-        from kivy.core.image import Image as CoreImage
+        from kivy.uix.image import Image
         import os
         
         # 加载启动画面作为背景
         splash_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'splash.jpg')
         if os.path.exists(splash_path):
             try:
-                # 设置背景图片
-                self.splash_image = CoreImage(splash_path)
-                # 注意：Kivy 需要特殊处理才能设置窗口背景图片
+                # 创建背景图片组件（放在最底层）
+                self.bg_image = Image(
+                    source=splash_path,
+                    size_hint=(1, 1),
+                    allow_stretch=True,
+                    keep_ratio=False
+                )
+                # 添加到布局最前面（最底层）
+                main_scroll.add_widget(self.bg_image)
             except Exception as e:
                 print(f'[WARN] 无法加载背景图片：{e}')
-                Window.clearcolor = (1, 1, 1, 1)  # 白色背景
+                Window.clearcolor = (0.95, 0.95, 0.95, 1)  # 浅灰色背景
         else:
-            Window.clearcolor = (1, 1, 1, 1)  # 白色背景
+            Window.clearcolor = (0.95, 0.95, 0.95, 1)  # 浅灰色背景
         
         # 设置全局字体
         from kivy.uix.label import Label
