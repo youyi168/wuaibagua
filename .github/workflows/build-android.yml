@@ -227,8 +227,24 @@ jobs:
       with:
         name: woaibagua-apk-${{ github.run_number }}
         path: release/*.apk
-        if-no-files-found: warn
+        if-no-files-found: error
         retention-days: 30
+      continue-on-error: false
+    
+    - name: Debug APK files
+      if: always()
+      run: |
+        echo "=== Debug: Checking release directory ==="
+        echo "Current directory: $(pwd)"
+        echo "Release directory exists: $([ -d release ] && echo YES || echo NO)"
+        if [ -d release ]; then
+          echo "=== Contents of release/ ==="
+          ls -lah release/
+          echo "=== APK files in release/ ==="
+          find release -name "*.apk" -type f -ls
+          echo "=== Total APK count ==="
+          find release -name "*.apk" -type f | wc -l
+        fi
     
     - name: Upload build logs
       uses: actions/upload-artifact@v4
