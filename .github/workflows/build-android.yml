@@ -148,48 +148,83 @@ jobs:
         
         mkdir -p release
         
-        # 显示 .buildozer 目录结构
-        echo "=== .buildozer directory structure ==="
+        # 显示 .buildozer 完整目录结构
+        echo "=== .buildozer directory tree ==="
         if [ -d ".buildozer" ]; then
-          echo "dist directories:"
-          find .buildozer -type d -name "dist" 2>/dev/null | head -5
-          echo "dists directories:"
-          find .buildozer -type d -name "dists" 2>/dev/null | head -5
-          echo "bin directories:"
-          find .buildozer -type d -name "bin" 2>/dev/null | head -5
+          echo "Top level:"
+          ls -la .buildozer/
+          echo ""
+          echo "android directory:"
+          ls -la .buildozer/android/ 2>/dev/null || echo "No android dir"
+          echo ""
+          echo "platform directory:"
+          ls -la .buildozer/android/platform/ 2>/dev/null || echo "No platform dir"
+          echo ""
+          echo "Looking for dist/dists/bin directories:"
+          find .buildozer -type d \( -name "dist" -o -name "dists" -o -name "bin" \) 2>/dev/null | head -10
         fi
         
-        # 方法 1: 使用 find 命令查找所有 APK 并显示详细信息
-        echo "=== All APK files found (detailed) ==="
-        find .buildozer -name "*.apk" -type f -exec ls -lh {} \; 2>/dev/null | head -10
+        # 方法 1: 查找所有 APK 文件并显示完整路径
+        echo ""
+        echo "=== ALL APK FILES FOUND ==="
+        ALL_APKS=$(find .buildozer -name "*.apk" -type f 2>/dev/null)
+        if [ -n "$ALL_APKS" ]; then
+          echo "$ALL_APKS" | while read -r apk; do
+            echo "APK: $apk"
+            ls -lh "$apk"
+          done
+        else
+          echo "No APK files found in .buildozer!"
+        fi
         
         # 方法 2: 复制 APK 文件
         APK_FOUND=""
         
-        # 查找所有 APK 文件
-        while IFS= read -r apk; do
-          if [ -f "$apk" ]; then
-            echo "Found APK: $apk"
-            ls -lh "$apk"
-            
-            # 优先复制包含包名的 APK
-            if [[ "$apk" == *"woaibagua"* ]]; then
-              echo "→ This is the main APK!"
-              cp -v "$apk" release/
-              APK_FOUND="$apk"
-            elif [ -z "$APK_FOUND" ]; then
-              # 如果没有找到主 APK，复制第一个
-              cp -v "$apk" release/
-              APK_FOUND="$apk"
-            fi
-          fi
-        done < <(find .buildozer -name "*.apk" -type f 2>/dev/null | sort)
+        # 尝试多种可能的路径模式
+        echo ""
+        echo "=== Trying specific paths ==="
         
-        # 方法 3: 检查 bin 目录（buildozer 旧版本）
+        # 模式 1: buildozer 1.5.0 默认路径
+        for pattern in \
+          ".buildozer/android/platform/build-*/dist/*/bin/*.apk" \
+          ".buildozer/android/platform/build-*/dists/*/*-debug.apk" \
+          ".buildozer/android/platform/build-*/build/bootstrap_builds/*-debug.apk"; do
+          
+          echo "Checking pattern: $pattern"
+          for apk in $pattern; do
+            if [ -f "$apk" ]; then
+              echo "✓ Found: $apk"
+              ls -lh "$apk"
+              if [ -z "$APK_FOUND" ]; then
+                cp -v "$apk" release/
+                APK_FOUND="$apk"
+                break 2
+              fi
+            fi
+          done
+        done
+        
+        # 模式 2: 如果上面没找到，使用 find 命令
+        if [ -z "$APK_FOUND" ]; then
+          echo ""
+          echo "=== Fallback: using find command ==="
+          while IFS= read -r apk; do
+            if [ -f "$apk" ]; then
+              echo "Found via find: $apk"
+              ls -lh "$apk"
+              if [ -z "$APK_FOUND" ]; then
+                cp -v "$apk" release/
+                APK_FOUND="$apk"
+              fi
+            fi
+          done < <(find .buildozer -name "*.apk" -type f 2>/dev/null | head -5)
+        fi
+        
+        # 模式 3: 检查 bin 目录
         if [ -z "$APK_FOUND" ] && [ -d "bin" ]; then
           echo "=== Checking bin directory ==="
           for apk in $(find bin -name "*.apk" -type f 2>/dev/null); do
-            echo "Found APK in bin: $apk"
+            echo "Found in bin: $apk"
             if [ -z "$APK_FOUND" ]; then
               cp -v "$apk" release/
               APK_FOUND="$apk"
@@ -197,26 +232,29 @@ jobs:
           done
         fi
         
+        echo ""
         echo "=== Release directory contents ==="
-        ls -lah release/ || echo "No release directory"
+        ls -lah release/ || echo "No release directory or empty"
         
         # 统计 APK 数量并设置输出变量
         APK_COUNT=$(find release -name "*.apk" -type f 2>/dev/null | wc -l)
-        echo "APK count: $APK_COUNT"
+        echo ""
+        echo "APK count in release/: $APK_COUNT"
         echo "apk_count=$APK_COUNT" >> $GITHUB_OUTPUT
         
         # 验证是否找到 APK
         if [ "$APK_COUNT" -eq 0 ]; then
-          echo "::error::No APK files found! Build might have failed."
+          echo "::error::No APK files found!"
           echo "=== Debug info ==="
-          echo "Current directory: $(pwd)"
-          echo ".buildozer exists: $([ -d .buildozer ] && echo yes || echo no)"
+          echo "Working directory: $(pwd)"
+          echo ".buildozer exists: $([ -d .buildozer ] && echo YES || echo NO)"
           echo "Package name: woaibagua"
-          echo "Expected APK name: woaibagua-*-debug.apk"
-          exit 1  # 退出并标记失败
+          echo "Version: 1.2.0"
+          echo "Expected APK: woaibagua-1.2.0-debug.apk"
+          exit 1
         else
           echo "✅ Successfully found $APK_COUNT APK file(s)"
-          echo "APK files ready for upload!"
+          echo "First APK: $(find release -name '*.apk' -type f | head -1)"
         fi
     
     - name: Upload APK
