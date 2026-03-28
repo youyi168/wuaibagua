@@ -154,60 +154,19 @@ jobs:
       id: find_apk
       run: |
         echo "=== Searching for APK files ==="
-        echo "Working directory: $(pwd)"
-        
+        pwd
+        ls -la
         mkdir -p release
-        
-        # 检查 .buildozer 目录
-        echo "=== Checking .buildozer ==="
-        if [ -d ".buildozer" ]; then
-          echo "✓ .buildozer exists"
-        else
-          echo "::error::.buildozer directory does not exist!"
-          echo "apk_count=0" >> $GITHUB_OUTPUT
-          exit 1
-        fi
-        
-        # 查找并复制 APK
-        echo "=== Finding and copying APK ==="
-        FIRST_APK=$(find .buildozer -name "*.apk" -type f 2>/dev/null | head -1)
-        
-        if [ -n "$FIRST_APK" ] && [ -f "$FIRST_APK" ]; then
-          echo "Found APK: $FIRST_APK"
-          ls -lh "$FIRST_APK"
-          echo ""
-          echo "Copying to release/..."
-          cp -v "$FIRST_APK" release/
-          COPY_RESULT=$?
-          
-          if [ $COPY_RESULT -eq 0 ]; then
-            echo "✓ Copied successfully"
-          else
-            echo "✗ Copy failed (exit code: $COPY_RESULT)"
-          fi
-        else
-          echo "No APK files found in .buildozer!"
-          echo "apk_count=0" >> $GITHUB_OUTPUT
-          exit 1
-        fi
-        
-        # 验证 release 目录
-        echo ""
-        echo "=== Verifying release directory ==="
+        echo "=== Finding APK ==="
+        find .buildozer -name "*.apk" -type f
+        echo "=== Copying ==="
+        find .buildozer -name "*.apk" -type f | head -1 | xargs -I {} cp {} release/
+        echo "=== Release contents ==="
         ls -lah release/
-        
-        APK_COUNT=$(find release -name "*.apk" -type f 2>/dev/null | wc -l)
-        echo ""
-        echo "APK count in release/: $APK_COUNT"
-        echo "apk_count=$APK_COUNT" >> $GITHUB_OUTPUT
-        
-        if [ "$APK_COUNT" -gt 0 ]; then
-          echo "✅ Success! Found $APK_COUNT APK file(s)"
-          exit 0
-        else
-          echo "::error::No APK files in release directory!"
-          exit 1
-        fi
+        COUNT=$(ls release/*.apk 2>/dev/null | wc -l)
+        echo "APK count: $COUNT"
+        echo "apk_count=$COUNT" >> $GITHUB_OUTPUT
+        test $COUNT -gt 0
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
