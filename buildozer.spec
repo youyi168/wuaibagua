@@ -31,7 +31,7 @@ android.allow_backup = True
 
 # 【关键】禁用硬件加速（解决 hwuiTask 崩溃）
 # p4a 会传递这些参数给 gradle
-p4a.extra_args = --disable-hardware-acceleration
+# p4a.extra_args = --disable-hardware-acceleration  # 移除：参数不存在
 
 # 包含数据目录和字体目录（封装到 APK 内）
 source.include_dirs = data,fonts,resources
