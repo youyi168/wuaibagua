@@ -43,6 +43,7 @@ jobs:
           ~/.buildozer
           ~/.gradle/caches
           ~/.gradle/wrapper
+          .buildozer
         key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec', 'requirements*.txt') }}
         restore-keys: |
           ${{ runner.os }}-buildozer-
@@ -137,6 +138,14 @@ jobs:
           echo "=== Build failed after $MAX_RETRIES attempts ==="
           exit 1
         fi
+        
+        # 分析 build.log 查找 APK 路径
+        echo ""
+        echo "=== Analyzing build.log for APK path ==="
+        if [ -f build.log ]; then
+          echo "Searching for APK references in build.log..."
+          grep -i "apk" build.log | grep -i "copy\|create\|save\|path" | tail -10 || echo "No APK path found in log"
+        fi
       timeout-minutes: 90
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -212,7 +221,9 @@ jobs:
         if [ -z "$APK_FOUND" ]; then
           echo ""
           echo "=== Trying specific path patterns ==="
+          # 模式 1: buildozer 1.5.0 默认路径（支持多架构）
           for pattern in \
+            ".buildozer/android/platform/build-*/dist/*/bin/woaibagua-*.apk" \
             ".buildozer/android/platform/build-*/dist/*/bin/*.apk" \
             ".buildozer/android/platform/build-*/dists/*/*-debug.apk" \
             ".buildozer/android/platform/build-*/build/bootstrap_builds/*-debug.apk"; do
