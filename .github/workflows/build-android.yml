@@ -147,27 +147,55 @@ jobs:
         
         mkdir -p release
         
-        # 只复制通用 debug APK（不区分架构）
-        # Buildozer 1.5.0 默认生成一个通用 APK
-        find .buildozer -name "*-debug.apk" -type f ! -name "*arm64*" ! -name "*armeabi*" | head -1 | while read apk; do
-          echo "Found main APK: $apk"
-          cp -v "$apk" release/
+        # 方法 1: 查找 buildozer 生成的 APK
+        echo "Searching in .buildozer directory..."
+        APK_FOUND=""
+        for apk in $(find .buildozer -name "*.apk" -type f 2>/dev/null); do
+          echo "Found APK: $apk"
+          # 复制第一个找到的 APK
+          if [ -z "$APK_FOUND" ]; then
+            cp -v "$apk" release/
+            APK_FOUND="$apk"
+          fi
         done
         
-        # 如果没有找到，尝试复制第一个 APK
-        if [ ! -f "release/"*.apk ]; then
-          find . -name "*.apk" -type f | head -1 | while read apk; do
+        # 方法 2: 如果没找到，查找当前目录
+        if [ -z "$APK_FOUND" ]; then
+          echo "Searching in current directory..."
+          for apk in $(find . -maxdepth 3 -name "*.apk" -type f 2>/dev/null); do
             echo "Found APK: $apk"
-            cp -v "$apk" release/
+            if [ -z "$APK_FOUND" ]; then
+              cp -v "$apk" release/
+              APK_FOUND="$apk"
+            fi
+          done
+        fi
+        
+        # 方法 3: 检查 bin 目录（buildozer 旧版本）
+        if [ -z "$APK_FOUND" ] && [ -d "bin" ]; then
+          echo "Searching in bin directory..."
+          for apk in $(find bin -name "*.apk" -type f 2>/dev/null); do
+            echo "Found APK: $apk"
+            if [ -z "$APK_FOUND" ]; then
+              cp -v "$apk" release/
+              APK_FOUND="$apk"
+            fi
           done
         fi
         
         echo "=== Release directory contents ==="
-        ls -la release/ || echo "No release directory"
+        ls -lah release/ || echo "No release directory"
         
-        # 设置输出变量
-        APK_COUNT=$(ls -1 release/*.apk 2>/dev/null | wc -l)
+        # 统计 APK 数量
+        APK_COUNT=$(find release -name "*.apk" -type f 2>/dev/null | wc -l)
+        echo "APK count: $APK_COUNT"
         echo "apk_count=$APK_COUNT" >> $GITHUB_OUTPUT
+        
+        # 验证是否找到 APK
+        if [ "$APK_COUNT" -eq 0 ]; then
+          echo "::warning::No APK files found! Build might have failed."
+          exit 0  # 不退出，让后续步骤处理
+        fi
       id: find_apk
     
     - name: Upload APK
