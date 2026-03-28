@@ -10,15 +10,18 @@
 
 __version__ = '1.2.0'
 
-# ==================== Android 剪贴板可用性检查 ====================
-# 必须在导入 jnius 之前定义，避免未定义错误
-ANDROID_CLIPBOARD_AVAILABLE = False
+# ==================== Android JNI 导入（必须在最前面） ====================
+# 这个导入必须在所有 Android 相关代码之前
 try:
     from jnius import autoclass
-    ANDROID_CLIPBOARD_AVAILABLE = True
+    ANDROID_AVAILABLE = True
 except ImportError:
-    ANDROID_CLIPBOARD_AVAILABLE = False
-    print('[WARN] jnius not available, clipboard disabled')
+    autoclass = None
+    ANDROID_AVAILABLE = False
+    print('[WARN] jnius not available (desktop mode)')
+
+# ==================== Android 剪贴板可用性检查 ====================
+ANDROID_CLIPBOARD_AVAILABLE = ANDROID_AVAILABLE
 
 # ==================== 第一优先级：在导入 Kivy 之前禁用 Vulkan ====================
 # 这些必须在任何 Kivy 导入之前！
@@ -51,18 +54,17 @@ Config.set('input', 'mouse', 'mouse,disable_multitouch,multitouch_on_demand')
 Config.set('kivy', 'log_level', 'error')       # 只记录错误
 Config.set('kivy', 'log_dir', '/dev/null')     # 禁用日志文件
 
-# 【Android 层】尝试通过 JNI 禁用 Vulkan（如果可用）
 # 【Android 层】通过 JNI 禁用 Vulkan（必须在导入 Kivy 之前）
-try:
-    from jnius import autoclass
-    System = autoclass('java.lang.System')
-    # 设置系统属性禁用 Vulkan 和硬件加速
-    System.setProperty('debug.hwui.renderer', 'opengl')
-    System.setProperty('debug.egl.profile', 'opengl')
-    System.setProperty('debug.hwui.disable_vsync', 'true')
-    print('[CRITICAL] 已通过 JNI 禁用 Vulkan，使用 OpenGL')
-except Exception as e:
-    print(f'[WARN] JNI Vulkan 禁用失败（正常）: {e}')
+if ANDROID_AVAILABLE:
+    try:
+        System = autoclass('java.lang.System')
+        # 设置系统属性禁用 Vulkan 和硬件加速
+        System.setProperty('debug.hwui.renderer', 'opengl')
+        System.setProperty('debug.egl.profile', 'opengl')
+        System.setProperty('debug.hwui.disable_vsync', 'true')
+        print('[CRITICAL] 已通过 JNI 禁用 Vulkan，使用 OpenGL')
+    except Exception as e:
+        print(f'[WARN] JNI Vulkan 禁用失败：{e}')
 
 # ==================== 第二优先级：标准导入 ====================
 import sys
@@ -96,8 +98,8 @@ from kivy.graphics import Instruction
 
 # ==================== 第三优先级：运行时 OPPO 设备检测 ====================
 # 额外加固（针对某些设备忽略 Config 的情况）
-try:
-    if ANDROID_CLIPBOARD_AVAILABLE:
+if ANDROID_AVAILABLE:
+    try:
         Build = autoclass('android.os.Build')
         manufacturer = Build.MANUFACTURER.lower()
         model = Build.MODEL.lower()
@@ -117,8 +119,8 @@ try:
             # 禁用 Kivy 日志
             import logging
             logging.getLogger('kivy').setLevel(logging.CRITICAL)
-except Exception as e:
-    print(f'[WARN] OPPO 设备检测失败（正常）: {e}')
+    except Exception as e:
+        print(f'[WARN] OPPO 设备检测失败：{e}')
 
 # ==================== 注册字体 ====================
 def register_fonts():
