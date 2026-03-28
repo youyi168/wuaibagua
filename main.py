@@ -10,6 +10,16 @@
 
 __version__ = '1.2.0'
 
+# ==================== Android 剪贴板可用性检查 ====================
+# 必须在导入 jnius 之前定义，避免未定义错误
+ANDROID_CLIPBOARD_AVAILABLE = False
+try:
+    from jnius import autoclass
+    ANDROID_CLIPBOARD_AVAILABLE = True
+except ImportError:
+    ANDROID_CLIPBOARD_AVAILABLE = False
+    print('[WARN] jnius not available, clipboard disabled')
+
 # ==================== 第一优先级：在导入 Kivy 之前禁用 Vulkan ====================
 # 这些必须在任何 Kivy 导入之前！
 import os
@@ -42,15 +52,15 @@ Config.set('kivy', 'log_level', 'error')       # 只记录错误
 Config.set('kivy', 'log_dir', '/dev/null')     # 禁用日志文件
 
 # 【Android 层】尝试通过 JNI 禁用 Vulkan（如果可用）
-try:
-    from jnius import autoclass
-    System = autoclass('java.lang.System')
-    # 设置系统属性禁用 Vulkan
-    System.setProperty('debug.hwui.renderer', 'opengl')
-    System.setProperty('debug.egl.profile', 'opengl')
-    print('[CRITICAL] 已尝试通过 JNI 禁用 Vulkan')
-except Exception as e:
-    print(f'[WARN] JNI Vulkan 禁用失败（正常）: {e}')
+if ANDROID_CLIPBOARD_AVAILABLE:
+    try:
+        System = autoclass('java.lang.System')
+        # 设置系统属性禁用 Vulkan
+        System.setProperty('debug.hwui.renderer', 'opengl')
+        System.setProperty('debug.egl.profile', 'opengl')
+        print('[CRITICAL] 已尝试通过 JNI 禁用 Vulkan')
+    except Exception as e:
+        print(f'[WARN] JNI Vulkan 禁用失败（正常）: {e}')
 
 # ==================== 第二优先级：标准导入 ====================
 import sys
@@ -75,6 +85,7 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.spinner import Spinner
+from kivy.uix.image import Image
 from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.core.text import LabelBase
@@ -110,42 +121,42 @@ except Exception as e:
 # ==================== 注册字体 ====================
 def register_fonts():
     """注册中文字体和易卦专用字体"""
-    font_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
+    from pathlib import Path
+    font_dir = Path(__file__).parent / 'fonts'
     
     # 注册中文字体
-    font_path = os.path.join(font_dir, 'NotoSansSC-Regular.ttf')
-    if os.path.exists(font_path) and os.path.getsize(font_path) > 0:
-        LabelBase.register(name='NotoSansSC', fn_regular=font_path)
-        print(f'[INFO] 中文字体已注册')
+    font_path = font_dir / 'NotoSansSC-Regular.ttf'
+    if font_path.exists() and font_path.stat().st_size > 0:
+        try:
+            LabelBase.register(name='NotoSansSC', fn_regular=str(font_path))
+            print(f'[INFO] 中文字体已注册')
+        except Exception as e:
+            print(f'[WARN] 中文字体注册失败：{e}')
     else:
-        print(f'[WARN] 中文字体文件不存在或损坏')
+        print(f'[WARN] 中文字体文件不存在或损坏：{font_path}')
     
-    # 注册易卦专用字体（使用已有且有效的字体）
+    # 注册易卦专用字体（尝试多个备选）
     yijing_fonts = [
-        'NotoSansSymbols-Regular.ttf',  # 258KB，已有 ✅
-        'seguisym.ttf',                  # 2.5MB，已有 ✅
+        'NotoSansSymbols-Regular.ttf',
+        'seguisym.ttf',
+        'NotoSansSC-Regular.ttf',  # 回退到中文字体
     ]
     
     for font_name in yijing_fonts:
-        font_path = os.path.join(font_dir, font_name)
-        if os.path.exists(font_path) and os.path.getsize(font_path) > 0:
-            LabelBase.register(name='Yijing', fn_regular=font_path)
-            print(f'[INFO] 易卦字体已注册：{font_name}')
-            return
+        font_path = font_dir / font_name
+        if font_path.exists() and font_path.stat().st_size > 0:
+            try:
+                LabelBase.register(name='NotoSansSymbols', fn_regular=str(font_path))
+                print(f'[INFO] 易卦字体已注册：{font_name}')
+                return
+            except Exception as e:
+                print(f'[WARN] 字体注册失败 {font_name}: {e}')
+                continue
     
-    # fallback 到中文字体
-    print(f'[WARN] 易卦专用字体未找到，使用中文字体')
+    print(f'[ERROR] 所有易卦字体注册失败，使用默认字体')
 
 # 在应用启动前注册字体
 register_fonts()
-
-# Android 剪贴板
-try:
-    from jnius import autoclass
-    ANDROID_CLIPBOARD_AVAILABLE = True
-except ImportError:
-    ANDROID_CLIPBOARD_AVAILABLE = False
-    print('[WARN] jnius not available')
 
 
 # ==================== 工具函数 ====================

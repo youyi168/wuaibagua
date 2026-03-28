@@ -7,9 +7,48 @@
 
 import sqlite3
 import os
+import logging
+from pathlib import Path
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'gua_optimized.db')
+logger = logging.getLogger(__name__)
+
+def get_data_path():
+    """
+    获取数据目录路径
+    
+    回退优先级：
+    1. 环境变量 WUAIBAGUA_DATA
+    2. Android 应用私有目录
+    3. 开发环境（项目目录）
+    4. 用户主目录（最后回退）
+    """
+    # 1. 环境变量
+    if os.getenv('WUAIBAGUA_DATA'):
+        data_path = Path(os.getenv('WUAIBAGUA_DATA'))
+        data_path.mkdir(parents=True, exist_ok=True)
+        return data_path
+    
+    # 2. Android 环境
+    try:
+        from android.storage import app_storage_path
+        android_path = Path(app_storage_path()) / 'data'
+        android_path.mkdir(parents=True, exist_ok=True)
+        return android_path
+    except ImportError:
+        pass
+    
+    # 3. 开发环境（项目目录）
+    dev_path = Path(__file__).parent / 'data'
+    if dev_path.exists():
+        return dev_path
+    
+    # 4. 用户主目录（最后回退）
+    user_path = Path.home() / '.wuaibagua' / 'data'
+    user_path.mkdir(parents=True, exist_ok=True)
+    return user_path
+
+DB_PATH = get_data_path() / 'gua_optimized.db'
 
 # 六亲基础（根据卦宫五行推算）
 LIUQIN_BASE = {
@@ -46,7 +85,11 @@ SHIYING_MAP = {
 
 def get_db_connection():
     """获取数据库连接"""
-    return sqlite3.connect(DB_PATH)
+    try:
+        return sqlite3.connect(DB_PATH)
+    except Exception as e:
+        logger.error(f'get_db_connection error: {e}')
+        return None
 
 
 def get_liuqin(gua_name, day_gan=None):
@@ -137,18 +180,20 @@ def get_shiying(gua_name):
     Returns:
         tuple: (世爻位置，应爻位置) 0-5
     """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute('''
-        SELECT shi_position, ying_position FROM shiying
-        WHERE hexagram_id = (SELECT id FROM hexagrams WHERE name = ?)
-    ''', (gua_name,))
-    row = cursor.fetchone()
-    conn.close()
-    
-    if row:
-        return row
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT shi_position, ying_position FROM shiying
+                WHERE hexagram_id = (SELECT id FROM hexagrams WHERE name = ?)
+            ''', (gua_name,))
+            row = cursor.fetchone()
+            
+            if row:
+                return row
+    except Exception as e:
+        logger.error(f'get_shiying error: {e}')
     
     # 默认返回一世卦
     return (0, 3)
