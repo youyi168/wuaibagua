@@ -147,23 +147,47 @@ jobs:
         
         mkdir -p release
         
-        # 方法 1: 查找 buildozer 生成的 APK
-        echo "Searching in .buildozer directory..."
+        # 显示 .buildozer 目录结构
+        echo "=== .buildozer directory structure ==="
+        if [ -d ".buildozer" ]; then
+          find .buildozer -type d -name "dist" 2>/dev/null | head -5
+          find .buildozer -type d -name "apk" 2>/dev/null | head -5
+        fi
+        
+        # 方法 1: 查找所有 APK 文件并显示详细信息
+        echo "=== All APK files found ==="
+        find .buildozer -name "*.apk" -type f -ls 2>/dev/null | head -10
+        
+        # 方法 2: 复制 APK（使用更精确的匹配）
         APK_FOUND=""
-        for apk in $(find .buildozer -name "*.apk" -type f 2>/dev/null); do
-          echo "Found APK: $apk"
-          # 复制第一个找到的 APK
-          if [ -z "$APK_FOUND" ]; then
-            cp -v "$apk" release/
-            APK_FOUND="$apk"
-          fi
+        
+        # 优先查找默认名称的 APK
+        for apk_pattern in \
+          ".buildozer/android/platform/build-*/dist/*/bin/*.apk" \
+          ".buildozer/android/platform/build-*/dists/*/build/outputs/apk/*/*/*.apk" \
+          ".buildozer/android/platform/build-*/build/bootstrap_builds/*-debug.apk" \
+          ".buildozer/android/platform/build-*/dists/*/*-debug.apk"; do
+          
+          echo "Checking pattern: $apk_pattern"
+          for apk in $apk_pattern; do
+            if [ -f "$apk" ]; then
+              echo "Found APK: $apk"
+              ls -lh "$apk"
+              if [ -z "$APK_FOUND" ]; then
+                cp -v "$apk" release/
+                APK_FOUND="$apk"
+                break 2
+              fi
+            fi
+          done
         done
         
-        # 方法 2: 如果没找到，查找当前目录
+        # 方法 3: 如果没找到，使用 find 命令
         if [ -z "$APK_FOUND" ]; then
-          echo "Searching in current directory..."
-          for apk in $(find . -maxdepth 3 -name "*.apk" -type f 2>/dev/null); do
+          echo "=== Fallback: searching with find ==="
+          for apk in $(find .buildozer -name "*.apk" -type f 2>/dev/null | head -5); do
             echo "Found APK: $apk"
+            ls -lh "$apk"
             if [ -z "$APK_FOUND" ]; then
               cp -v "$apk" release/
               APK_FOUND="$apk"
@@ -171,11 +195,11 @@ jobs:
           done
         fi
         
-        # 方法 3: 检查 bin 目录（buildozer 旧版本）
+        # 方法 4: 检查 bin 目录（buildozer 旧版本）
         if [ -z "$APK_FOUND" ] && [ -d "bin" ]; then
-          echo "Searching in bin directory..."
+          echo "=== Checking bin directory ==="
           for apk in $(find bin -name "*.apk" -type f 2>/dev/null); do
-            echo "Found APK: $apk"
+            echo "Found APK in bin: $apk"
             if [ -z "$APK_FOUND" ]; then
               cp -v "$apk" release/
               APK_FOUND="$apk"
@@ -193,8 +217,13 @@ jobs:
         
         # 验证是否找到 APK
         if [ "$APK_COUNT" -eq 0 ]; then
-          echo "::warning::No APK files found! Build might have failed."
+          echo "::error::No APK files found! Build might have failed."
+          echo "=== Debug info ==="
+          echo "Current directory: $(pwd)"
+          echo ".buildozer exists: $([ -d .buildozer ] && echo yes || echo no)"
           exit 0  # 不退出，让后续步骤处理
+        else
+          echo "✅ Successfully found $APK_COUNT APK file(s)"
         fi
       id: find_apk
     
