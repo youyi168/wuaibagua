@@ -52,15 +52,17 @@ Config.set('kivy', 'log_level', 'error')       # 只记录错误
 Config.set('kivy', 'log_dir', '/dev/null')     # 禁用日志文件
 
 # 【Android 层】尝试通过 JNI 禁用 Vulkan（如果可用）
-if ANDROID_CLIPBOARD_AVAILABLE:
-    try:
-        System = autoclass('java.lang.System')
-        # 设置系统属性禁用 Vulkan
-        System.setProperty('debug.hwui.renderer', 'opengl')
-        System.setProperty('debug.egl.profile', 'opengl')
-        print('[CRITICAL] 已尝试通过 JNI 禁用 Vulkan')
-    except Exception as e:
-        print(f'[WARN] JNI Vulkan 禁用失败（正常）: {e}')
+# 【Android 层】通过 JNI 禁用 Vulkan（必须在导入 Kivy 之前）
+try:
+    from jnius import autoclass
+    System = autoclass('java.lang.System')
+    # 设置系统属性禁用 Vulkan 和硬件加速
+    System.setProperty('debug.hwui.renderer', 'opengl')
+    System.setProperty('debug.egl.profile', 'opengl')
+    System.setProperty('debug.hwui.disable_vsync', 'true')
+    print('[CRITICAL] 已通过 JNI 禁用 Vulkan，使用 OpenGL')
+except Exception as e:
+    print(f'[WARN] JNI Vulkan 禁用失败（正常）: {e}')
 
 # ==================== 第二优先级：标准导入 ====================
 import sys

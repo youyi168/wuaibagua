@@ -35,15 +35,15 @@
             android:name="com.coloros.gamengine"
             android:value="0" />
         
-        <!-- 强制使用软件渲染，彻底禁用 Vulkan/硬件加速 -->
+        <!-- 强制使用 OpenGL 渲染，彻底禁用 Vulkan/硬件加速 -->
         <meta-data
             android:name="android.graphics.enableVulkan"
             android:value="false" />
         
-        <!-- 禁用 HWUI 硬件渲染 -->
+        <!-- 使用 OpenGL 渲染器 -->
         <meta-data
             android:name="debug.hwui.renderer"
-            android:value="software" />
+            android:value="opengl" />
         
         <activity
             android:name="org.kivy.android.PythonActivity"
@@ -58,7 +58,7 @@
             <!-- 禁用硬件渲染 -->
             <meta-data
                 android:name="debug.hwui.renderer"
-                android:value="software" />
+                android:value="opengl" />
             
             <meta-data
                 android:name="android.max_aspect"
