@@ -150,52 +150,44 @@ jobs:
         # 显示 .buildozer 目录结构
         echo "=== .buildozer directory structure ==="
         if [ -d ".buildozer" ]; then
+          echo "dist directories:"
           find .buildozer -type d -name "dist" 2>/dev/null | head -5
-          find .buildozer -type d -name "apk" 2>/dev/null | head -5
+          echo "dists directories:"
+          find .buildozer -type d -name "dists" 2>/dev/null | head -5
+          echo "bin directories:"
+          find .buildozer -type d -name "bin" 2>/dev/null | head -5
         fi
         
-        # 方法 1: 查找所有 APK 文件并显示详细信息
-        echo "=== All APK files found ==="
-        find .buildozer -name "*.apk" -type f -ls 2>/dev/null | head -10
+        # 方法 1: 使用 find 命令查找所有 APK 并显示详细信息
+        echo "=== All APK files found (detailed) ==="
+        find .buildozer -name "*.apk" -type f -exec ls -lh {} \; 2>/dev/null | head -10
         
-        # 方法 2: 复制 APK（使用更精确的匹配）
+        # 方法 2: 复制 APK 文件
         APK_FOUND=""
+        APK_COUNT=0
         
-        # 优先查找默认名称的 APK
-        for apk_pattern in \
-          ".buildozer/android/platform/build-*/dist/*/bin/*.apk" \
-          ".buildozer/android/platform/build-*/dists/*/build/outputs/apk/*/*/*.apk" \
-          ".buildozer/android/platform/build-*/build/bootstrap_builds/*-debug.apk" \
-          ".buildozer/android/platform/build-*/dists/*/*-debug.apk"; do
-          
-          echo "Checking pattern: $apk_pattern"
-          for apk in $apk_pattern; do
-            if [ -f "$apk" ]; then
-              echo "Found APK: $apk"
-              ls -lh "$apk"
-              if [ -z "$APK_FOUND" ]; then
-                cp -v "$apk" release/
-                APK_FOUND="$apk"
-                break 2
-              fi
-            fi
-          done
-        done
-        
-        # 方法 3: 如果没找到，使用 find 命令
-        if [ -z "$APK_FOUND" ]; then
-          echo "=== Fallback: searching with find ==="
-          for apk in $(find .buildozer -name "*.apk" -type f 2>/dev/null | head -5); do
+        # 查找所有 APK 文件
+        while IFS= read -r apk; do
+          if [ -f "$apk" ]; then
             echo "Found APK: $apk"
             ls -lh "$apk"
-            if [ -z "$APK_FOUND" ]; then
+            
+            # 优先复制包含包名的 APK
+            if [[ "$apk" == *"woaibagua"* ]]; then
+              echo "→ This is the main APK!"
               cp -v "$apk" release/
               APK_FOUND="$apk"
+              APK_COUNT=$((APK_COUNT + 1))
+            elif [ -z "$APK_FOUND" ]; then
+              # 如果没有找到主 APK，复制第一个
+              cp -v "$apk" release/
+              APK_FOUND="$apk"
+              APK_COUNT=$((APK_COUNT + 1))
             fi
-          done
-        fi
+          fi
+        done < <(find .buildozer -name "*.apk" -type f 2>/dev/null | sort)
         
-        # 方法 4: 检查 bin 目录（buildozer 旧版本）
+        # 方法 3: 检查 bin 目录（buildozer 旧版本）
         if [ -z "$APK_FOUND" ] && [ -d "bin" ]; then
           echo "=== Checking bin directory ==="
           for apk in $(find bin -name "*.apk" -type f 2>/dev/null); do
@@ -203,6 +195,7 @@ jobs:
             if [ -z "$APK_FOUND" ]; then
               cp -v "$apk" release/
               APK_FOUND="$apk"
+              APK_COUNT=$((APK_COUNT + 1))
             fi
           done
         fi
@@ -211,19 +204,21 @@ jobs:
         ls -lah release/ || echo "No release directory"
         
         # 统计 APK 数量
-        APK_COUNT=$(find release -name "*.apk" -type f 2>/dev/null | wc -l)
-        echo "APK count: $APK_COUNT"
-        echo "apk_count=$APK_COUNT" >> $GITHUB_OUTPUT
+        FINAL_COUNT=$(find release -name "*.apk" -type f 2>/dev/null | wc -l)
+        echo "Final APK count: $FINAL_COUNT"
+        echo "apk_count=$FINAL_COUNT" >> $GITHUB_OUTPUT
         
         # 验证是否找到 APK
-        if [ "$APK_COUNT" -eq 0 ]; then
+        if [ "$FINAL_COUNT" -eq 0 ]; then
           echo "::error::No APK files found! Build might have failed."
           echo "=== Debug info ==="
           echo "Current directory: $(pwd)"
           echo ".buildozer exists: $([ -d .buildozer ] && echo yes || echo no)"
+          echo "Package name: woaibagua"
           exit 0  # 不退出，让后续步骤处理
         else
-          echo "✅ Successfully found $APK_COUNT APK file(s)"
+          echo "✅ Successfully found $FINAL_COUNT APK file(s)"
+          echo "APK files ready for upload!"
         fi
       id: find_apk
     
