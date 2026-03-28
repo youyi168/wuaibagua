@@ -53,7 +53,6 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
         echo ""
         echo "📦 GitHub Actions 将自动编译:"
         echo "   - Android APK (20-30 分钟)"
-        echo "   - Windows EXE (10-15 分钟)"
         echo ""
         echo "📍 查看进度:"
         echo "   https://github.com/youyi168/wuaibagua/actions"
