@@ -152,61 +152,60 @@ jobs:
     
     - name: Find and copy APK
       id: find_apk
-      continue-on-error: true
       run: |
         echo "=== Searching for APK files ==="
         echo "Working directory: $(pwd)"
         
         mkdir -p release
         
-        # 显示 .buildozer 目录结构
-        echo "=== .buildozer directory structure ==="
+        # 检查 .buildozer 目录
+        echo "=== Checking .buildozer ==="
         if [ -d ".buildozer" ]; then
           echo "✓ .buildozer exists"
-          echo ""
-          echo "Top level:"
-          ls -la .buildozer/ 2>/dev/null | head -15 || echo "Cannot list .buildozer"
-          echo ""
-          echo "Looking for APK files..."
         else
           echo "::error::.buildozer directory does not exist!"
+          echo "apk_count=0" >> $GITHUB_OUTPUT
           exit 1
         fi
         
-        # 查找所有 APK 文件
-        echo "=== Finding APK files ==="
-        find .buildozer -name "*.apk" -type f 2>/dev/null | while read -r apk; do
-          echo "Found: $apk"
-          ls -lh "$apk" 2>/dev/null || echo "Cannot access $apk"
-        done
-        
-        # 复制第一个 APK
-        echo ""
-        echo "=== Copying APK ==="
+        # 查找并复制 APK
+        echo "=== Finding and copying APK ==="
         FIRST_APK=$(find .buildozer -name "*.apk" -type f 2>/dev/null | head -1)
+        
         if [ -n "$FIRST_APK" ] && [ -f "$FIRST_APK" ]; then
-          echo "Source: $FIRST_APK"
-          cp -v "$FIRST_APK" release/ && echo "✓ Copied successfully" || echo "✗ Copy failed"
+          echo "Found APK: $FIRST_APK"
+          ls -lh "$FIRST_APK"
+          echo ""
+          echo "Copying to release/..."
+          cp -v "$FIRST_APK" release/
+          COPY_RESULT=$?
+          
+          if [ $COPY_RESULT -eq 0 ]; then
+            echo "✓ Copied successfully"
+          else
+            echo "✗ Copy failed (exit code: $COPY_RESULT)"
+          fi
         else
-          echo "No APK files found!"
+          echo "No APK files found in .buildozer!"
+          echo "apk_count=0" >> $GITHUB_OUTPUT
+          exit 1
         fi
         
-        # 显示 release 目录
+        # 验证 release 目录
         echo ""
-        echo "=== Release directory ==="
-        ls -lah release/ 2>/dev/null || echo "Cannot list release directory"
+        echo "=== Verifying release directory ==="
+        ls -lah release/
         
-        # 统计并输出
         APK_COUNT=$(find release -name "*.apk" -type f 2>/dev/null | wc -l)
         echo ""
-        echo "APK count: $APK_COUNT"
+        echo "APK count in release/: $APK_COUNT"
         echo "apk_count=$APK_COUNT" >> $GITHUB_OUTPUT
         
         if [ "$APK_COUNT" -gt 0 ]; then
-          echo "✅ Success!"
+          echo "✅ Success! Found $APK_COUNT APK file(s)"
           exit 0
         else
-          echo "::error::No APK found"
+          echo "::error::No APK files in release directory!"
           exit 1
         fi
     
