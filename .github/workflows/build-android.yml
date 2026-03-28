@@ -144,6 +144,7 @@ jobs:
     - name: Find and copy APK
       id: find_apk
       run: |
+        set -e  # 遇到错误立即退出
         echo "=== Searching for APK files ==="
         
         mkdir -p release
@@ -160,75 +161,74 @@ jobs:
           echo "platform directory:"
           ls -la .buildozer/android/platform/ 2>/dev/null || echo "No platform dir"
           echo ""
+          echo "Looking for build directories:"
+          find .buildozer -maxdepth 5 -type d -name "build*" 2>/dev/null | head -10
+          echo ""
           echo "Looking for dist/dists/bin directories:"
-          find .buildozer -type d \( -name "dist" -o -name "dists" -o -name "bin" \) 2>/dev/null | head -10
+          find .buildozer -maxdepth 6 -type d \( -name "dist" -o -name "dists" -o -name "bin" \) 2>/dev/null | head -10
+        else
+          echo "ERROR: .buildozer directory does not exist!"
+          exit 1
         fi
         
-        # 方法 1: 查找所有 APK 文件并显示完整路径
+        # 方法 1: 使用 find 命令查找所有 APK 文件
         echo ""
-        echo "=== ALL APK FILES FOUND ==="
+        echo "=== ALL APK FILES FOUND (using find) ==="
         ALL_APKS=$(find .buildozer -name "*.apk" -type f 2>/dev/null)
         if [ -n "$ALL_APKS" ]; then
+          echo "Found APK files:"
+          echo "$ALL_APKS"
+          echo ""
+          echo "Detailed info:"
           echo "$ALL_APKS" | while read -r apk; do
-            echo "APK: $apk"
-            ls -lh "$apk"
+            if [ -f "$apk" ]; then
+              echo "  $apk"
+              ls -lh "$apk"
+            fi
           done
         else
-          echo "No APK files found in .buildozer!"
+          echo "ERROR: No APK files found in .buildozer!"
+          echo "This means the build failed or APK was not generated."
+          exit 1
         fi
         
         # 方法 2: 复制 APK 文件
         APK_FOUND=""
         
-        # 尝试多种可能的路径模式
-        echo ""
-        echo "=== Trying specific paths ==="
-        
-        # 模式 1: buildozer 1.5.0 默认路径
-        for pattern in \
-          ".buildozer/android/platform/build-*/dist/*/bin/*.apk" \
-          ".buildozer/android/platform/build-*/dists/*/*-debug.apk" \
-          ".buildozer/android/platform/build-*/build/bootstrap_builds/*-debug.apk"; do
-          
-          echo "Checking pattern: $pattern"
-          for apk in $pattern; do
-            if [ -f "$apk" ]; then
-              echo "✓ Found: $apk"
-              ls -lh "$apk"
-              if [ -z "$APK_FOUND" ]; then
-                cp -v "$apk" release/
-                APK_FOUND="$apk"
-                break 2
-              fi
-            fi
-          done
-        done
-        
-        # 模式 2: 如果上面没找到，使用 find 命令
-        if [ -z "$APK_FOUND" ]; then
-          echo ""
-          echo "=== Fallback: using find command ==="
-          while IFS= read -r apk; do
-            if [ -f "$apk" ]; then
-              echo "Found via find: $apk"
-              ls -lh "$apk"
-              if [ -z "$APK_FOUND" ]; then
-                cp -v "$apk" release/
-                APK_FOUND="$apk"
-              fi
-            fi
-          done < <(find .buildozer -name "*.apk" -type f 2>/dev/null | head -5)
+        # 优先使用 find 找到的第一个 APK
+        if [ -n "$ALL_APKS" ]; then
+          FIRST_APK=$(echo "$ALL_APKS" | head -1)
+          if [ -f "$FIRST_APK" ]; then
+            echo ""
+            echo "=== Copying first APK ==="
+            echo "Source: $FIRST_APK"
+            cp -v "$FIRST_APK" release/
+            APK_FOUND="$FIRST_APK"
+            echo "✓ Copied to release/"
+          fi
         fi
         
-        # 模式 3: 检查 bin 目录
-        if [ -z "$APK_FOUND" ] && [ -d "bin" ]; then
-          echo "=== Checking bin directory ==="
-          for apk in $(find bin -name "*.apk" -type f 2>/dev/null); do
-            echo "Found in bin: $apk"
-            if [ -z "$APK_FOUND" ]; then
-              cp -v "$apk" release/
-              APK_FOUND="$apk"
-            fi
+        # 方法 3: 如果还是没找到，尝试特定路径模式
+        if [ -z "$APK_FOUND" ]; then
+          echo ""
+          echo "=== Trying specific path patterns ==="
+          for pattern in \
+            ".buildozer/android/platform/build-*/dist/*/bin/*.apk" \
+            ".buildozer/android/platform/build-*/dists/*/*-debug.apk" \
+            ".buildozer/android/platform/build-*/build/bootstrap_builds/*-debug.apk"; do
+          
+            echo "Checking pattern: $pattern"
+            for apk in $pattern; do
+              if [ -f "$apk" ]; then
+                echo "✓ Found: $apk"
+                ls -lh "$apk"
+                if [ -z "$APK_FOUND" ]; then
+                  cp -v "$apk" release/
+                  APK_FOUND="$apk"
+                  break 2
+                fi
+              fi
+            done
           done
         fi
         
@@ -250,11 +250,11 @@ jobs:
           echo ".buildozer exists: $([ -d .buildozer ] && echo YES || echo NO)"
           echo "Package name: woaibagua"
           echo "Version: 1.2.0"
-          echo "Expected APK: woaibagua-1.2.0-debug.apk"
+          echo "Expected APK name pattern: woaibagua-1.2.0-*-debug.apk"
           exit 1
         else
           echo "✅ Successfully found $APK_COUNT APK file(s)"
-          echo "First APK: $(find release -name '*.apk' -type f | head -1)"
+          echo "APK file: $(find release -name '*.apk' -type f | head -1)"
         fi
     
     - name: Upload APK
