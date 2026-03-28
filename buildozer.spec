@@ -29,6 +29,10 @@ android.accept_sdk_license = True
 android.archs = arm64-v8a, armeabi-v7a
 android.allow_backup = True
 
+# 【关键】禁用硬件加速（解决 hwuiTask 崩溃）
+# p4a 会传递这些参数给 gradle
+p4a.extra_args = --disable-hardware-acceleration
+
 # 包含数据目录和字体目录（封装到 APK 内）
 source.include_dirs = data,fonts,resources
 
@@ -44,7 +48,8 @@ p4a.source_url = https://mirrors.tuna.tsinghua.edu.cn/git/python-for-android.git
 # 解决 Adreno Vulkan 驱动 0800.60 在 Android 13+ 上的崩溃问题
 # OPPO/一加/真我设备必配
 p4a.android-manifest.template = templates/android/AndroidManifest.xml
-p4a.android-manifest.overrides = android:renderengine="opengl",android:graphics.opengl="es20"
+# 移除 overrides，完全使用自定义模板
+# p4a.android-manifest.overrides = android:renderengine="opengl",android:graphics.opengl="es20"
 # 备用镜像（阿里云）
 # p4a.source_url = https://code.aliyun.com/python-for-android/python-for-android.git
 
