@@ -153,7 +153,6 @@ jobs:
     - name: Find and copy APK
       id: find_apk
       run: |
-        set -e  # 遇到错误立即退出
         echo "=== Searching for APK files ==="
         
         mkdir -p release
@@ -161,14 +160,13 @@ jobs:
         # 显示 .buildozer 完整目录结构
         echo "=== .buildozer directory tree ==="
         if [ -d ".buildozer" ]; then
-          echo "Top level:"
-          ls -la .buildozer/
+          echo "Top level directories:"
+          ls -la .buildozer/ | grep "^d" || echo "No subdirs"
           echo ""
-          echo "android directory:"
-          ls -la .buildozer/android/ 2>/dev/null || echo "No android dir"
-          echo ""
-          echo "platform directory:"
-          ls -la .buildozer/android/platform/ 2>/dev/null || echo "No platform dir"
+          echo "android/platform structure:"
+          if [ -d ".buildozer/android/platform" ]; then
+            ls -la .buildozer/android/platform/ | head -10
+          fi
           echo ""
           echo "Looking for build directories:"
           find .buildozer -maxdepth 5 -type d -name "build*" 2>/dev/null | head -10
@@ -176,7 +174,7 @@ jobs:
           echo "Looking for dist/dists/bin directories:"
           find .buildozer -maxdepth 6 -type d \( -name "dist" -o -name "dists" -o -name "bin" \) 2>/dev/null | head -10
         else
-          echo "ERROR: .buildozer directory does not exist!"
+          echo "::error::.buildozer directory does not exist!"
           exit 1
         fi
         
@@ -185,18 +183,22 @@ jobs:
         echo "=== ALL APK FILES FOUND (using find) ==="
         ALL_APKS=$(find .buildozer -name "*.apk" -type f 2>/dev/null)
         if [ -n "$ALL_APKS" ]; then
-          echo "Found APK files:"
-          echo "$ALL_APKS"
+          APK_COUNT_FOUND=$(echo "$ALL_APKS" | wc -l)
+          echo "Total APK files found: $APK_COUNT_FOUND"
+          echo ""
+          echo "APK file list:"
+          echo "$ALL_APKS" | nl
           echo ""
           echo "Detailed info:"
           echo "$ALL_APKS" | while read -r apk; do
             if [ -f "$apk" ]; then
-              echo "  $apk"
+              echo "  File: $apk"
               ls -lh "$apk"
+              echo ""
             fi
           done
         else
-          echo "ERROR: No APK files found in .buildozer!"
+          echo "::error::No APK files found in .buildozer!"
           echo "This means the build failed or APK was not generated."
           exit 1
         fi
@@ -261,7 +263,10 @@ jobs:
           echo ".buildozer exists: $([ -d .buildozer ] && echo YES || echo NO)"
           echo "Package name: woaibagua"
           echo "Version: 1.2.0"
-          echo "Expected APK name pattern: woaibagua-1.2.0-*-debug.apk"
+          echo "Expected APK name pattern: woaibagua-1.2.0-arm64-v8a.apk"
+          echo ""
+          echo "All .apk files in .buildozer:"
+          find .buildozer -name "*.apk" -type f 2>/dev/null || echo "None found"
           exit 1
         else
           echo "✅ Successfully found $APK_COUNT APK file(s)"
