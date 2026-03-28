@@ -17,7 +17,7 @@
     <application
         android:label="{{ app_name }}"
         android:icon="@drawable/icon"
-        android:hardwareAccelerated="true"
+        android:hardwareAccelerated="false"
         android:largeHeap="true"
         android:theme="@android:style/Theme.Holo.NoActionBar.Fullscreen">
         
@@ -35,10 +35,15 @@
             android:name="com.coloros.gamengine"
             android:value="0" />
         
-        <!-- 禁用 Vulkan 图层 -->
+        <!-- 强制使用软件渲染，彻底禁用 Vulkan/硬件加速 -->
         <meta-data
             android:name="android.graphics.enableVulkan"
             android:value="false" />
+        
+        <!-- 禁用 HWUI 硬件渲染 -->
+        <meta-data
+            android:name="debug.hwui.renderer"
+            android:value="software" />
         
         <activity
             android:name="org.kivy.android.PythonActivity"
@@ -48,9 +53,13 @@
             android:exported="true"
             android:screenOrientation="portrait"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
-            android:hardwareAccelerated="true">
+            android:hardwareAccelerated="false">
             
-            <!-- 【关键】强制使用 OpenGL ES 2.0，禁用 Vulkan -->
+            <!-- 禁用硬件渲染 -->
+            <meta-data
+                android:name="debug.hwui.renderer"
+                android:value="software" />
+            
             <meta-data
                 android:name="android.max_aspect"
                 android:value="2.1" />
