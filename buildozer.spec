@@ -11,8 +11,8 @@ presplash.filename = splash.jpg
 android.windowLayout = fill_parent
 android.launchscreen = true
 # 【升级】Kivy 2.3.0 + SDL2 2.30.6 最新版
-requirements = python3,kivy==2.3.1,sdl2==2.32.0,sdl2_image==2.8.4,sdl2_ttf==2.22.0,sdl2_mixer==2.8.0,pyjnius
-p4a.requirements = kivy==2.3.1,sdl2==2.32.0
+requirements = python3,kivy==2.3.1,sdl2==2.30.10,sdl2_image==2.8.4,sdl2_ttf==2.22.0,sdl2_mixer==2.8.0,pyjnius
+p4a.requirements = kivy==2.3.1,sdl2==2.30.10
 
 # 使用清华镜像下载 Python 源码
 hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11.5.tgz
