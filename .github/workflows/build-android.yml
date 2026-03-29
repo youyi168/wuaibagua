@@ -36,7 +36,20 @@ jobs:
       with:
         python-version: '3.10'
     
-    - name: Clear Buildozer Cache
+    - name: Cache Buildozer Dependencies
+      uses: actions/cache@v4
+      id: cache-buildozer
+      with:
+        path: |
+          ~/.buildozer/android/platform
+          ~/.buildozer/android/packages
+          ~/.gradle/caches
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+    
+    - name: Clear Buildozer Cache (if needed)
+      if: github.event.inputs.build_type == 'clean'
       run: |
         echo "=== Clearing all caches ==="
         rm -rf ~/.buildozer
@@ -113,8 +126,24 @@ jobs:
         echo "=== All APK files ==="
         find .buildozer -name "*.apk" -type f 2>/dev/null
         
-        # 复制最新的 APK
+        # P1-5: 使用最新修改时间查找 APK（更可靠）
         LATEST_APK=$(find .buildozer -name "*.apk" -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
+        
+        # 备用方案：如果上面的方法失败，尝试常见路径
+        if [ -z "$LATEST_APK" ] || [ ! -f "$LATEST_APK" ]; then
+          echo "Trying alternative paths..."
+          for path in \
+            ".buildozer/android/bin/*.apk" \
+            ".buildozer/android/platform/build-*/dists/*/build/outputs/apk/*/debug/*.apk" \
+            ".buildozer/android/platform/build-*/dists/**/build/outputs/apk/**/*.apk"; do
+            FOUND=$(ls -t $path 2>/dev/null | head -1)
+            if [ -n "$FOUND" ] && [ -f "$FOUND" ]; then
+              LATEST_APK="$FOUND"
+              echo "Found APK via alternative path: $LATEST_APK"
+              break
+            fi
+          done
+        fi
         
         if [ -n "$LATEST_APK" ] && [ -f "$LATEST_APK" ]; then
           echo "Found latest APK: $LATEST_APK"
@@ -124,6 +153,8 @@ jobs:
           echo "✅ Success"
         else
           echo "::error::No APK found"
+          echo "=== Debug info ==="
+          find .buildozer -name "*.apk" -ls 2>/dev/null || true
           exit 1
         fi
     

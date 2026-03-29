@@ -14,12 +14,14 @@
         android:targetSdkVersion="{{ target_sdk_version }}" />
 
     <!-- 禁用 Vulkan，强制使用 OpenGL ES -->
+    <!-- 统一配置 hardwareAccelerated，移除重复 -->
     <application
         android:label="{{ app_name }}"
         android:icon="@drawable/icon"
         android:hardwareAccelerated="false"
         android:largeHeap="true"
-        android:theme="@android:style/Theme.Holo.NoActionBar.Fullscreen">
+        android:theme="@android:style/Theme.Holo.NoActionBar.Fullscreen"
+        android:enableOnBackInvokedCallback="true">
         
         <!-- 【OPPO/一加/真我专用】禁用游戏优化（会强制启用 Vulkan） -->
         <meta-data
@@ -55,7 +57,7 @@
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
             android:hardwareAccelerated="false">
             
-            <!-- 禁用硬件渲染 -->
+            <!-- 彻底禁用 Vulkan 和硬件加速 -->
             <meta-data
                 android:name="debug.hwui.renderer"
                 android:value="opengl" />
@@ -63,6 +65,19 @@
             <meta-data
                 android:name="android.max_aspect"
                 android:value="2.1" />
+            
+            <!-- 更多 Vulkan 禁用配置 -->
+            <meta-data
+                android:name="android.graphics.enableVulkan"
+                android:value="false" />
+            
+            <meta-data
+                android:name="ro.hardware.vulkan"
+                android:value="none" />
+            
+            <meta-data
+                android:name="debug.egl.forceMsaa"
+                android:value="false" />
             
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

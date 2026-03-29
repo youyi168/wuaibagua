@@ -10,24 +10,27 @@ icon.filename = icon.png
 presplash.filename = splash.jpg
 android.windowLayout = fill_parent
 android.launchscreen = true
-# 【关键修复】降级 Kivy 到 2.2.0
+# 【关键修复】降级 Kivy 到 2.2.0 + 添加 SDL2 依赖
 # Kivy 2.3.0 在部分设备上导致 hwuiTask mutex 崩溃
 # 错误：pthread_mutex_lock called on a destroyed mutex
-requirements = python3,kivy==2.3.0,pyjnius
-p4a.requirements = kivy==2.3.0
+# SDL2 修复线程同步问题
+requirements = python3,kivy==2.2.0,pyjnius,sdl2
+p4a.requirements = kivy==2.2.0,sdl2
 
 # 使用清华镜像下载 Python 源码
 hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11.5.tgz
 orientation = portrait
 fullscreen = 0
-android.permissions = VIBRATE,INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE
+# Android 10+ 存储权限限制，移除不必要的存储权限
+android.permissions = VIBRATE,INTERNET
 android.api = 33
 android.minapi = 21
 android.ndk_api = 21
 android.ndk = 25b
 android.skip_update = False
 android.accept_sdk_license = True
-android.archs = arm64-v8a
+# 支持更多架构（arm64-v8a + armeabi-v7a）
+android.archs = arm64-v8a,armeabi-v7a
 android.allow_backup = True
 
 # 【关键】禁用硬件加速（解决 hwuiTask 崩溃）

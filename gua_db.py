@@ -2,14 +2,21 @@
 # -*- coding: utf-8 -*-
 """
 卦象数据库查询模块
+P0-4: 修复数据库线程安全问题
+- 使用 threading.local 实现线程本地存储
+- 启用 WAL 模式支持多线程并发
 """
 
 import sqlite3
 import os
 import logging
+import threading
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# 线程本地存储，每个线程独立的数据库连接
+_db_local = threading.local()
 
 def get_data_path():
     """
@@ -49,12 +56,51 @@ def get_data_path():
 DB_PATH = get_data_path() / 'gua_optimized.db'
 
 def get_connection():
-    """获取数据库连接"""
+    """
+    获取数据库连接（P0-4: 线程安全版本）
+    使用 threading.local 实现线程本地存储
+    启用 WAL 模式支持多线程并发访问
+    """
     try:
-        return sqlite3.connect(DB_PATH)
+        # 检查当前线程是否已有连接
+        if not hasattr(_db_local, 'connection') or _db_local.connection is None:
+            # 创建新连接
+            _db_local.connection = sqlite3.connect(
+                DB_PATH,
+                check_same_thread=False,  # 允许跨线程使用（配合 threading.local 使用）
+                timeout=30.0  # 超时时间
+            )
+            
+            # 启用 WAL 模式（Write-Ahead Logging）
+            # 支持多线程并发读写
+            _db_local.connection.execute('PRAGMA journal_mode=WAL')
+            
+            # 其他优化配置
+            _db_local.connection.execute('PRAGMA synchronous=NORMAL')
+            _db_local.connection.execute('PRAGMA cache_size=10000')
+            _db_local.connection.execute('PRAGMA temp_store=MEMORY')
+            
+            logger.info(f'[DB] 创建新数据库连接：{threading.current_thread().name}')
+        
+        return _db_local.connection
+    
     except Exception as e:
-        logger.error(f'get_connection error: {e}')
+        logger.error(f'[DB] get_connection error: {e}')
+        # 连接失败时清理
+        if hasattr(_db_local, 'connection'):
+            _db_local.connection = None
         return None
+
+def close_connection():
+    """关闭当前线程的数据库连接"""
+    if hasattr(_db_local, 'connection') and _db_local.connection:
+        try:
+            _db_local.connection.close()
+            logger.info(f'[DB] 关闭数据库连接：{threading.current_thread().name}')
+        except Exception as e:
+            logger.error(f'[DB] close_connection error: {e}')
+        finally:
+            _db_local.connection = None
 
 def get_gua_by_name(gua_name):
     """
@@ -67,19 +113,22 @@ def get_gua_by_name(gua_name):
         dict: 卦象信息，不存在则返回 None
     """
     try:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT h.*, b.content as bai_hua
-                FROM hexagrams h
-                LEFT JOIN bai_hua b ON h.id = b.hexagram_id
-                WHERE h.name = ?
-            ''', (gua_name,))
-            
-            row = cursor.fetchone()
-            return dict(row) if row else None
+        conn = get_connection()
+        if conn is None:
+            return None
+        
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT h.*, b.content as bai_hua
+            FROM hexagrams h
+            LEFT JOIN bai_hua b ON h.id = b.hexagram_id
+            WHERE h.name = ?
+        ''', (gua_name,))
+        
+        row = cursor.fetchone()
+        return dict(row) if row else None
     except Exception as e:
         logger.error(f'get_gua_by_name error: {e}')
         return None
@@ -87,13 +136,16 @@ def get_gua_by_name(gua_name):
 def get_gua_by_short_name(short_name):
     """根据卦名简称查询"""
     try:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            
-            cursor.execute('SELECT * FROM hexagrams WHERE short_name = ?', (short_name,))
-            row = cursor.fetchone()
-            return dict(row) if row else None
+        conn = get_connection()
+        if conn is None:
+            return None
+        
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM hexagrams WHERE short_name = ?', (short_name,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
     except Exception as e:
         logger.error(f'get_gua_by_short_name error: {e}')
         return None
@@ -101,13 +153,16 @@ def get_gua_by_short_name(short_name):
 def get_gua_by_binary(binary):
     """根据二进制查询"""
     try:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            
-            cursor.execute('SELECT * FROM hexagrams WHERE binary = ?', (binary,))
-            row = cursor.fetchone()
-            return dict(row) if row else None
+        conn = get_connection()
+        if conn is None:
+            return None
+        
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM hexagrams WHERE binary = ?', (binary,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
     except Exception as e:
         logger.error(f'get_gua_by_binary error: {e}')
         return None
@@ -123,20 +178,23 @@ def get_yao_ci(gua_name):
         list: 爻辞列表，按爻位排序
     """
     try:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT y.*
-                FROM yao_ci y
-                JOIN hexagrams h ON y.hexagram_id = h.id
-                WHERE h.name = ?
-                ORDER BY y.position
-            ''', (gua_name,))
-            
-            rows = cursor.fetchall()
-            return [dict(row) for row in rows]
+        conn = get_connection()
+        if conn is None:
+            return []
+        
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT y.*
+            FROM yao_ci y
+            JOIN hexagrams h ON y.hexagram_id = h.id
+            WHERE h.name = ?
+            ORDER BY y.position
+        ''', (gua_name,))
+        
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
     except Exception as e:
         logger.error(f'get_yao_ci error: {e}')
         return []
@@ -144,12 +202,15 @@ def get_yao_ci(gua_name):
 def get_all_gua_names():
     """获取所有卦名"""
     try:
-        with sqlite3.connect(DB_PATH) as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute('SELECT name, short_name, binary FROM hexagrams ORDER BY id')
-            rows = cursor.fetchall()
-            return [{'name': r[0], 'short_name': r[1], 'binary': r[2]} for r in rows]
+        conn = get_connection()
+        if conn is None:
+            return []
+        
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT name, short_name, binary FROM hexagrams ORDER BY id')
+        rows = cursor.fetchall()
+        return [{'name': r[0], 'short_name': r[1], 'binary': r[2]} for r in rows]
     except Exception as e:
         logger.error(f'get_all_gua_names error: {e}')
         return []
@@ -165,18 +226,21 @@ def search_gua(keyword):
         list: 匹配的卦象列表
     """
     try:
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT h.name, h.short_name, h.description
-                FROM hexagrams h
-                WHERE h.name LIKE ? OR h.short_name LIKE ? OR h.description LIKE ?
-            ''', (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%'))
-            
-            rows = cursor.fetchall()
-            return [dict(row) for row in rows]
+        conn = get_connection()
+        if conn is None:
+            return []
+        
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT h.name, h.short_name, h.description
+            FROM hexagrams h
+            WHERE h.name LIKE ? OR h.short_name LIKE ? OR h.description LIKE ?
+        ''', (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%'))
+        
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
     except Exception as e:
         logger.error(f'search_gua error: {e}')
         return []

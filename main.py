@@ -10,18 +10,98 @@
 
 __version__ = '1.2.0'
 
-# ==================== Android JNI 导入（必须在最前面） ====================
-# 这个导入必须在所有 Android 相关代码之前
-try:
-    from jnius import autoclass
-    ANDROID_AVAILABLE = True
-except ImportError:
-    autoclass = None
-    ANDROID_AVAILABLE = False
-    print('[WARN] jnius not available (desktop mode)')
+# ==================== 全局异常处理器（P1-7, P1-8） ====================
+import sys
+import traceback
+import logging
+
+def setup_global_exception_handler():
+    """设置全局异常处理器，记录所有未捕获的异常"""
+    
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        """全局异常处理函数"""
+        # 忽略 KeyboardInterrupt（用户主动中断）
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        
+        logging.error("============= 全局异常捕获 =============")
+        logging.error(f"异常类型：{exc_type.__name__}")
+        logging.error(f"异常信息：{exc_value}")
+        logging.error("堆栈跟踪:")
+        logging.error(''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+        logging.error("========================================")
+        
+        # 尝试显示错误提示
+        try:
+            from kivy.clock import Clock
+            def show_error():
+                try:
+                    show_toast(f'❌ 错误：{str(exc_value)[:50]}')
+                except:
+                    pass
+            Clock.schedule_once(lambda dt: show_error(), 0)
+        except:
+            pass
+    
+    # 安装全局异常处理器
+    sys.excepthook = handle_exception
+    
+    # 也捕获线程异常
+    try:
+        import threading
+        threading.excepthook = lambda args: handle_exception(
+            args.exc_type, args.exc_value, args.exc_traceback
+        )
+    except:
+        pass
+
+# 在最早期设置异常处理器
+setup_global_exception_handler()
+
+# 设置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(levelname)s] %(name)s: %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger('wuaibagua')
+
+# ==================== Android JNI 导入（延迟到应用启动后） ====================
+# P0-5: 延迟 JNI 调用，避免启动早期崩溃
+ANDROID_AVAILABLE = False
+autoclass = None
+
+def init_android_jni():
+    """延迟初始化 Android JNI（在应用启动后调用）"""
+    global ANDROID_AVAILABLE, autoclass
+    
+    if ANDROID_AVAILABLE:
+        return  # 已经初始化
+    
+    try:
+        from jnius import autoclass as jni_autoclass
+        autoclass = jni_autoclass
+        ANDROID_AVAILABLE = True
+        logger.info('[INFO] Android JNI 初始化成功')
+    except ImportError as e:
+        autoclass = None
+        ANDROID_AVAILABLE = False
+        logger.warning(f'[WARN] jnius not available (desktop mode): {e}')
+    except Exception as e:
+        autoclass = None
+        ANDROID_AVAILABLE = False
+        logger.error(f'[ERROR] Android JNI 初始化失败：{e}')
 
 # ==================== Android 剪贴板可用性检查 ====================
-ANDROID_CLIPBOARD_AVAILABLE = ANDROID_AVAILABLE
+# 延迟初始化，在应用启动后调用
+ANDROID_CLIPBOARD_AVAILABLE = False
+
+def init_android_clipboard():
+    """延迟初始化 Android 剪贴板"""
+    global ANDROID_CLIPBOARD_AVAILABLE
+    init_android_jni()
+    ANDROID_CLIPBOARD_AVAILABLE = ANDROID_AVAILABLE
 
 # ==================== 第一优先级：在导入 Kivy 之前禁用 Vulkan ====================
 # 这些必须在任何 Kivy 导入之前！
@@ -77,8 +157,18 @@ from kivy.clock import Clock
 from kivy.graphics import Instruction
 
 # ==================== 第三优先级：运行时 OPPO 设备检测 ====================
+# P0-5: 延迟 JNI 调用到应用启动后
 # 额外加固（针对某些设备忽略 Config 的情况）
-if ANDROID_AVAILABLE:
+def detect_oppo_device():
+    """OPPO 设备检测（延迟调用）"""
+    global ANDROID_AVAILABLE, autoclass
+    
+    # 延迟初始化 JNI
+    init_android_jni()
+    
+    if not ANDROID_AVAILABLE or not autoclass:
+        return False
+    
     try:
         Build = autoclass('android.os.Build')
         manufacturer = Build.MANUFACTURER.lower()
@@ -89,35 +179,44 @@ if ANDROID_AVAILABLE:
         is_oppo = any(brand in manufacturer or brand in model for brand in oppo_brands)
         
         if is_oppo:
-            print(f'[CRITICAL] 检测到 OPPO 设备，强制禁用 Vulkan')
-            print(f'[CRITICAL] 设备：{manufacturer} {model}')
+            logger.critical(f'[CRITICAL] 检测到 OPPO 设备，强制禁用 Vulkan')
+            logger.critical(f'[CRITICAL] 设备：{manufacturer} {model}')
             
             # 二次设置（确保覆盖）
             Config.set('graphics', 'backend', 'gl')
             Config.set('graphics', 'gl_backend', 'gl')
             
             # 禁用 Kivy 日志
-            import logging
             logging.getLogger('kivy').setLevel(logging.CRITICAL)
+            return True
     except Exception as e:
-        print(f'[WARN] OPPO 设备检测失败：{e}')
+        logger.warning(f'[WARN] OPPO 设备检测失败：{e}')
+    
+    return False
 
 # ==================== 注册字体 ====================
 def register_fonts():
-    """注册中文字体和易卦专用字体"""
+    """注册中文字体和易卦专用字体（P1-3: 添加字体存在性检查）"""
     from pathlib import Path
     font_dir = Path(__file__).parent / 'fonts'
+    
+    # 检查字体目录是否存在
+    if not font_dir.exists():
+        logger.warning(f'[WARN] 字体目录不存在：{font_dir}')
+        logger.warning('[WARN] 将使用系统默认字体')
+        return
     
     # 注册中文字体
     font_path = font_dir / 'NotoSansSC-Regular.ttf'
     if font_path.exists() and font_path.stat().st_size > 0:
         try:
             LabelBase.register(name='NotoSansSC', fn_regular=str(font_path))
-            print(f'[INFO] 中文字体已注册')
+            logger.info('[INFO] 中文字体已注册')
         except Exception as e:
-            print(f'[WARN] 中文字体注册失败：{e}')
+            logger.warning(f'[WARN] 中文字体注册失败：{e}')
     else:
-        print(f'[WARN] 中文字体文件不存在或损坏：{font_path}')
+        logger.warning(f'[WARN] 中文字体文件不存在或损坏：{font_path}')
+        logger.warning('[WARN] 将使用系统默认字体')
     
     # 注册易卦专用字体（尝试多个备选）
     yijing_fonts = [
@@ -126,21 +225,27 @@ def register_fonts():
         'NotoSansSC-Regular.ttf',  # 回退到中文字体
     ]
     
+    font_registered = False
     for font_name in yijing_fonts:
         font_path = font_dir / font_name
         if font_path.exists() and font_path.stat().st_size > 0:
             try:
                 LabelBase.register(name='NotoSansSymbols', fn_regular=str(font_path))
-                print(f'[INFO] 易卦字体已注册：{font_name}')
+                logger.info(f'[INFO] 易卦字体已注册：{font_name}')
+                font_registered = True
                 return
             except Exception as e:
-                print(f'[WARN] 字体注册失败 {font_name}: {e}')
+                logger.warning(f'[WARN] 字体注册失败 {font_name}: {e}')
                 continue
     
-    print(f'[ERROR] 所有易卦字体注册失败，使用默认字体')
+    if not font_registered:
+        logger.error('[ERROR] 所有易卦字体注册失败，使用默认字体')
 
 # 在应用启动前注册字体
-register_fonts()
+try:
+    register_fonts()
+except Exception as e:
+    logger.error(f'[ERROR] 字体注册过程异常：{e}')
 
 
 # ==================== 工具函数 ====================
@@ -148,7 +253,11 @@ register_fonts()
 def copy_to_clipboard(text):
     """复制文本到剪贴板"""
     try:
-        if ANDROID_CLIPBOARD_AVAILABLE:
+        # 确保 Android JNI 已初始化
+        if not ANDROID_CLIPBOARD_AVAILABLE:
+            init_android_clipboard()
+        
+        if ANDROID_CLIPBOARD_AVAILABLE and autoclass:
             Context = autoclass('android.content.Context')
             ClipboardManager = autoclass('android.content.ClipboardManager')
             ClipData = autoclass('android.content.ClipData')
@@ -159,16 +268,22 @@ def copy_to_clipboard(text):
                 clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
                 clip = ClipData.newPlainText('wuaibagua', text)
                 clipboard.setPrimaryClip(clip)
+                logger.info(f'[INFO] 已复制到剪贴板：{text[:50]}...')
         else:
-            print(f'[INFO] Copy: {text[:50]}...')
+            logger.info(f'[INFO] Copy: {text[:50]}...')
     except Exception as e:
-        print(f'[ERROR] Copy failed: {e}')
+        logger.error(f'[ERROR] Copy failed: {e}')
+        logger.error(traceback.format_exc())
 
 
 def show_toast(message):
     """显示 Toast 提示"""
     try:
-        if ANDROID_CLIPBOARD_AVAILABLE:
+        # 确保 Android JNI 已初始化
+        if not ANDROID_CLIPBOARD_AVAILABLE:
+            init_android_clipboard()
+        
+        if ANDROID_CLIPBOARD_AVAILABLE and autoclass:
             Context = autoclass('android.content.Context')
             Toast = autoclass('android.widget.Toast')
             
@@ -184,15 +299,20 @@ def show_toast(message):
                     toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
                     toast.show()
         else:
-            print(f'[TOAST] {message}')
+            logger.info(f'[TOAST] {message}')
     except Exception as e:
-        print(f'[ERROR] Toast failed: {e}')
+        logger.error(f'[ERROR] Toast failed: {e}')
+        logger.error(traceback.format_exc())
 
 
 def get_device_id():
     """获取设备识别码（Android）"""
     try:
-        if ANDROID_CLIPBOARD_AVAILABLE:
+        # 确保 Android JNI 已初始化
+        if not ANDROID_CLIPBOARD_AVAILABLE:
+            init_android_clipboard()
+        
+        if ANDROID_CLIPBOARD_AVAILABLE and autoclass:
             Settings = autoclass('android.provider.Settings$Secure')
             app = App.get_running_app()
             if app:
@@ -202,7 +322,8 @@ def get_device_id():
                 return android_id if android_id else 'default'
         return 'default'
     except Exception as e:
-        print(f'[ERROR] get_device_id: {e}')
+        logger.error(f'[ERROR] get_device_id: {e}')
+        logger.error(traceback.format_exc())
         return 'default'
 
 
@@ -901,9 +1022,26 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
 class WuaibaguaApp(App):
     """我爱八卦应用主类"""
     
+    def init_android_features(self):
+        """延迟初始化 Android 功能（P0-5: 避免启动早期 JNI 调用）"""
+        try:
+            logger.info('[INFO] 初始化 Android 功能...')
+            init_android_clipboard()
+            
+            # OPPO 设备检测
+            if detect_oppo_device():
+                logger.info('[INFO] OPPO 设备检测完成')
+        except Exception as e:
+            logger.error(f'[ERROR] Android 功能初始化失败：{e}')
+            logger.error(traceback.format_exc())
+    
     def build(self):
         """构建应用界面"""
         self.title = '我爱八卦'
+        
+        # P0-5: 延迟 JNI 调用到应用启动后
+        # 在 UI 构建完成后初始化 Android 相关功能
+        Clock.schedule_once(lambda dt: self.init_android_features(), 0.5)
         
         # 设置全局字体
         from kivy.uix.label import Label
@@ -1064,7 +1202,7 @@ class WuaibaguaApp(App):
         self.display_gua(yao_list, '蓍草起卦')
     
     def display_gua(self, yao_list, method):
-        """显示卦象（修复版）"""
+        """显示卦象（修复版，P1-4: 添加图片路径检查）"""
         try:
             if GUA_CALC_AVAILABLE:
                 # 使用图片显示函数
@@ -1084,13 +1222,16 @@ class WuaibaguaApp(App):
             if hasattr(self, 'gua_name_label'):
                 self.gua_name_label.text = f'[b]{gua_name}[/b]'
             
-            # 设置 64 卦图片和爻位图片
+            # 设置 64 卦图片和爻位图片（P1-4: 添加路径检查）
             if hasattr(self, 'hexagram_image') and image_info:
                 # 设置 64 卦图片
                 hex_image_path = image_info.get('hexagram', '')
                 if hex_image_path and os.path.exists(hex_image_path):
                     self.hexagram_image.source = hex_image_path
                     self.hexagram_image.reload()
+                    logger.info(f'[INFO] 64 卦图片加载成功：{hex_image_path}')
+                else:
+                    logger.warning(f'[WARN] 64 卦图片不存在：{hex_image_path}')
                 
                 # 设置卦名
                 if hasattr(self, 'gua_name_label'):
@@ -1106,16 +1247,20 @@ class WuaibaguaApp(App):
                         yao_type = '阳' if yao in [7, 9] else '阴'
                         mark = ' ⭕' if yao == 9 else ' ✕' if yao == 6 else ''
                         
-                        # 设置爻图片
-                        if i in yao_imgs and os.path.exists(yao_imgs[i]):
-                            self.yao_images[i].source = yao_imgs[i]
-                            self.yao_images[i].reload()
+                        # 设置爻图片（P1-4: 添加路径检查）
+                        if i in yao_imgs:
+                            yao_img_path = yao_imgs[i]
+                            if yao_img_path and os.path.exists(yao_img_path):
+                                self.yao_images[i].source = yao_img_path
+                                self.yao_images[i].reload()
+                            else:
+                                logger.warning(f'[WARN] 爻图片不存在：{yao_img_path}')
                         
                         # 设置爻位文字
                         self.yao_labels[i].text = f'{yao_names[i]}{yao_type}{mark}'
                 else:
                     # Fallback: 如果没有图片，只显示文字
-                    print(f'[WARN] 图片加载失败，使用文字显示')
+                    logger.warning('[WARN] 图片加载失败，使用文字显示')
             
             # 保留旧代码兼容性
             if hasattr(self, 'gua_info_label'):
@@ -1139,19 +1284,20 @@ class WuaibaguaApp(App):
             self.current_gua_detail = None
             self.current_duangua_result = None
             if GUA_CALC_AVAILABLE:
-                print(f'[DEBUG] 读取卦象数据：{gua_name}')
+                logger.info(f'[DEBUG] 读取卦象数据：{gua_name}')
                 self.current_gua_detail = gua_calculator.get_gua_detail(gua_name)
                 # 断卦逻辑
                 self.current_duangua_result = gua_calculator.duangua_logic(yao_list)
                 if self.current_gua_detail:
-                    print(f'[DEBUG] ✅ 读取成功：卦辞={self.current_gua_detail.get("gua_ci", "")[:20]}...')
-                    print(f'[DEBUG] 断卦：{self.current_duangua_result["duan_gua_method"]}')
+                    logger.info(f'[DEBUG] ✅ 读取成功：卦辞={self.current_gua_detail.get("gua_ci", "")[:20]}...')
+                    logger.info(f'[DEBUG] 断卦：{self.current_duangua_result["duan_gua_method"]}')
                 else:
-                    print(f'[DEBUG] ❌ 读取失败：{gua_name}')
+                    logger.warning(f'[DEBUG] ❌ 读取失败：{gua_name}')
             
             show_toast(f'✅ {gua_name}')
         except Exception as e:
-            print(f'[ERROR] display_gua failed: {e}')
+            logger.error(f'[ERROR] display_gua failed: {e}')
+            logger.error(traceback.format_exc())
             show_toast('❌ 显示失败')
     
     def show_explanation(self, instance):
