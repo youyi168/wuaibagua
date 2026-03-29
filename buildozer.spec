@@ -21,15 +21,10 @@ orientation = portrait
 fullscreen = 0
 # Android 10+ 存储权限限制，移除不必要的存储权限
 android.permissions = VIBRATE,INTERNET
-android.api = 35
-android.minapi = 24
-android.ndk_api = 24
-android.ndk = 29.0.14206865
+# Android 配置使用 GitHub Actions 支持的最新版
+android.archs = arm64-v8a
 android.skip_update = False
 android.accept_sdk_license = True
-# 仅 64 位架构（arm64-v8a）
-android.archs = arm64-v8a
-android.allow_backup = True
 
 # 【关键】禁用硬件加速（解决 hwuiTask 崩溃）
 # p4a 会传递这些参数给 gradle
