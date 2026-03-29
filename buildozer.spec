@@ -11,8 +11,8 @@ presplash.filename = splash.jpg
 android.windowLayout = fill_parent
 android.launchscreen = true
 # 【升级】Kivy 2.3.0+ SDL2 2.30.6+ 最新版
-requirements = python3,kivy==2.3.0,sdl2==2.30.6,sdl2_image==2.8.4,sdl2_ttf==2.22.0,sdl2_mixer==2.8.0,pyjnius
-p4a.requirements = kivy==2.3.0,sdl2==2.30.6
+requirements = python3,kivy,sdl2,sdl2_image,sdl2_ttf,sdl2_mixer,pyjnius
+p4a.requirements = kivy
 p4a.extra_args = --ignore-setup-py
 
 # 使用清华镜像下载 Python 源码
@@ -42,9 +42,9 @@ source.include_dirs = data,fonts,resources
 log_level = 2
 warn_on_root = 1
 
-# 使用官方 python-for-android==2024.1.21
+# 使用官方 python-for-android 最新版
 p4a.source_url = https://github.com/kivy/python-for-android.git
-p4a.branch = develop
+p4a.branch = master
 
 # 【关键修复】使用自定义 AndroidManifest.xml 强制禁用 Vulkan
 # 解决 Adreno Vulkan 驱动 0800.60 在 Android 13+ 上的崩溃问题
