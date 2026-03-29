@@ -7,6 +7,6 @@
 --enable-androidx
 --copy-libs
 --arch=arm64-v8a
---min-api=24
+--min-api=21
 --target-api=35
 --ndk-version=25b

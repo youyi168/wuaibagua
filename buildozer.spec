@@ -21,8 +21,8 @@ fullscreen = 0
 # Android 10+ 存储权限限制，移除不必要的存储权限
 android.permissions = VIBRATE,INTERNET
 android.api = 35
-android.minapi = 24
-android.ndk_api = 24
+android.minapi = 21
+android.ndk_api = 21
 android.ndk = 25b
 android.skip_update = False
 android.accept_sdk_license = True
