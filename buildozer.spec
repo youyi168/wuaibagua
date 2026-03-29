@@ -13,8 +13,8 @@ android.launchscreen = true
 # 【关键修复】降级 Kivy 到 2.2.0
 # Kivy 2.3.0 在部分设备上导致 hwuiTask mutex 崩溃
 # 错误：pthread_mutex_lock called on a destroyed mutex
-requirements = python3,kivy==2.2.0,pyjnius
-p4a.requirements = kivy==2.2.0
+requirements = python3,kivy==2.3.0,pyjnius
+p4a.requirements = kivy==2.3.0
 
 # 使用清华镜像下载 Python 源码
 hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11.5.tgz
