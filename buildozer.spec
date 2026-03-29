@@ -10,9 +10,9 @@ icon.filename = icon.png
 presplash.filename = splash.jpg
 android.windowLayout = fill_parent
 android.launchscreen = true
-# 【升级】Kivy 2.3.0 + SDL2 2.30.6 最新版
-requirements = python3,kivy==2.2.0,sdl2_image==2.8.4,sdl2_ttf==2.22.0,sdl2_mixer==2.6.0,pyjnius
-p4a.requirements = kivy==2.2.0
+# 【升级】Kivy 2.3.0+ SDL2 2.30.6+ 最新版
+requirements = python3,kivy==2.3.0,sdl2==2.30.6,sdl2_image==2.8.4,sdl2_ttf==2.22.0,sdl2_mixer==2.8.0,pyjnius
+p4a.requirements = kivy==2.3.0,sdl2==2.30.6
 p4a.extra_args = --ignore-setup-py
 
 # 使用清华镜像下载 Python 源码
@@ -22,9 +22,9 @@ fullscreen = 0
 # Android 10+ 存储权限限制，移除不必要的存储权限
 android.permissions = VIBRATE,INTERNET
 android.api = 35
-android.minapi = 21
-android.ndk_api = 21
-android.ndk = 25b
+android.minapi = 24
+android.ndk_api = 24
+android.ndk = 26.1.10909125
 android.skip_update = False
 android.accept_sdk_license = True
 # 仅 64 位架构（arm64-v8a）
@@ -43,9 +43,9 @@ log_level = 2
 warn_on_root = 1
 
 # 使用国内镜像源加速下载
-# Python for Android 源码镜像（官方最新版）
+# Python for Android 源码镜像（官方 v2026.01+）
 p4a.source_url = https://github.com/kivy/python-for-android.git
-p4a.branch = master
+p4a.branch = v2026.01.0
 
 # 【关键修复】使用自定义 AndroidManifest.xml 强制禁用 Vulkan
 # 解决 Adreno Vulkan 驱动 0800.60 在 Android 13+ 上的崩溃问题
