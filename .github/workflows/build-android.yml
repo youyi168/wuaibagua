@@ -96,7 +96,6 @@ jobs:
             if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
               echo "=== Build failed, retrying in 30 seconds... ==="
               sleep 30
-              # 清理可能损坏的缓存
               rm -rf .buildozer/android/platform/build-*/build/bootstrap_builds
             fi
           fi
@@ -117,27 +116,45 @@ jobs:
         
         mkdir -p release
         
-        # 查找所有 APK 文件
+        # 显示 .buildozer 目录结构
+        echo "=== .buildozer directory structure ==="
+        ls -la .buildozer/android/platform/ 2>/dev/null || echo "No platform dir"
+        
+        # 查找所有 APK 文件（多种可能路径）
+        echo "=== Searching multiple paths ==="
+        
+        # 路径 1: build-*/dist/*/bin/
+        find .buildozer -path "*/build-*/dist/*/bin/*.apk" -type f 2>/dev/null | head -5
+        
+        # 路径 2: build-*/dists/*/build/outputs/apk/
+        find .buildozer -path "*/build-*/dists/*/build/outputs/apk/*/*.apk" -type f 2>/dev/null | head -5
+        
+        # 路径 3: 任何 .apk 文件
+        ALL_APKS=$(find .buildozer -name "*.apk" -type f 2>/dev/null)
+        echo ""
         echo "=== All APK files found ==="
-        find .buildozer -name "*.apk" -type f 2>/dev/null | head -10 || echo "No APK found in .buildozer"
+        echo "$ALL_APKS" | head -10
         
         # 复制第一个 APK
         APK_FOUND=""
-        for apk in $(find .buildozer -name "*.apk" -type f 2>/dev/null | head -1); do
-          if [ -f "$apk" ]; then
-            echo "Found APK: $apk"
-            ls -lh "$apk"
-            cp -v "$apk" release/
-            APK_FOUND="$apk"
-            break
+        if [ -n "$ALL_APKS" ]; then
+          FIRST_APK=$(echo "$ALL_APKS" | head -1)
+          if [ -f "$FIRST_APK" ]; then
+            echo ""
+            echo "Copying: $FIRST_APK"
+            ls -lh "$FIRST_APK"
+            cp -v "$FIRST_APK" release/
+            APK_FOUND="$FIRST_APK"
           fi
-        done
+        fi
         
+        echo ""
         echo "=== Release directory contents ==="
         ls -lah release/ || echo "No release directory"
         
         # 统计 APK 数量
         APK_COUNT=$(find release -name "*.apk" -type f 2>/dev/null | wc -l)
+        echo ""
         echo "APK count: $APK_COUNT"
         echo "apk_count=$APK_COUNT" >> $GITHUB_OUTPUT
         
