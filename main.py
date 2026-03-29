@@ -27,13 +27,22 @@ ANDROID_CLIPBOARD_AVAILABLE = ANDROID_AVAILABLE
 # 这些必须在任何 Kivy 导入之前！
 import os
 
-# 【Java 层】禁用 Vulkan（通过 System Property）
-# 这会在 Android 系统层面禁用 Vulkan
+# 【Java 层】禁用 Vulkan（通过 System Property）- 必须在导入 Kivy 之前！
+if ANDROID_AVAILABLE:
+    try:
+        System = autoclass('java.lang.System')
+        # 设置系统属性禁用 Vulkan 和硬件加速
+        System.setProperty('debug.hwui.renderer', 'opengl')
+        System.setProperty('debug.egl.profile', 'opengl')
+        System.setProperty('debug.hwui.disable_vsync', 'true')
+        print('[CRITICAL] 已通过 JNI 禁用 Vulkan，使用 OpenGL')
+    except Exception as e:
+        print(f'[WARN] JNI Vulkan 禁用失败：{e}')
+
+# 环境变量（影响 Kivy 初始化）
 os.environ['MESA_VK_DEVICE_SELECT'] = ''  # 禁用 Mesa Vulkan
 os.environ['DISABLE_VULKAN'] = '1'  # 通用 Vulkan 禁用
 os.environ['VULKAN_DISABLE'] = '1'  # 另一种 Vulkan 禁用方式
-
-# 环境变量（影响 Kivy 初始化）
 os.environ['KIVY_GL_BACKEND'] = 'gl'      # 强制使用 OpenGL
 os.environ['KIVY_NO_VULKAN'] = '1'         # 禁用 Vulkan
 os.environ['KIVY_VIDEO_OPTS'] = 'gl'       # 视频也使用 OpenGL
@@ -53,18 +62,6 @@ Config.set('graphics', 'shaders', '0')         # 禁用着色器（减少 GPU �
 Config.set('input', 'mouse', 'mouse,disable_multitouch,multitouch_on_demand')
 Config.set('kivy', 'log_level', 'error')       # 只记录错误
 Config.set('kivy', 'log_dir', '/dev/null')     # 禁用日志文件
-
-# 【Android 层】通过 JNI 禁用 Vulkan（必须在导入 Kivy 之前）
-if ANDROID_AVAILABLE:
-    try:
-        System = autoclass('java.lang.System')
-        # 设置系统属性禁用 Vulkan 和硬件加速
-        System.setProperty('debug.hwui.renderer', 'opengl')
-        System.setProperty('debug.egl.profile', 'opengl')
-        System.setProperty('debug.hwui.disable_vsync', 'true')
-        print('[CRITICAL] 已通过 JNI 禁用 Vulkan，使用 OpenGL')
-    except Exception as e:
-        print(f'[WARN] JNI Vulkan 禁用失败：{e}')
 
 # ==================== 第二优先级：标准导入 ====================
 import sys
