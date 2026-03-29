@@ -23,7 +23,7 @@ android.permissions = VIBRATE,INTERNET
 android.api = 35
 android.minapi = 24
 android.ndk_api = 24
-android.ndk = 26.1.10909125
+android.ndk = 25b
 android.skip_update = False
 android.accept_sdk_license = True
 # 仅 64 位架构（arm64-v8a）

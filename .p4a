@@ -9,4 +9,4 @@
 --arch=arm64-v8a
 --min-api=24
 --target-api=35
---ndk-version=26.1.10909125
+--ndk-version=25b
