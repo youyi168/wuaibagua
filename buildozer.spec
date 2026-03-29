@@ -13,7 +13,7 @@ android.launchscreen = true
 # 【升级】Kivy 2.3.0 + SDL2 2.30.6 最新版
 requirements = python3,kivy==2.3.1,sdl2_image==2.8.4,sdl2_ttf==2.22.0,sdl2_mixer==2.8.0,pyjnius
 p4a.requirements = kivy==2.3.1
-p4a.extra_args = --no-compile-pyo
+p4a.extra_args = --no-compile-pyo --ignore-setup-py
 
 # 使用清华镜像下载 Python 源码
 hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11.5.tgz
