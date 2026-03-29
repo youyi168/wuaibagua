@@ -11,7 +11,7 @@ presplash.filename = splash.jpg
 android.windowLayout = fill_parent
 android.launchscreen = true
 # 【升级】Kivy 2.3.0+ SDL2 2.30.6+ 最新版
-requirements = python3,kivy==2.2.0,sdl2_image==2.8.4,sdl2_ttf==2.22.0,sdl2_mixer==2.6.0,liblzma
+requirements = python3,kivy==2.2.0,sdl2_image==2.8.4,sdl2_ttf==2.22.0,sdl2_mixer==2.6.0
 p4a.requirements = kivy==2.2.0
 p4a.extra_args = --ignore-setup-py --use-recommended-system-packages
 
