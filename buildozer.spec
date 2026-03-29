@@ -13,7 +13,7 @@ android.launchscreen = true
 # 【升级】Kivy 2.3.0+ SDL2 2.30.6+ 最新版
 requirements = python3,kivy==2.2.0,sdl2_image==2.8.4,sdl2_ttf==2.22.0,sdl2_mixer==2.6.0
 p4a.requirements = kivy==2.2.0
-p4a.extra_args = --ignore-setup-py
+p4a.extra_args = --ignore-setup-py --use-recommended-system-packages
 
 # 使用清华镜像下载 Python 源码
 hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.5/Python-3.11.5.tgz
@@ -39,7 +39,7 @@ warn_on_root = 1
 
 # 使用官方 python-for-android 稳定版
 p4a.source_url = https://github.com/kivy/python-for-android.git
-p4a.branch = master
+p4a.branch = 2023.8.14
 
 # 【关键修复】使用自定义 AndroidManifest.xml 强制禁用 Vulkan
 # 解决 Adreno Vulkan 驱动 0800.60 在 Android 13+ 上的崩溃问题
