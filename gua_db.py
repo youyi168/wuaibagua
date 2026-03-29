@@ -68,17 +68,23 @@ def get_connection():
             _db_local.connection = sqlite3.connect(
                 DB_PATH,
                 check_same_thread=False,  # 允许跨线程使用（配合 threading.local 使用）
-                timeout=30.0  # 超时时间
+                timeout=30.0,  # 超时时间
+                isolation_level=None  # 自动提交模式
             )
             
             # 启用 WAL 模式（Write-Ahead Logging）
             # 支持多线程并发读写
-            _db_local.connection.execute('PRAGMA journal_mode=WAL')
+            try:
+                _db_local.connection.execute('PRAGMA journal_mode=WAL')
+                logger.info('[DB] WAL 模式已启用')
+            except Exception as e:
+                logger.warning(f'[DB] WAL 模式启用失败：{e}')
             
             # 其他优化配置
             _db_local.connection.execute('PRAGMA synchronous=NORMAL')
             _db_local.connection.execute('PRAGMA cache_size=10000')
             _db_local.connection.execute('PRAGMA temp_store=MEMORY')
+            _db_local.connection.execute('PRAGMA busy_timeout=30000')
             
             logger.info(f'[DB] 创建新数据库连接：{threading.current_thread().name}')
         

@@ -1,15 +1,12 @@
-# Python-for-Android 配置文件
-# 在构建时设置环境变量，确保 Vulkan 被彻底禁用
-
-# 禁用 Vulkan，强制使用 OpenGL
-P4A_gl_backend = gl
-P4A_NO_VULKAN = 1
-
-# 禁用硬件加速
-P4A_disable_hardware_acceleration = 1
-
-# 渲染器设置
-P4A_debug_hwui_renderer = opengl
-
-# OpenGL ES 版本
-P4A_glEsVersion = 0x00020000
+--private-loader
+--add-source=templates/android
+--permission=INTERNET
+--permission=VIBRATE
+--android-entrypoint=org.kivy.android.PythonActivity
+--android-apptheme=@android:style/Theme.NoTitleBar
+--enable-androidx
+--copy-libs
+--arch=arm64-v8a
+--min-api=24
+--target-api=35
+--ndk-version=26.1.10909125

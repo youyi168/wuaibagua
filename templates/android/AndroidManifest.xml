@@ -14,11 +14,11 @@
         android:targetSdkVersion="{{ target_sdk_version }}" />
 
     <!-- 禁用 Vulkan，强制使用 OpenGL ES -->
-    <!-- 统一配置 hardwareAccelerated，移除重复 -->
+    <!-- 统一配置 hardwareAccelerated -->
     <application
         android:label="{{ app_name }}"
         android:icon="@drawable/icon"
-        android:hardwareAccelerated="false"
+        android:hardwareAccelerated="true"
         android:largeHeap="true"
         android:theme="@android:style/Theme.Holo.NoActionBar.Fullscreen"
         android:enableOnBackInvokedCallback="true">
@@ -55,7 +55,7 @@
             android:exported="true"
             android:screenOrientation="portrait"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
-            android:hardwareAccelerated="false">
+            android:hardwareAccelerated="true">
             
             <!-- 彻底禁用 Vulkan 和硬件加速 -->
             <meta-data
@@ -78,6 +78,15 @@
             <meta-data
                 android:name="debug.egl.forceMsaa"
                 android:value="false" />
+            
+            <!-- 新增 Vulkan 禁用配置 -->
+            <meta-data
+                android:name="android.vulkan.enable"
+                android:value="false" />
+            
+            <meta-data
+                android:name="ro.gfx.driver.0"
+                android:value="" />
             
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -194,6 +194,41 @@ def detect_oppo_device():
     
     return False
 
+# ==================== 资源检查 ====================
+def check_resources():
+    """检查所有必需资源文件（字体、图片）"""
+    from pathlib import Path
+    base_dir = Path(__file__).parent
+    
+    # 检查字体目录
+    font_dir = base_dir / 'fonts'
+    if font_dir.exists():
+        logger.info(f'[INFO] 字体目录存在：{font_dir}')
+        font_files = list(font_dir.glob('*.ttf'))
+        logger.info(f'[INFO] 找到 {len(font_files)} 个字体文件')
+    else:
+        logger.warning(f'[WARN] 字体目录不存在：{font_dir}')
+    
+    # 检查图片资源目录
+    for img_dir_name in ['data', 'resources', 'images']:
+        img_dir = base_dir / img_dir_name
+        if img_dir.exists():
+            img_files = list(img_dir.glob('*.png')) + list(img_dir.glob('*.jpg'))
+            logger.info(f'[INFO] {img_dir_name} 目录存在，找到 {len(img_files)} 个图片文件')
+    
+    # 检查数据库文件
+    db_file = base_dir / 'data' / 'gua_optimized.db'
+    if db_file.exists():
+        logger.info(f'[INFO] 数据库文件存在：{db_file}')
+    else:
+        logger.warning(f'[WARN] 数据库文件不存在：{db_file}')
+
+# 在应用启动前检查资源
+try:
+    check_resources()
+except Exception as e:
+    logger.error(f'[ERROR] 资源检查过程异常：{e}')
+
 # ==================== 注册字体 ====================
 def register_fonts():
     """注册中文字体和易卦专用字体（P1-3: 添加字体存在性检查）"""

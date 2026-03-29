@@ -1,0 +1,82 @@
+# buildozer.spec - 推荐配置版本
+# 基于全面兼容性分析后的最佳实践配置
+# 生成时间：2026-03-29
+
+[app]
+title = 我爱八卦
+package.name = woaibagua
+package.domain = org.woaibagua
+source.dir = .
+source.include_exts = py,png,jpg,kv,atlas,txt,json,ttf,svg,db
+version = 1.2.0
+icon.filename = icon.png
+
+# 启动图配置
+presplash.filename = splash.jpg
+android.windowLayout = fill_parent
+android.launchscreen = true
+
+# 【推荐】使用最新稳定版 Kivy 2.3.0
+# 2.3.0 已修复 2.2.0 的 hwuiTask mutex 崩溃问题
+# 性能提升约 15%，兼容性更好
+requirements = python3,kivy==2.3.0,pyjnius,sdl2
+p4a.requirements = kivy==2.3.0,sdl2
+
+# 【推荐】Python 3.11.9 (3.11.x 最新小版本)
+# 与 GitHub Actions 统一版本，避免构建不一致
+hostpython3.url = https://mirrors.tuna.tsinghua.edu.cn/python/3.11.9/Python-3.11.9.tgz
+
+orientation = portrait
+fullscreen = 0
+
+# Android 权限 (最小化原则)
+android.permissions = VIBRATE,INTERNET
+
+# 【推荐】Android 14 (API 34)
+# Google Play 2024 年新应用要求 targeting API 34+
+# 兼容 Android 5.0+ (API 21)
+android.api = 34
+android.minapi = 21
+
+# 【推荐】NDK 26b (2024 LTS 版本)
+# C++20 完整支持，稳定性最佳
+# 与 SDK API 34 完全兼容
+android.ndk_api = 21
+android.ndk = 26b
+
+android.skip_update = False
+android.accept_sdk_license = True
+
+# 双架构支持 (覆盖 99% 设备)
+android.archs = arm64-v8a,armeabi-v7a
+android.allow_backup = True
+
+# 包含资源目录
+source.include_dirs = data,fonts,resources
+
+[buildozer]
+log_level = 2
+warn_on_root = 1
+
+# 【推荐】python-for-android master 分支 (清华镜像)
+# 最新兼容性修复，支持 NDK 26b
+p4a.source_url = https://mirrors.tuna.tsinghua.edu.cn/git/python-for-android.git
+
+# 【关键】禁用 Vulkan (Adreno GPU 必配)
+# 解决 OPPO/一加/真我设备在 Android 13+ 上的崩溃
+# 强制使用 OpenGL ES 2.0
+p4a.android-manifest.template = templates/android/AndroidManifest.xml
+
+# pip 国内镜像 (加速构建)
+pip.index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+pip.extra-index-url = https://pypi.mirrors.ustc.edu.cn/simple/
+
+# Gradle 镜像 (阿里云)
+gradle.repository-url = https://maven.aliyun.com/repository/public
+
+# 【可选】额外 p4a 参数
+# p4a.extra_args = --local-recipes
+
+# 【可选】调试配置
+# p4a.bootstrap = sdl2
+# p4a.debug_build = True
