@@ -144,21 +144,37 @@ jobs:
     - name: Find and copy APK
       run: |
         echo "=== Searching for APK files ==="
+        
+        # 搜索所有可能的 APK 位置
         find . -name "*.apk" -type f 2>/dev/null | tee /tmp/apk_files.txt
+        
+        # 也搜索 .buildozer 目录
+        find .buildozer -name "*.apk" -type f 2>/dev/null | tee -a /tmp/apk_files.txt
+        
+        # 检查 bin 目录
+        if [ -d "bin" ]; then
+          find bin -name "*.apk" -type f 2>/dev/null | tee -a /tmp/apk_files.txt
+        fi
+        
+        # 检查 release 目录
+        if [ -d "release" ]; then
+          find release -name "*.apk" -type f 2>/dev/null | tee -a /tmp/apk_files.txt
+        fi
+        
+        # 去重
+        sort -u /tmp/apk_files.txt -o /tmp/apk_files.txt
+        
+        echo "=== Found APK files ==="
+        cat /tmp/apk_files.txt
         
         mkdir -p release
         
         # 复制找到的 APK 文件
         if [ -s /tmp/apk_files.txt ]; then
           while IFS= read -r apk; do
-            echo "Found: $apk"
+            echo "Copying: $apk"
             cp -v "$apk" release/ 2>/dev/null || true
           done < /tmp/apk_files.txt
-        fi
-        
-        # 也检查 bin 目录
-        if [ -d "bin" ]; then
-          cp -v bin/*.apk release/ 2>/dev/null || true
         fi
         
         echo "=== Release directory contents ==="
@@ -167,6 +183,16 @@ jobs:
         # 设置输出变量
         APK_COUNT=$(ls -1 release/*.apk 2>/dev/null | wc -l)
         echo "apk_count=$APK_COUNT" >> $GITHUB_OUTPUT
+        
+        # 调试信息
+        echo "=== Debug info ==="
+        echo "APK_COUNT: $APK_COUNT"
+        echo "Current directory:"
+        pwd
+        echo "Project structure:"
+        ls -la
+        echo ".buildozer structure:"
+        ls -la .buildozer/android/platform/ 2>/dev/null || echo "No .buildozer"
       id: find_apk
     
     - name: Upload APK
