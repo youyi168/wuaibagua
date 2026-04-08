@@ -47,8 +47,11 @@ jobs:
       run: |
         # 使用 GitHub Actions 支持的最新版依赖
         python3 -m pip install --upgrade pip setuptools wheel
-        pip3 install --upgrade Cython buildozer virtualenv
-        pip3 install --upgrade python-for-android kivy
+        pip3 install --upgrade Cython==0.29.36
+        pip3 install --upgrade buildozer==1.5.0
+        pip3 install --upgrade virtualenv
+        # 不要预安装 p4a，让 buildozer 自动管理目录结构
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
     
     - name: Install system dependencies
       run: |
@@ -108,25 +111,51 @@ jobs:
         # 显示目录结构
         echo "=== .buildozer structure ==="
         find .buildozer -type d -name "bin" 2>/dev/null | head -5
+        find .buildozer -type d -name "dists" 2>/dev/null | head -5
         
         # 查找所有 APK
         echo "=== All APK files ==="
-        find .buildozer -name "*.apk" -type f 2>/dev/null
+        find .buildozer -name "*.apk" -type f 2>/dev/null | tee /tmp/apk_files.txt
         
         # P1-5: 使用最新修改时间查找 APK（更可靠）
         LATEST_APK=$(find .buildozer -name "*.apk" -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
         
-        # 备用方案：如果上面的方法失败，尝试常见路径
+        # 备用方案 1：如果上面的方法失败，尝试常见路径
         if [ -z "$LATEST_APK" ] || [ ! -f "$LATEST_APK" ]; then
           echo "Trying alternative paths..."
           for path in \
             ".buildozer/android/bin/*.apk" \
             ".buildozer/android/platform/build-*/dists/*/build/outputs/apk/*/debug/*.apk" \
-            ".buildozer/android/platform/build-*/dists/**/build/outputs/apk/**/*.apk"; do
+            ".buildozer/android/platform/build-*/dists/**/build/outputs/apk/**/*.apk" \
+            ".buildozer/android/platform/python-for-android/*.apk"; do
             FOUND=$(ls -t $path 2>/dev/null | head -1)
             if [ -n "$FOUND" ] && [ -f "$FOUND" ]; then
               LATEST_APK="$FOUND"
               echo "Found APK via alternative path: $LATEST_APK"
+              break
+            fi
+          done
+        fi
+        
+        # 备用方案 2：检查 build.log 中的 APK 路径
+        if [ -z "$LATEST_APK" ] || [ ! -f "$LATEST_APK" ]; then
+          echo "Trying to find APK path from build.log..."
+          if [ -f "build.log" ]; then
+            APK_PATH=$(grep -oP 'Found android package file: \K.*(?=\.apk)' build.log | head -1)
+            if [ -n "$APK_PATH" ]; then
+              LATEST_APK="${APK_PATH}.apk"
+              echo "Found APK path from build.log: $LATEST_APK"
+            fi
+          fi
+        fi
+        
+        # 备用方案 3：检查所有可能的 APK 文件
+        if [ -z "$LATEST_APK" ] || [ ! -f "$LATEST_APK" ]; then
+          echo "Searching all possible locations..."
+          for apk in $(find . -name "*.apk" -type f 2>/dev/null); do
+            if [[ "$apk" == *"woaibagua"* ]]; then
+              LATEST_APK="$apk"
+              echo "Found woaibagua APK: $LATEST_APK"
               break
             fi
           done
@@ -141,6 +170,11 @@ jobs:
         else
           echo "::error::No APK found"
           echo "=== Debug info ==="
+          echo "Current directory:"
+          pwd
+          echo ".buildozer structure:"
+          ls -la .buildozer/android/platform/ 2>/dev/null || echo "No platform directory"
+          echo "All APK files:"
           find .buildozer -name "*.apk" -ls 2>/dev/null || true
           exit 1
         fi
