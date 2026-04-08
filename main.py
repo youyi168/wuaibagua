@@ -1204,7 +1204,7 @@ class WuaibaguaApp(App):
         self.current_gua_detail = None
         self.current_changing_gua = None
         
-        return main_layout
+        return main_scroll
     
     def auto_gua(self, instance):
         """电脑起卦"""
