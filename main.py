@@ -1,38 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-我爱八卦 - 金钱卦算卦软件 (Android 版)
-功能：电脑起卦、手动起卦、今日运势、本地卦象解释、分享功能
+我爱八卦 v1.3.0 - 周易六十四卦 · 卜卦解惑
+功能：电脑起卦、手动选卦、金钱起卦、时间起卦、今日运势、64卦速查
+      卦象解释、六爻排盘、分享功能、Android JNI 兼容
 
 【重要】OPPO 设备 Vulkan 禁用
 必须在 import kivy 之前设置环境变量和 Config！
+
+v1.3.0 更新：
+- 全新 Tabbed UI 架构（起卦 | 64卦 | 运势 | 设置）
+- 手动选卦改为 64 卦列表选择（支持宫位筛选）
+- 全新配色方案：深蓝黑 + 古铜金
+- 修复 get_device_id Android 兼容性
+- 卡片式布局，圆角按钮，视觉升级
 """
 
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 
-# ==================== 全局异常处理器（P1-7, P1-8） ====================
+# ==================== 全局异常处理器 ====================
 import sys
 import traceback
 import logging
 
 def setup_global_exception_handler():
     """设置全局异常处理器，记录所有未捕获的异常"""
-    
     def handle_exception(exc_type, exc_value, exc_traceback):
-        """全局异常处理函数"""
-        # 忽略 KeyboardInterrupt（用户主动中断）
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
-        
         logging.error("============= 全局异常捕获 =============")
         logging.error(f"异常类型：{exc_type.__name__}")
         logging.error(f"异常信息：{exc_value}")
         logging.error("堆栈跟踪:")
         logging.error(''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
         logging.error("========================================")
-        
-        # 尝试显示错误提示
         try:
             from kivy.clock import Clock
             def show_error():
@@ -43,11 +45,7 @@ def setup_global_exception_handler():
             Clock.schedule_once(lambda dt: show_error(), 0)
         except:
             pass
-    
-    # 安装全局异常处理器
     sys.excepthook = handle_exception
-    
-    # 也捕获线程异常
     try:
         import threading
         threading.excepthook = lambda args: handle_exception(
@@ -56,10 +54,8 @@ def setup_global_exception_handler():
     except:
         pass
 
-# 在最早期设置异常处理器
 setup_global_exception_handler()
 
-# 设置日志
 logging.basicConfig(
     level=logging.INFO,
     format='[%(levelname)s] %(name)s: %(message)s',
@@ -67,18 +63,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger('wuaibagua')
 
-# ==================== Android JNI 导入（延迟到应用启动后） ====================
-# P0-5: 延迟 JNI 调用，避免启动早期崩溃
+# ==================== Android JNI（延迟初始化） ====================
 ANDROID_AVAILABLE = False
 autoclass = None
 
 def init_android_jni():
     """延迟初始化 Android JNI（在应用启动后调用）"""
     global ANDROID_AVAILABLE, autoclass
-    
     if ANDROID_AVAILABLE:
-        return  # 已经初始化
-    
+        return
     try:
         from jnius import autoclass as jni_autoclass
         autoclass = jni_autoclass
@@ -93,8 +86,6 @@ def init_android_jni():
         ANDROID_AVAILABLE = False
         logger.error(f'[ERROR] Android JNI 初始化失败：{e}')
 
-# ==================== Android 剪贴板可用性检查 ====================
-# 延迟初始化，在应用启动后调用
 ANDROID_CLIPBOARD_AVAILABLE = False
 
 def init_android_clipboard():
@@ -103,36 +94,28 @@ def init_android_clipboard():
     init_android_jni()
     ANDROID_CLIPBOARD_AVAILABLE = ANDROID_AVAILABLE
 
-# ==================== 第一优先级：在导入 Kivy 之前禁用 Vulkan ====================
-# 这些必须在任何 Kivy 导入之前！
+# ==================== Vulkan 禁用（必须在 Kivy 导入前） ====================
 import os
+os.environ['KIVY_GL_BACKEND'] = 'gl'
+os.environ['KIVY_NO_VULKAN'] = '1'
+os.environ['KIVY_VIDEO_OPTS'] = 'gl'
+os.environ['KIVY_NO_CONSOLELOG'] = '1'
+os.environ['KIVY_NO_FILELOG'] = '1'
 
-# 环境变量（影响 Kivy 初始化）
-os.environ['KIVY_GL_BACKEND'] = 'gl'      # 强制使用 OpenGL
-os.environ['KIVY_NO_VULKAN'] = '1'         # 禁用 Vulkan
-os.environ['KIVY_VIDEO_OPTS'] = 'gl'       # 视频也使用 OpenGL
-os.environ['KIVY_NO_CONSOLELOG'] = '1'     # 禁用控制台日志
-os.environ['KIVY_NO_FILELOG'] = '1'        # 禁用文件日志
-
-# 现在导入 Config（必须在 import kivy 之前！）
 from kivy.config import Config
-
-# Config 设置（必须在 import kivy.app 之前！）
-Config.set('graphics', 'backend', 'gl')        # 强制 OpenGL
-Config.set('graphics', 'gl_backend', 'gl')     # GL 后端
-Config.set('graphics', 'vsync', '0')           # 禁用垂直同步
-Config.set('graphics', 'max_buffers', '1')     # 减少缓冲
+Config.set('graphics', 'backend', 'gl')
+Config.set('graphics', 'gl_backend', 'gl')
+Config.set('graphics', 'vsync', '0')
+Config.set('graphics', 'max_buffers', '1')
 Config.set('input', 'mouse', 'mouse,disable_multitouch,multitouch_on_demand')
-Config.set('kivy', 'log_level', 'error')       # 只记录错误
-Config.set('kivy', 'log_dir', '/dev/null')     # 禁用日志文件
+Config.set('kivy', 'log_level', 'error')
+Config.set('kivy', 'log_dir', '/dev/null')
 
-# ==================== 第二优先级：标准导入 ====================
-import sys
+# ==================== 标准导入 ====================
 import random
 import hashlib
 from datetime import datetime
 
-# 导入完整卦象计算模块（符合《图解周易》）
 try:
     import gua_calculator
     GUA_CALC_AVAILABLE = True
@@ -140,7 +123,6 @@ except ImportError:
     GUA_CALC_AVAILABLE = False
     print('[WARN] gua_calculator module not available')
 
-# 现在才能导入 Kivy（Vulkan 已禁用）
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
@@ -148,158 +130,74 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
-from kivy.uix.spinner import Spinner
+from kivy.uix.textinput import TextInput
 from kivy.uix.image import Image
+from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelHeader
 from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.core.text import LabelBase
 from kivy.clock import Clock
-from kivy.graphics import Instruction
+from kivy.graphics import Color, RoundedRectangle, Rectangle
 
-# ==================== 第三优先级：运行时 OPPO 设备检测 ====================
-# P0-5: 延迟 JNI 调用到应用启动后
-# 额外加固（针对某些设备忽略 Config 的情况）
-def detect_oppo_device():
-    """OPPO 设备检测（延迟调用）"""
-    global ANDROID_AVAILABLE, autoclass
-    
-    # 延迟初始化 JNI
-    init_android_jni()
-    
-    if not ANDROID_AVAILABLE or not autoclass:
-        return False
-    
-    try:
-        Build = autoclass('android.os.Build')
-        manufacturer = Build.MANUFACTURER.lower()
-        model = Build.MODEL.lower()
-        
-        # OPPO/一加/真我设备检测
-        oppo_brands = ['oppo', 'oneplus', 'realme', '一加', '欧珀']
-        is_oppo = any(brand in manufacturer or brand in model for brand in oppo_brands)
-        
-        if is_oppo:
-            logger.critical(f'[CRITICAL] 检测到 OPPO 设备，强制禁用 Vulkan')
-            logger.critical(f'[CRITICAL] 设备：{manufacturer} {model}')
-            
-            # 二次设置（确保覆盖）
-            Config.set('graphics', 'backend', 'gl')
-            Config.set('graphics', 'gl_backend', 'gl')
-            
-            # 禁用 Kivy 日志
-            logging.getLogger('kivy').setLevel(logging.CRITICAL)
-            return True
-    except Exception as e:
-        logger.warning(f'[WARN] OPPO 设备检测失败：{e}')
-    
-    return False
+# ==================== 配色方案（v1.3.0） ====================
+COLOR_BG = (0.086, 0.133, 0.243, 1)         # #16213e 深蓝黑
+COLOR_BG_CARD = (0.118, 0.173, 0.302, 1)     # #1e2c4a 卡片背景
+COLOR_BG_CARD_LIGHT = (0.157, 0.220, 0.353, 1)  # #283858 浅卡片
+COLOR_GOLD = (0.788, 0.663, 0.431, 1)        # #c9a96e 古铜金
+COLOR_GOLD_LIGHT = (0.85, 0.75, 0.55, 1)     # 浅金
+COLOR_TEXT = (0.878, 0.835, 0.757, 1)        # #e0d5c1 米白
+COLOR_TEXT_SECOND = (0.541, 0.494, 0.420, 1) # #8a7e6b 次级文字
+COLOR_TEXT_DIM = (0.420, 0.420, 0.369, 1)    # #6b6b5e 暗淡文字
+COLOR_WHITE = (1, 1, 1, 1)
+COLOR_RED = (0.8, 0.3, 0.3, 1)
+COLOR_GREEN = (0.3, 0.7, 0.4, 1)
 
-# ==================== 资源检查 ====================
-def check_resources():
-    """检查所有必需资源文件（字体、图片）"""
-    from pathlib import Path
-    base_dir = Path(__file__).parent
-    
-    # 检查字体目录
-    font_dir = base_dir / 'fonts'
-    if font_dir.exists():
-        logger.info(f'[INFO] 字体目录存在：{font_dir}')
-        font_files = list(font_dir.glob('*.ttf'))
-        logger.info(f'[INFO] 找到 {len(font_files)} 个字体文件')
-    else:
-        logger.warning(f'[WARN] 字体目录不存在：{font_dir}')
-    
-    # 检查图片资源目录
-    for img_dir_name in ['data', 'resources', 'images']:
-        img_dir = base_dir / img_dir_name
-        if img_dir.exists():
-            img_files = list(img_dir.glob('*.png')) + list(img_dir.glob('*.jpg'))
-            logger.info(f'[INFO] {img_dir_name} 目录存在，找到 {len(img_files)} 个图片文件')
-    
-    # 检查数据库文件
-    db_file = base_dir / 'data' / 'gua_optimized.db'
-    if db_file.exists():
-        logger.info(f'[INFO] 数据库文件存在：{db_file}')
-    else:
-        logger.warning(f'[WARN] 数据库文件不存在：{db_file}')
+# ==================== 8 宫映射 ====================
+GUA_PALACE_MAP = {
+    # 乾宫
+    '乾为天': '乾宫', '天风姤': '乾宫', '天山遁': '乾宫', '天地否': '乾宫',
+    '风地观': '乾宫', '山地剥': '乾宫', '火地晋': '乾宫', '火天大有': '乾宫',
+    # 坎宫
+    '坎为水': '坎宫', '水泽节': '坎宫', '水雷屯': '坎宫', '水火既济': '坎宫',
+    '泽火革': '坎宫', '雷火丰': '坎宫', '地火明夷': '坎宫', '地水师': '坎宫',
+    # 艮宫
+    '艮为山': '艮宫', '山火贲': '艮宫', '山天大畜': '艮宫', '山泽损': '艮宫',
+    '火泽睽': '艮宫', '天泽履': '艮宫', '风泽中孚': '艮宫', '风山渐': '艮宫',
+    # 震宫
+    '震为雷': '震宫', '雷地豫': '震宫', '雷水解': '震宫', '雷风恒': '震宫',
+    '地风升': '震宫', '水风井': '震宫', '泽风大过': '震宫', '泽雷随': '震宫',
+    # 巽宫
+    '巽为风': '巽宫', '风天小畜': '巽宫', '风火家人': '巽宫', '风雷益': '巽宫',
+    '天雷无妄': '巽宫', '火雷噬嗑': '巽宫', '山雷颐': '巽宫', '山风蛊': '巽宫',
+    # 离宫
+    '离为火': '离宫', '火山旅': '离宫', '火风鼎': '离宫', '火水未济': '离宫',
+    '山水蒙': '离宫', '风水涣': '离宫', '天水讼': '离宫', '天火同人': '离宫',
+    # 坤宫
+    '坤为地': '坤宫', '地雷复': '坤宫', '地泽临': '坤宫', '地天泰': '坤宫',
+    '雷天大壮': '坤宫', '泽天夬': '坤宫', '水天需': '坤宫', '水地比': '坤宫',
+    # 兑宫
+    '兑为泽': '兑宫', '泽水困': '兑宫', '泽地萃': '兑宫', '泽山咸': '兑宫',
+    '水山蹇': '兑宫', '地山谦': '兑宫', '雷山小过': '兑宫', '雷泽归妹': '兑宫',
+}
 
-# 在应用启动前检查资源
-try:
-    check_resources()
-except Exception as e:
-    logger.error(f'[ERROR] 资源检查过程异常：{e}')
-
-# ==================== 注册字体 ====================
-def register_fonts():
-    """注册中文字体和易卦专用字体（P1-3: 添加字体存在性检查）"""
-    from pathlib import Path
-    font_dir = Path(__file__).parent / 'fonts'
-    
-    # 检查字体目录是否存在
-    if not font_dir.exists():
-        logger.warning(f'[WARN] 字体目录不存在：{font_dir}')
-        logger.warning('[WARN] 将使用系统默认字体')
-        return
-    
-    # 注册中文字体
-    font_path = font_dir / 'NotoSansSC-Regular.ttf'
-    if font_path.exists() and font_path.stat().st_size > 0:
-        try:
-            LabelBase.register(name='NotoSansSC', fn_regular=str(font_path))
-            logger.info('[INFO] 中文字体已注册')
-        except Exception as e:
-            logger.warning(f'[WARN] 中文字体注册失败：{e}')
-    else:
-        logger.warning(f'[WARN] 中文字体文件不存在或损坏：{font_path}')
-        logger.warning('[WARN] 将使用系统默认字体')
-    
-    # 注册易卦专用字体（尝试多个备选）
-    yijing_fonts = [
-        'NotoSansSymbols-Regular.ttf',
-        'seguisym.ttf',
-        'NotoSansSC-Regular.ttf',  # 回退到中文字体
-    ]
-    
-    font_registered = False
-    for font_name in yijing_fonts:
-        font_path = font_dir / font_name
-        if font_path.exists() and font_path.stat().st_size > 0:
-            try:
-                LabelBase.register(name='NotoSansSymbols', fn_regular=str(font_path))
-                logger.info(f'[INFO] 易卦字体已注册：{font_name}')
-                font_registered = True
-                return
-            except Exception as e:
-                logger.warning(f'[WARN] 字体注册失败 {font_name}: {e}')
-                continue
-    
-    if not font_registered:
-        logger.error('[ERROR] 所有易卦字体注册失败，使用默认字体')
-
-# 在应用启动前注册字体
-try:
-    register_fonts()
-except Exception as e:
-    logger.error(f'[ERROR] 字体注册过程异常：{e}')
-
+# 八宫卦序（每宫 8 卦，共 64 卦）
+# 乾宫：乾为天(本)、天风姤(1)、天山遁(2)、天地否(3)、风地观(4)、山地剥(5)、火地晋(游魂)、火天大有(归魂)
+# 兑宫：兑为泽(本)、泽水困(1)、泽地萃(2)、泽山咸(3)、水山蹇(4)、地山谦(5)、雷山小过(游魂)、雷泽归妹(归魂)
 
 # ==================== 工具函数 ====================
 
 def copy_to_clipboard(text):
     """复制文本到剪贴板"""
     try:
-        # 确保 Android JNI 已初始化
         if not ANDROID_CLIPBOARD_AVAILABLE:
             init_android_clipboard()
-        
         if ANDROID_CLIPBOARD_AVAILABLE and autoclass:
             Context = autoclass('android.content.Context')
             ClipboardManager = autoclass('android.content.ClipboardManager')
             ClipData = autoclass('android.content.ClipData')
-            
             app = App.get_running_app()
             if app:
-                context = app.getApplicationContext()
+                context = _get_android_context(app)
                 clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
                 clip = ClipData.newPlainText('wuaibagua', text)
                 clipboard.setPrimaryClip(clip)
@@ -308,57 +206,62 @@ def copy_to_clipboard(text):
             logger.info(f'[INFO] Copy: {text[:50]}...')
     except Exception as e:
         logger.error(f'[ERROR] Copy failed: {e}')
-        logger.error(traceback.format_exc())
+
+
+def _get_android_context(app):
+    """安全获取 Android Context（修复 getApplicationContext 问题）"""
+    try:
+        if hasattr(app, 'getApplicationContext'):
+            return app.getApplicationContext()
+        # 回退方案：通过 mActivity 获取
+        if hasattr(app, 'mActivity') and app.mActivity:
+            return app.mActivity.getApplicationContext()
+        # 终极方案：通过 autoclass 获取 Activity
+        if autoclass:
+            Activity = autoclass('android.app.Activity')
+            if hasattr(Activity, 'mActivity') and Activity.mActivity:
+                return Activity.mActivity.getApplicationContext()
+    except Exception:
+        pass
+    return None
 
 
 def show_toast(message):
     """显示 Toast 提示"""
     try:
-        # 确保 Android JNI 已初始化
         if not ANDROID_CLIPBOARD_AVAILABLE:
             init_android_clipboard()
-        
         if ANDROID_CLIPBOARD_AVAILABLE and autoclass:
-            Context = autoclass('android.content.Context')
             Toast = autoclass('android.widget.Toast')
-            
             app = App.get_running_app()
-            if app and hasattr(app, 'getApplicationContext'):
-                context = app.getApplicationContext()
-                toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
-                toast.show()
-            else:
-                # Fallback: 使用 mActivity
-                if app and hasattr(app, 'mActivity'):
-                    context = app.mActivity.getApplicationContext()
+            if app:
+                context = _get_android_context(app)
+                if context:
                     toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
                     toast.show()
-        else:
-            logger.info(f'[TOAST] {message}')
+                    return
+        logger.info(f'[TOAST] {message}')
     except Exception as e:
         logger.error(f'[ERROR] Toast failed: {e}')
-        logger.error(traceback.format_exc())
 
 
 def get_device_id():
-    """获取设备识别码（Android）"""
+    """获取设备识别码（Android）—— 修复版"""
     try:
-        # 确保 Android JNI 已初始化
         if not ANDROID_CLIPBOARD_AVAILABLE:
             init_android_clipboard()
-        
         if ANDROID_CLIPBOARD_AVAILABLE and autoclass:
             Settings = autoclass('android.provider.Settings$Secure')
             app = App.get_running_app()
             if app:
-                context = app.getApplicationContext()
-                resolver = context.getContentResolver()
-                android_id = Settings.Secure.getString(resolver, 'android_id')
-                return android_id if android_id else 'default'
+                context = _get_android_context(app)
+                if context:
+                    resolver = context.getContentResolver()
+                    android_id = Settings.Secure.getString(resolver, 'android_id')
+                    return android_id if android_id else 'default'
         return 'default'
     except Exception as e:
         logger.error(f'[ERROR] get_device_id: {e}')
-        logger.error(traceback.format_exc())
         return 'default'
 
 
@@ -368,137 +271,193 @@ def get_daily_gua():
     根据日期 + 设备 ID 生成 deterministic 卦象
     """
     try:
-        # 获取今日日期
         today = datetime.now().strftime('%Y%m%d')
         device_id = get_device_id()
-        
-        # 组合种子
         seed_str = f"{today}_{device_id}"
         seed_hash = hashlib.sha256(seed_str.encode()).hexdigest()
-        
-        # 用 hash 生成 6 爻（从下往上）
         yao_list = []
         for i in range(6):
-            # 取 hash 的一部分转换为数字
             byte_val = int(seed_hash[i*4:(i+1)*4], 16)
-            # 映射到 6/7/8/9（考虑老阴老阳）
             mod = byte_val % 100
             if mod < 10:
-                yao = 6  # 老阴
+                yao = 6
             elif mod < 45:
-                yao = 7  # 少阳
+                yao = 7
             elif mod < 55:
-                yao = 8  # 少阴
+                yao = 8
             else:
-                yao = 9  # 老阳
+                yao = 9
             yao_list.append(yao)
-        
         return yao_list
     except Exception as e:
         print(f'[ERROR] get_daily_gua: {e}')
-        # Fallback 到随机
         return [random.randint(6, 9) for _ in range(6)]
 
 
-# ==================== 手动起卦弹窗 ====================
+# ==================== UI 样式辅助 ====================
 
-# 保存上次手动起卦的选择
-manual_gua_last_selection = [7, 7, 7, 7, 7, 7]  # 默认全为少阳
+def apply_card_bg(widget, radius=None):
+    """给 Widget 应用卡片背景（圆角矩形）"""
+    if radius is None:
+        radius = [dp(12), dp(12), dp(12), dp(12)]
+    with widget.canvas.before:
+        Color(*COLOR_BG_CARD)
+        widget._bg_rect = RoundedRectangle(size=widget.size, pos=widget.pos, radius=radius)
+        def update_rect(*args):
+            widget._bg_rect.size = widget.size
+            widget._bg_rect.pos = widget.pos
+        widget.bind(size=update_rect, pos=update_rect)
+    return widget
 
 
-def show_manual_gua_popup(app):
-    """手动起卦弹窗（保存上次选择）"""
+def apply_gold_bg(widget, radius=None):
+    """金色渐变背景（按钮用）"""
+    if radius is None:
+        radius = [dp(10), dp(10), dp(10), dp(10)]
+    with widget.canvas.before:
+        Color(*COLOR_GOLD)
+        widget._bg_rect = RoundedRectangle(size=widget.size, pos=widget.pos, radius=radius)
+        def update_rect(*args):
+            widget._bg_rect.size = widget.size
+            widget._bg_rect.pos = widget.pos
+        widget.bind(size=update_rect, pos=update_rect)
+    return widget
+
+
+def create_round_button(text, font_size=None, height=None, **kwargs):
+    """创建圆角金色按钮"""
+    btn = Button(
+        text=text,
+        font_size=font_size or dp(15),
+        size_hint_y=None,
+        height=height or dp(48),
+        color=COLOR_BG,
+        bold=True,
+        background_color=(0, 0, 0, 0),
+        background_normal='',
+        **kwargs
+    )
+    apply_gold_bg(btn)
+    return btn
+
+
+def create_card_button(text, font_size=None, height=None, subtitle=None, **kwargs):
+    """创建卡片式按钮（带副标题）"""
+    layout = BoxLayout(
+        orientation='vertical',
+        padding=(dp(12), dp(10)),
+        spacing=dp(2),
+        size_hint_y=None,
+        height=height or dp(72),
+    )
+    apply_card_bg(layout)
+
+    main_label = Label(
+        text=text,
+        font_size=font_size or dp(16),
+        bold=True,
+        color=COLOR_GOLD,
+        size_hint_y=0.6,
+    )
+    layout.add_widget(main_label)
+
+    if subtitle:
+        sub_label = Label(
+            text=subtitle,
+            font_size=dp(11),
+            color=COLOR_TEXT_SECOND,
+            size_hint_y=0.4,
+        )
+        layout.add_widget(sub_label)
+    else:
+        spacer = Label(text='', size_hint_y=0.4)
+        layout.add_widget(spacer)
+
+    return layout
+
+
+def draw_yao_symbol(canvas_obj, yao_type, width, y_pos, yao_height=dp(8)):
+    """在 canvas 上画爻符（阳爻实线 / 阴爻虚线）"""
+    is_yang = yao_type in [7, 9]
+    is_changing = yao_type in [6, 9]
+    margin = width * 0.15
+    line_w = width - 2 * margin
+
+    with canvas_obj:
+        if is_changing:
+            Color(*COLOR_GOLD_LIGHT)
+        else:
+            Color(*COLOR_GOLD)
+
+        if is_yang:
+            # 阳爻：一条实线
+            RoundedRectangle(
+                pos=(margin, y_pos),
+                size=(line_w, yao_height),
+                radius=[dp(2), dp(2), dp(2), dp(2)]
+            )
+        else:
+            # 阴爻：两条短横线
+            gap = line_w * 0.08
+            half = (line_w - gap) / 2
+            RoundedRectangle(
+                pos=(margin, y_pos),
+                size=(half, yao_height),
+                radius=[dp(2), dp(2), dp(2), dp(2)]
+            )
+            RoundedRectangle(
+                pos=(margin + half + gap, y_pos),
+                size=(half, yao_height),
+                radius=[dp(2), dp(2), dp(2), dp(2)]
+            )
+
+        # 变爻标记
+        if is_changing:
+            Color(*COLOR_TEXT_SECOND)
+            mark = '○' if yao_type == 9 else '✕'
+            from kivy.graphics import Canvas
+            # 简单文本标记，用额外 Label 会更好
+
+
+def get_gua_palace(gua_name):
+    """获取卦象所属宫位"""
+    return GUA_PALACE_MAP.get(gua_name, '')
+
+
+def get_all_gua_with_palace():
+    """获取所有卦象及宫位信息"""
     try:
-        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
-        
-        # 标题
-        title_label = Label(
-            text='手动起卦\n请选择每一爻',
-            size_hint_y=None,
-            height=dp(50),
-            font_size=dp(18)
-        )
-        layout.add_widget(title_label)
-        
-        # 存储选择器
-        spinners = []
-        yao_options = ['少阳 ---', '少阴 - -', '老阳 --- O', '老阴 - - X']
-        yao_values = [7, 8, 9, 6]
-        yao_names = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻']
-        
-        # 创建 6 个选择器（使用上次保存的值）
-        for i in range(6):
-            row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(40), spacing=dp(10))
-            
-            # 爻名
-            name_label = Label(
-                text=yao_names[i],
-                size_hint_x=0.3,
-                font_size=dp(15)
-            )
-            row.add_widget(name_label)
-            
-            # 选择器（使用上次的值）
-            last_value = manual_gua_last_selection[i]
-            default_index = yao_values.index(last_value) if last_value in yao_values else 0
-            
-            spinner = Spinner(
-                text=yao_options[default_index],
-                values=yao_options,
-                size_hint_x=0.7
-            )
-            spinners.append(spinner)
-            row.add_widget(spinner)
-            
-            layout.add_widget(row)
-        
-        # 按钮
-        btn_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(10))
-        
-        # 确定
-        def on_confirm(instance):
-            try:
-                yao_list = []
-                for spinner in spinners:
-                    idx = spinner.values.index(spinner.text)
-                    yao_list.append(yao_values[idx])
-                
-                # 保存选择
-                global manual_gua_last_selection
-                manual_gua_last_selection = yao_list[:]
-                
-                popup.dismiss()
-                app.display_gua(yao_list, '手动起卦')
-            except Exception as e:
-                print(f'[ERROR] Confirm failed: {e}')
-                show_toast('❌ 选择失败')
-        
-        confirm_btn = Button(text='确定', font_size=dp(16))
-        confirm_btn.bind(on_press=on_confirm)
-        btn_layout.add_widget(confirm_btn)
-        
-        # 取消
-        cancel_btn = Button(text='取消', font_size=dp(16))
-        cancel_btn.bind(on_press=lambda x: popup.dismiss())
-        btn_layout.add_widget(cancel_btn)
-        
-        layout.add_widget(btn_layout)
-        
-        # 弹窗（调整位置，避免太靠下）
-        popup = Popup(
-            title='手动起卦',
-            content=layout,
-            size_hint=(0.9, 0.7),
-            auto_dismiss=False
-        )
-        
-        # 居中显示
-        from kivy.core.window import Window
-        popup.pos = (Window.width - popup.width) / 2, (Window.height - popup.height) / 2
-        popup.open()
+        import gua_db
+        names = gua_db.get_all_gua_names()
+        result = []
+        for item in names:
+            name = item['name']
+            palace = get_gua_palace(name)
+            result.append({'name': name, 'short': item.get('short_name', name[:2]), 'palace': palace})
+        return result
     except Exception as e:
-        print(f'[ERROR] show_manual_gua_popup failed: {e}')
-        show_toast('❌ 弹窗失败')
+        logger.error(f'[ERROR] get_all_gua_with_palace: {e}')
+        return []
+
+
+def get_binary_from_name(gua_name):
+    """通过卦名获取二进制表示"""
+    try:
+        import gua_db
+        names = gua_db.get_all_gua_names()
+        for item in names:
+            if item['name'] == gua_name:
+                return item.get('binary', '')
+    except:
+        pass
+    # 回退：通过 gua_calculator 遍历
+    try:
+        for binary, name in gua_calculator.HEXAGRAM_NAMES.items():
+            if name == gua_name:
+                return binary
+    except:
+        pass
+    return ''
 
 
 # ==================== 分享弹窗 ====================
@@ -507,890 +466,1429 @@ def show_share_popup(text):
     """分享弹窗"""
     try:
         layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
-        
+
         title = Label(
             text='选择分享方式',
             size_hint_y=None,
             height=dp(40),
-            font_size=dp(18)
+            font_size=dp(18),
+            color=COLOR_GOLD,
+            bold=True,
         )
         layout.add_widget(title)
-        
-        # 分享选项
+
         options = [
-            ('复制文本', lambda: copy_and_close(text, popup)),
-            ('分享到微信', lambda: share_wechat(text, popup)),
-            ('分享到 QQ', lambda: share_qq(text, popup)),
+            ('📋 复制文本', lambda: _share_copy(text, popup)),
+            ('💬 分享到微信', lambda: _share_wechat(text, popup)),
+            ('🐧 分享到 QQ', lambda: _share_qq(text, popup)),
         ]
-        
+
         for name, callback in options:
-            btn = Button(text=name, size_hint_y=None, height=dp(45), font_size=dp(16))
+            btn = create_round_button(name, font_size=dp(15), height=dp(48))
             btn.bind(on_press=lambda x, cb=callback: cb())
             layout.add_widget(btn)
-        
-        # 取消
-        cancel_btn = Button(text='取消', size_hint_y=None, height=dp(45), font_size=dp(16))
+
+        cancel_btn = Button(
+            text='取消',
+            size_hint_y=None,
+            height=dp(45),
+            font_size=dp(15),
+            color=COLOR_TEXT_SECOND,
+            background_color=(0, 0, 0, 0),
+            background_normal='',
+        )
         cancel_btn.bind(on_press=lambda x: popup.dismiss())
         layout.add_widget(cancel_btn)
-        
+
         popup = Popup(
             title='分享',
+            title_color=COLOR_GOLD,
             content=layout,
-            size_hint=(0.85, 0.7),
-            auto_dismiss=False
+            size_hint=(0.85, 0.65),
+            auto_dismiss=False,
+            background_color=COLOR_BG,
         )
-        
         popup.open()
     except Exception as e:
-        print(f'[ERROR] show_share_popup failed: {e}')
+        logger.error(f'[ERROR] show_share_popup: {e}')
 
 
-def copy_and_close(text, popup):
-    """复制并关闭"""
+def _share_copy(text, popup):
     copy_to_clipboard(text)
     popup.dismiss()
     show_toast('✅ 已复制')
 
-
-def share_wechat(text, popup):
-    """分享到微信（简化版）"""
-    # 先复制文本
+def _share_wechat(text, popup):
     copy_to_clipboard(text)
     popup.dismiss()
     show_toast('✅ 已复制，请打开微信粘贴')
 
-
-def share_qq(text, popup):
-    """分享到 QQ（简化版）"""
+def _share_qq(text, popup):
     copy_to_clipboard(text)
     popup.dismiss()
     show_toast('✅ 已复制，请打开 QQ 粘贴')
 
 
-# ==================== 设置弹窗 ====================
+# ==================== 六爻排盘弹窗 ====================
 
 def show_liuyao_popup(panduan_text):
-    """六爻排盘弹窗（使用 ASCII，避免字体问题）"""
+    """六爻排盘弹窗"""
     try:
         layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
-        
-        # 标题
+
         title = Label(
-            text='六爻排盘',
+            text='🔮 六爻排盘',
             size_hint_y=None,
             height=dp(45),
             font_size=dp(18),
-            bold=True
+            color=COLOR_GOLD,
+            bold=True,
         )
         layout.add_widget(title)
-        
-        # 滚动区域
+
         scroll = ScrollView()
-        
-        # 排盘内容（使用 ASCII，确保显示）
         content = Label(
             text=panduan_text,
             markup=False,
             size_hint_y=None,
             halign='left',
             valign='top',
-            font_size=dp(14),
-            padding=(10, 10)
+            font_size=dp(13),
+            color=COLOR_TEXT,
+            padding=(10, 10),
         )
         content.bind(size=content.setter('text_size'))
         scroll.add_widget(content)
-        
         layout.add_widget(scroll)
-        
-        # 关闭按钮
-        close_btn = Button(text='关闭', size_hint_y=None, height=dp(45), font_size=dp(15))
+
+        close_btn = create_round_button('关闭', font_size=dp(15), height=dp(45))
         close_btn.bind(on_press=lambda x: popup.dismiss())
         layout.add_widget(close_btn)
-        
+
         popup = Popup(
             title='六爻排盘',
+            title_color=COLOR_GOLD,
             content=layout,
             size_hint=(0.95, 0.85),
-            auto_dismiss=False
+            auto_dismiss=False,
+            background_color=COLOR_BG,
         )
-        
         popup.open()
     except Exception as e:
-        print(f'[ERROR] show_liuyao_popup failed: {e}')
-        import traceback
-        traceback.print_exc()
+        logger.error(f'[ERROR] show_liuyao_popup: {e}')
         show_toast('❌ 排盘失败')
 
+
+# ==================== 设置弹窗 ====================
 
 def show_settings_popup():
     """设置弹窗"""
     try:
-        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
-        
+        layout = BoxLayout(orientation='vertical', padding=dp(20), spacing=dp(12))
+
         title = Label(
-            text='设置',
+            text='⚙️ 设置',
             size_hint_y=None,
-            height=dp(40),
-            font_size=dp(18)
+            height=dp(45),
+            font_size=dp(20),
+            color=COLOR_GOLD,
+            bold=True,
         )
         layout.add_widget(title)
-        
-        # 版本信息
-        version = Label(
-            text='版本：v1.1.1\n作者：浩哥\n\n更多功能开发中...',
-            size_hint_y=None,
-            height=dp(100),
-            font_size=dp(14)
+
+        info_text = (
+            f'版本：v{__version__}\n'
+            f'作者：浩哥\n\n'
+            f'☯ 周易六十四卦 · 卜卦解惑\n\n'
+            f'起卦方式：\n'
+            f'  🎲 电脑起卦（随机）\n'
+            f'  📜 手动选卦（64卦列表）\n'
+            f'  🪙 金钱起卦（模拟摇卦）\n'
+            f'  ⏰ 时间起卦（以时起卦）\n\n'
+            f'更多功能开发中...'
         )
-        layout.add_widget(version)
-        
-        # 关闭
-        close_btn = Button(text='关闭', size_hint_y=None, height=dp(45), font_size=dp(16))
+        info_label = Label(
+            text=info_text,
+            size_hint_y=None,
+            height=dp(200),
+            font_size=dp(14),
+            color=COLOR_TEXT,
+            halign='left',
+            valign='top',
+            padding=(10, 5),
+        )
+        info_label.bind(size=info_label.setter('text_size'))
+        layout.add_widget(info_label)
+
+        close_btn = create_round_button('关闭', font_size=dp(15), height=dp(45))
         close_btn.bind(on_press=lambda x: popup.dismiss())
         layout.add_widget(close_btn)
-        
+
         popup = Popup(
             title='设置',
+            title_color=COLOR_GOLD,
             content=layout,
-            size_hint=(0.8, 0.6),
-            auto_dismiss=False
+            size_hint=(0.8, 0.65),
+            auto_dismiss=False,
+            background_color=COLOR_BG,
         )
-        
         popup.open()
     except Exception as e:
-        print(f'[ERROR] show_settings_popup failed: {e}')
+        logger.error(f'[ERROR] show_settings_popup: {e}')
 
 
 # ==================== 卦象解释弹窗 ====================
 
 def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_gua_name=None, duangua_result=None):
-    """
-    显示卦象解释和断卦结果（数据库完整版）
-    
-    包含：
-    - 卦名、卦辞、白话解释
-    - 卦象分析（大象）
-    - 人生启示
-    - 爻辞（带变爻标记、象传）
-    - 断卦方法
-    - 变卦信息
-    """
+    """显示卦象解释和断卦结果（数据库完整版）"""
     try:
         import gua_db
-        
-        # 从数据库获取完整数据（忽略 detail_data 参数，直接使用数据库）
+
         db_data = gua_db.get_gua_by_name(gua_name)
-        
         if not db_data:
-            show_toast(f'❌ 未找到{gua_name}的数据')
+            show_toast(f'❌ 未找到 {gua_name} 的数据')
             return
-        
+
         layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
-        
-        # 标题
+
         title = Label(
             text=f'【{gua_name}】详解',
             size_hint_y=None,
             height=dp(45),
             font_size=dp(18),
-            bold=True
+            color=COLOR_GOLD,
+            bold=True,
         )
         layout.add_widget(title)
-        
-        # 滚动区域
+
         scroll = ScrollView()
         content_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(12))
         content_layout.bind(minimum_height=content_layout.setter('height'))
-        
-        # 卦辞
-        if db_data and db_data.get('description'):
-            section = Label(
-                text='【卦辞】',
+
+        def add_section(label_text, detail_text, font_size=dp(14)):
+            section_label = Label(
+                text=label_text,
                 size_hint_y=None,
-                height=dp(30),
-                font_size=dp(16),
-                bold=True,
-                halign='left'
-            )
-            content_layout.add_widget(section)
-            
-            text = Label(
-                text=db_data['description'],
-                size_hint_y=None,
-                halign='left',
-                valign='top',
+                height=dp(28),
                 font_size=dp(15),
-                padding=(10, 5)
-            )
-            text.bind(size=text.setter('text_size'))
-            content_layout.add_widget(text)
-        
-        # 白话解释
-        if db_data and db_data.get('bai_hua'):
-            section = Label(
-                text='【白话解释】',
-                size_hint_y=None,
-                height=dp(30),
-                font_size=dp(16),
+                color=COLOR_GOLD,
                 bold=True,
-                halign='left'
+                halign='left',
             )
-            content_layout.add_widget(section)
-            
-            text = Label(
-                text=db_data['bai_hua'],
+            content_layout.add_widget(section_label)
+            text_label = Label(
+                text=detail_text,
                 size_hint_y=None,
                 halign='left',
                 valign='top',
-                font_size=dp(14),
-                padding=(10, 5)
+                font_size=font_size,
+                color=COLOR_TEXT,
+                padding=(10, 5),
             )
-            text.bind(size=text.setter('text_size'))
-            content_layout.add_widget(text)
-        
-        # 卦象分析（大象）
-        if db_data and db_data.get('guan_xiang'):
-            section = Label(
-                text='【卦象分析】',
-                size_hint_y=None,
-                height=dp(30),
-                font_size=dp(16),
-                bold=True,
-                halign='left'
-            )
-            content_layout.add_widget(section)
-            
-            text = Label(
-                text=db_data['guan_xiang'],
-                size_hint_y=None,
-                halign='left',
-                valign='top',
-                font_size=dp(14),
-                padding=(10, 5)
-            )
-            text.bind(size=text.setter('text_size'))
-            content_layout.add_widget(text)
-        
-        # 人生启示
-        if db_data and db_data.get('ren_sheng'):
-            section = Label(
-                text='【人生启示】',
-                size_hint_y=None,
-                height=dp(30),
-                font_size=dp(16),
-                bold=True,
-                halign='left'
-            )
-            content_layout.add_widget(section)
-            
-            text = Label(
-                text=db_data['ren_sheng'],
-                size_hint_y=None,
-                halign='left',
-                valign='top',
-                font_size=dp(14),
-                padding=(10, 5)
-            )
-            text.bind(size=text.setter('text_size'))
-            content_layout.add_widget(text)
-        
-        # 断卦方法
+            text_label.bind(size=text_label.setter('text_size'))
+            content_layout.add_widget(text_label)
+
+        if db_data.get('description'):
+            add_section('【卦辞】', db_data['description'])
+        if db_data.get('bai_hua'):
+            add_section('【白话解释】', db_data['bai_hua'])
+        if db_data.get('guan_xiang'):
+            add_section('【卦象分析】', db_data['guan_xiang'])
+        if db_data.get('ren_sheng'):
+            add_section('【人生启示】', db_data['ren_sheng'])
+
         if duangua_result:
-            section = Label(
-                text='【断卦方法】',
-                size_hint_y=None,
-                height=dp(30),
-                font_size=dp(16),
-                bold=True,
-                halign='left'
-            )
-            content_layout.add_widget(section)
-            
-            text = Label(
-                text=duangua_result['duan_gua_method'],
-                size_hint_y=None,
-                halign='left',
-                valign='top',
-                font_size=dp(15),
-                padding=(10, 5)
-            )
-            text.bind(size=text.setter('text_size'))
-            content_layout.add_widget(text)
-            
-            # 动爻数
-            text = Label(
-                text=f'动爻数：{duangua_result["dong_yao_count"]}',
-                size_hint_y=None,
-                halign='left',
-                font_size=dp(14),
-                padding=(10, 3)
-            )
-            content_layout.add_widget(text)
-            
-            # 变卦
-            if duangua_result['zhi_gua']:
-                text = Label(
-                    text=f'变卦：{duangua_result["zhi_gua"]}',
-                    size_hint_y=None,
-                    halign='left',
-                    font_size=dp(14),
-                    padding=(10, 3)
-                )
-                content_layout.add_widget(text)
-        
-        # 爻辞（从数据库获取完整数据）
-        if db_data:
-            yao_ci_list = gua_db.get_yao_ci(gua_name)
-            if yao_ci_list:
-                section = Label(
-                    text='【爻辞详解】',
-                    size_hint_y=None,
-                    height=dp(30),
-                    font_size=dp(16),
-                    bold=True,
-                    halign='left'
-                )
-                content_layout.add_widget(section)
-                
-                for yao in yao_ci_list:
-                    yao_name = yao['yao_name']
-                    yao_text = yao['yao_text']
-                    xiang_text = yao.get('xiang_text', '')
-                    
-                    # 查找对应爻的阴阳
-                    yao_type = 7  # 默认少阳
-                    if '九' in yao_name:
-                        yao_type = 9
-                    elif '六' in yao_name:
-                        yao_type = 6
-                    
-                    # 标记变爻
-                    is_changing = yao_type in [6, 9]
-                    mark = ' ⭕' if yao_type == 9 else ' ✕' if yao_type == 6 else ''
-                    
-                    yao_label = Label(
-                        text=f'{yao_name}{mark}: {yao_text}',
-                        size_hint_y=None,
-                        halign='left',
-                        valign='top',
-                        font_size=dp(14),
-                        padding=(10, 3)
-                    )
-                    yao_label.bind(size=yao_label.setter('text_size'))
-                    content_layout.add_widget(yao_label)
-                    
-                    if xiang_text:
-                        xiang_label = Label(
-                            text=f'象曰：{xiang_text}',
-                            size_hint_y=None,
-                            halign='left',
-                            font_size=dp(13),
-                            color=(0.6, 0.6, 0.6, 1),
-                            padding=(10, 0)
-                        )
-                        xiang_label.bind(size=xiang_label.setter('text_size'))
-                        content_layout.add_widget(xiang_label)
-        
-        scroll.add_widget(content_layout)
-        layout.add_widget(scroll)
-        
-        # 关闭按钮
-        close_btn = Button(text='关闭', size_hint_y=None, height=dp(50), font_size=dp(16))
-        close_btn.bind(on_press=lambda x: popup.dismiss())
-        layout.add_widget(close_btn)
-        
-        popup = Popup(
-            title='卦象详解',
-            content=layout,
-            size_hint=(0.95, 0.9),
-            auto_dismiss=False
-        )
-        
-        popup.open()
-    except Exception as e:
-        print(f'[ERROR] show_gua_explanation_with_duangua failed: {e}')
-        show_toast('❌ 显示失败')
+            add_section('【断卦方法】', duangua_result['duan_gua_method'])
+            add_section('动爻数', str(duangua_result['dong_yao_count']))
+            if duangua_result.get('zhi_gua'):
+                add_section('变卦', duangua_result['zhi_gua'])
 
-
-# 已删除 show_gua_explanation_detail 函数，统一使用 show_gua_explanation_with_duangua 从数据库获取数据
-        
-        # 大象
-        if detail_data.get('da_xiang'):
-            section_title = Label(
-                text='【大象】',
-                size_hint_y=None,
-                height=dp(30),
-                font_size=dp(16),
-                bold=True,
-                halign='left'
-            )
-            content_layout.add_widget(section_title)
-            
-            da_xiang_label = Label(
-                text=detail_data['da_xiang'],
-                size_hint_y=None,
-                halign='left',
-                valign='top',
-                font_size=dp(15),
-                padding=(10, 5)
-            )
-            da_xiang_label.bind(size=da_xiang_label.setter('text_size'))
-            content_layout.add_widget(da_xiang_label)
-        
         # 爻辞
-        yao_ci_list = detail_data.get('yao_ci', [])
+        yao_ci_list = gua_db.get_yao_ci(gua_name)
         if yao_ci_list:
-            section_title = Label(
-                text='【爻辞】',
+            yao_section = Label(
+                text='【爻辞详解】',
                 size_hint_y=None,
-                height=dp(30),
-                font_size=dp(16),
+                height=dp(28),
+                font_size=dp(15),
+                color=COLOR_GOLD,
                 bold=True,
-                halign='left'
+                halign='left',
             )
-            content_layout.add_widget(section_title)
-            
-            for i, yao_data in enumerate(yao_ci_list):
-                yao_name = yao_data.get('name', '')
-                yao_text = yao_data.get('text', '')
-                yao_xiang = yao_data.get('xiang', '')
-                
-                # 标记当前爻（变爻）
-                current_yao = yao_list[i] if i < len(yao_list) else 7
-                is_changing = current_yao in [6, 9]
-                mark = '★ ' if is_changing else '  '
-                
+            content_layout.add_widget(yao_section)
+
+            for yao in yao_ci_list:
+                yao_name = yao['yao_name']
+                yao_text = yao['yao_text']
+                xiang_text = yao.get('xiang_text', '')
+
+                yao_type = 7
+                if '九' in yao_name:
+                    yao_type = 9
+                elif '六' in yao_name:
+                    yao_type = 6
+
+                is_changing = yao_type in [6, 9]
+                mark = ' ⭕' if yao_type == 9 else ' ✕' if yao_type == 6 else ''
+
                 yao_label = Label(
-                    text=f'{mark}{yao_name}: {yao_text}',
+                    text=f'{yao_name}{mark}: {yao_text}',
                     size_hint_y=None,
                     halign='left',
                     valign='top',
                     font_size=dp(14),
-                    padding=(10, 3)
+                    color=COLOR_TEXT,
+                    padding=(10, 3),
                 )
                 yao_label.bind(size=yao_label.setter('text_size'))
                 content_layout.add_widget(yao_label)
-                
-                # 象曰
-                if yao_xiang:
+
+                if xiang_text:
                     xiang_label = Label(
-                        text=f'  象曰：{yao_xiang}',
+                        text=f'象曰：{xiang_text}',
                         size_hint_y=None,
                         halign='left',
-                        valign='top',
-                        font_size=dp(13),
-                        text_color=(0.6, 0.6, 0.6, 1),
-                        padding=(10, 0)
+                        font_size=dp(12),
+                        color=COLOR_TEXT_SECOND,
+                        padding=(20, 0),
                     )
                     xiang_label.bind(size=xiang_label.setter('text_size'))
                     content_layout.add_widget(xiang_label)
-        
-        # 变卦
-        if changing_gua_name:
-            section_title = Label(
-                text='【变卦】',
-                size_hint_y=None,
-                height=dp(30),
-                font_size=dp(16),
-                bold=True,
-                halign='left'
-            )
-            content_layout.add_widget(section_title)
-            
-            changing_label = Label(
-                text=f'变卦：{changing_gua_name}',
-                size_hint_y=None,
-                halign='left',
-                valign='top',
-                font_size=dp(15),
-                padding=(10, 5)
-            )
-            changing_label.bind(size=changing_label.setter('text_size'))
-            content_layout.add_widget(changing_label)
-        
-        # 白话解释
-        if detail_data.get('bai_hua'):
-            section_title = Label(
-                text='【白话解释】',
-                size_hint_y=None,
-                height=dp(30),
-                font_size=dp(16),
-                bold=True,
-                halign='left'
-            )
-            content_layout.add_widget(section_title)
-            
-            bai_hua_label = Label(
-                text=detail_data['bai_hua'],
-                size_hint_y=None,
-                halign='left',
-                valign='top',
-                font_size=dp(14),
-                padding=(10, 5)
-            )
-            bai_hua_label.bind(size=bai_hua_label.setter('text_size'))
-            content_layout.add_widget(bai_hua_label)
-        
+
         scroll.add_widget(content_layout)
         layout.add_widget(scroll)
-        
-        # 关闭按钮
-        close_btn = Button(text='关闭', size_hint_y=None, height=dp(50), font_size=dp(16))
+
+        close_btn = create_round_button('关闭', font_size=dp(16), height=dp(50))
         close_btn.bind(on_press=lambda x: popup.dismiss())
         layout.add_widget(close_btn)
-        
+
         popup = Popup(
             title='卦象详解',
+            title_color=COLOR_GOLD,
             content=layout,
             size_hint=(0.95, 0.9),
-            auto_dismiss=False
+            auto_dismiss=False,
+            background_color=COLOR_BG,
         )
-        
         popup.open()
     except Exception as e:
-        print(f'[ERROR] show_gua_explanation_detail failed: {e}')
+        logger.error(f'[ERROR] show_gua_explanation_with_duangua: {e}')
         show_toast('❌ 显示失败')
+
+
+# ==================== 手动选卦弹窗（v1.3.0 新版：64卦选择） ====================
+
+def show_manual_select_gua_popup(app):
+    """手动选卦弹窗 —— 64卦列表 + 宫位筛选"""
+    try:
+        all_gua = get_all_gua_with_palace()
+        if not all_gua:
+            show_toast('❌ 卦象数据加载失败')
+            return
+
+        popup_layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(8))
+
+        title = Label(
+            text='☯ 选择卦象',
+            size_hint_y=None,
+            height=dp(40),
+            font_size=dp(18),
+            color=COLOR_GOLD,
+            bold=True,
+        )
+        popup_layout.add_widget(title)
+
+        # 宫位筛选
+        palaces = ['全部', '乾宫', '坤宫', '震宫', '巽宫', '坎宫', '离宫', '艮宫', '兑宫']
+        current_palace = ['全部']
+
+        palace_scroll = ScrollView(size_hint_y=None, height=dp(38), do_scroll_x=True, do_scroll_y=False)
+        palace_row = BoxLayout(orientation='horizontal', size_hint=(None, 1), spacing=dp(6),
+                               width=dp(38) * len(palaces) + dp(20))
+        palace_buttons = []
+
+        for p in palaces:
+            btn = Button(
+                text=p,
+                size_hint=(None, 1),
+                width=dp(60),
+                font_size=dp(12),
+                color=COLOR_TEXT_SECOND,
+                background_color=(0, 0, 0, 0),
+                background_normal='',
+            )
+            apply_card_bg(btn, radius=[dp(8), dp(8), dp(8), dp(8)])
+
+            def on_palace(instance, palace_name=p):
+                current_palace[0] = palace_name
+                for pb in palace_buttons:
+                    if pb.text == palace_name:
+                        pb.canvas.before.clear()
+                        apply_gold_bg(pb, radius=[dp(8), dp(8), dp(8), dp(8)])
+                        pb.color = COLOR_BG
+                    else:
+                        pb.canvas.before.clear()
+                        apply_card_bg(pb, radius=[dp(8), dp(8), dp(8), dp(8)])
+                        pb.color = COLOR_TEXT_SECOND
+                _update_gua_grid(grid, palace_name, all_gua, app, popup)
+
+            btn.bind(on_press=on_palace)
+            palace_buttons.append(btn)
+            palace_row.add_widget(btn)
+
+        palace_scroll.add_widget(palace_row)
+        popup_layout.add_widget(palace_scroll)
+
+        # 64卦网格
+        grid_scroll = ScrollView()
+        grid = GridLayout(cols=4, spacing=dp(6), size_hint_y=None,
+                          row_default_height=dp(55),
+                          row_force_default=True)
+        grid.bind(minimum_height=grid.setter('height'))
+        grid_scroll.add_widget(grid)
+        popup_layout.add_widget(grid_scroll)
+
+        # 初始填充
+        _update_gua_grid(grid, '全部', all_gua, app, popup)
+
+        popup = Popup(
+            title='',
+            content=popup_layout,
+            size_hint=(0.95, 0.85),
+            auto_dismiss=True,
+            background_color=COLOR_BG,
+        )
+        popup.open()
+
+    except Exception as e:
+        logger.error(f'[ERROR] show_manual_select_gua_popup: {e}')
+        show_toast('❌ 弹窗失败')
+
+
+def _update_gua_grid(grid, palace, all_gua, app, popup):
+    """更新卦象网格"""
+    grid.clear_widgets()
+
+    filtered = all_gua if palace == '全部' else [g for g in all_gua if g['palace'] == palace]
+
+    for gua in filtered:
+        btn = Button(
+            text=gua['name'],
+            font_size=dp(13),
+            color=COLOR_TEXT,
+            background_color=(0, 0, 0, 0),
+            background_normal='',
+        )
+        apply_card_bg(btn, radius=[dp(8), dp(8), dp(8), dp(8)])
+
+        def on_gua(instance, g_name=gua['name']):
+            popup.dismiss()
+            # 通过卦名获取二进制，再生成 yao_list
+            yao_list = _gua_name_to_yao(g_name)
+            if yao_list:
+                app.display_gua(yao_list, '手动选卦')
+            else:
+                show_toast(f'❌ 无法解析 {g_name}')
+
+        btn.bind(on_press=on_gua)
+        grid.add_widget(btn)
+
+
+def _gua_name_to_yao(gua_name):
+    """通过卦名生成 6 爻列表"""
+    try:
+        binary = get_binary_from_name(gua_name)
+        if not binary or len(binary) != 6:
+            return None
+        # 默认都是少阳/少阴（无变爻）
+        return [7 if b == '1' else 8 for b in binary]
+    except:
+        return None
 
 
 # ==================== 主应用 ====================
 
 class WuaibaguaApp(App):
-    """我爱八卦应用主类"""
-    
+    """我爱八卦 v1.3.0 主类"""
+
     def init_android_features(self):
-        """延迟初始化 Android 功能（P0-5: 避免启动早期 JNI 调用）"""
+        """延迟初始化 Android 功能"""
         try:
             logger.info('[INFO] 初始化 Android 功能...')
             init_android_clipboard()
-            
-            # OPPO 设备检测
-            if detect_oppo_device():
-                logger.info('[INFO] OPPO 设备检测完成')
         except Exception as e:
             logger.error(f'[ERROR] Android 功能初始化失败：{e}')
-            logger.error(traceback.format_exc())
-    
+
     def build(self):
         """构建应用界面"""
         self.title = '我爱八卦'
-        
-        # P0-5: 延迟 JNI 调用到应用启动后
-        # 在 UI 构建完成后初始化 Android 相关功能
+
+        Window.clearcolor = COLOR_BG[:3]
+
         Clock.schedule_once(lambda dt: self.init_android_features(), 0.5)
-        
-        # 设置全局字体
-        from kivy.uix.label import Label
-        from kivy.uix.button import Button
+
+        # 注册字体
         Label.font_name = 'NotoSansSC'
         Button.font_name = 'NotoSansSC'
-        
-        # 主布局（使用 ScrollView）
-        from kivy.uix.scrollview import ScrollView
-        main_scroll = ScrollView()
-        main_layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
-        
-        # 标题（自适应）
-        title = Label(
-            text='[b]我爱八卦[/b]',
-            markup=True,
-            size_hint_y=0.08,
-            font_size='18sp',
-            bold=True,
-            halign='center'
-        )
-        main_layout.add_widget(title)
-        
-        # 卦象显示区域（自适应布局）
-        gua_display_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(5))
-        
-        # 顶部：卦名（自适应）
-        self.gua_name_label = Label(
-            text='点击按钮开始起卦',
-            markup=True,
+
+        # ========== 自定义 Tab 布局 ==========
+        main_layout = BoxLayout(orientation='vertical', padding=0, spacing=0)
+
+        # 顶部标题栏
+        header = BoxLayout(
+            orientation='horizontal',
             size_hint_y=None,
-            height=dp(35),
-            font_size='15sp',
-            bold=True,
-            halign='center'
+            height=dp(56),
+            padding=(dp(15), dp(8)),
         )
-        gua_display_layout.add_widget(self.gua_name_label)
-        
-        # 6 个爻位（自适应布局）
-        self.yao_images = []
-        self.yao_labels = []
-        
-        for i in range(6):
-            # 每一行的布局（图片 + 文字）
-            yao_row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(35), spacing=dp(10))
-            
-            # 爻图片（自适应）
-            yao_img = Image(
-                source='',
-                size_hint=(0.15, 1),
-                allow_stretch=True,
-                keep_ratio=False
+        with header.canvas.before:
+            Color(*COLOR_BG_CARD)
+            header._bg_rect = RoundedRectangle(size=header.size, pos=header.pos)
+            def _upd(*a):
+                header._bg_rect.size = header.size
+                header._bg_rect.pos = header.pos
+            header.bind(size=_upd, pos=_upd)
+
+        title_label = Label(
+            text='☯ 我爱八卦',
+            font_size=dp(20),
+            color=COLOR_GOLD,
+            bold=True,
+            halign='left',
+        )
+        header.add_widget(title_label)
+
+        subtitle_label = Label(
+            text='周易六十四卦 · 卜卦解惑',
+            font_size=dp(11),
+            color=COLOR_TEXT_SECOND,
+            halign='right',
+        )
+        header.add_widget(subtitle_label)
+        main_layout.add_widget(header)
+
+        # Tab 导航栏
+        tab_bar = BoxLayout(
+            orientation='horizontal',
+            size_hint_y=None,
+            height=dp(44),
+            padding=(dp(4), dp(4)),
+            spacing=dp(4),
+        )
+        with tab_bar.canvas.before:
+            Color(*COLOR_BG_CARD)
+            tab_bar._bg_rect = RoundedRectangle(size=tab_bar.size, pos=tab_bar.pos)
+            def _upd2(*a):
+                tab_bar._bg_rect.size = tab_bar.size
+                tab_bar._bg_rect.pos = tab_bar._pos
+            tab_bar.bind(size=_upd2, pos=_upd2)
+
+        self.tab_buttons = {}
+        tab_names = ['起卦', '64卦', '运势', '设置']
+
+        for name in tab_names:
+            btn = Button(
+                text=name,
+                font_size=dp(14),
+                color=COLOR_TEXT_SECOND,
+                background_color=(0, 0, 0, 0),
+                background_normal='',
             )
-            yao_row.add_widget(yao_img)
-            self.yao_images.append(yao_img)
-            
-            # 爻位信息（自适应）
-            yao_label = Label(
-                text='',
-                markup=True,
-                size_hint_y=None,
-                font_size='13sp',
-                halign='left',
-                valign='middle'
+            with btn.canvas.before:
+                Color(0, 0, 0, 0)
+                btn._bg_rect = RoundedRectangle(size=btn.size, pos=btn.pos, radius=[dp(8), dp(8), dp(8), dp(8)])
+                def _upd_btn(*a, b=btn):
+                    b._bg_rect.size = b.size
+                    b._bg_rect.pos = b.pos
+                btn.bind(size=_upd_btn, pos=_upd_btn)
+            self.tab_buttons[name] = btn
+
+        def switch_tab(name):
+            for n, b in self.tab_buttons.items():
+                b.canvas.before.clear()
+                if n == name:
+                    with b.canvas.before:
+                        Color(*COLOR_GOLD)
+                        b._bg_rect = RoundedRectangle(size=b.size, pos=b.pos, radius=[dp(8), dp(8), dp(8), dp(8)])
+                        def _upd_gold(*a, bb=b):
+                            bb._bg_rect.size = bb.size
+                            bb._bg_rect.pos = bb.pos
+                        b.bind(size=_upd_gold, pos=_upd_gold)
+                    b.color = COLOR_BG
+                    b.bold = True
+                else:
+                    with b.canvas.before:
+                        Color(0, 0, 0, 0)
+                        b._bg_rect = RoundedRectangle(size=b.size, pos=b.pos, radius=[dp(8), dp(8), dp(8), dp(8)])
+                        def _upd_clear(*a, bb=b):
+                            bb._bg_rect.size = bb.size
+                            bb._bg_rect.pos = bb.pos
+                        b.bind(size=_upd_clear, pos=_upd_clear)
+                    b.color = COLOR_TEXT_SECOND
+                    b.bold = False
+            self._switch_content(name)
+
+        for name in tab_names:
+            btn = self.tab_buttons[name]
+            btn.bind(on_press=lambda x, n=name: switch_tab(n))
+            tab_bar.add_widget(btn)
+
+        main_layout.add_widget(tab_bar)
+
+        # 内容容器
+        self.content_container = BoxLayout(orientation='vertical')
+        main_layout.add_widget(self.content_container)
+
+        # 构建各 Tab 内容
+        self._tab_divination = self._build_divination_tab()
+        self._tab_gua64 = self._build_gua64_tab()
+        self._tab_fortune = self._build_fortune_tab()
+        self._tab_settings = self._build_settings_tab()
+
+        # 默认显示起卦 Tab
+        self._current_tab = '起卦'
+        self.content_container.add_widget(self._tab_divination)
+
+        # 激活起卦按钮
+        self.tab_buttons['起卦'].canvas.before.clear()
+        with self.tab_buttons['起卦'].canvas.before:
+            Color(*COLOR_GOLD)
+            self.tab_buttons['起卦']._bg_rect = RoundedRectangle(
+                size=self.tab_buttons['起卦'].size,
+                pos=self.tab_buttons['起卦'].pos,
+                radius=[dp(8), dp(8), dp(8), dp(8)]
             )
-            yao_row.add_widget(yao_label)
-            self.yao_labels.append(yao_label)
-            
-            gua_display_layout.add_widget(yao_row)
-        
-        main_layout.add_widget(gua_display_layout)
-        
-        # 保留引用
-        self.gua_result_label = self.gua_name_label
-        
-        # 起卦按钮（自适应布局）
-        method_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(5))
-        
-        # 第一行：电脑起卦、手动起卦
-        row1 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
-        self.btn_auto = Button(text='电脑起卦', font_size='14sp')
-        self.btn_auto.bind(on_press=self.auto_gua)
-        row1.add_widget(self.btn_auto)
-        self.btn_manual = Button(text='手动起卦', font_size='14sp')
-        self.btn_manual.bind(on_press=self.manual_gua)
-        row1.add_widget(self.btn_manual)
-        method_layout.add_widget(row1)
-        
-        # 第二行：金钱起卦、今日运势
-        row2 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
-        self.btn_jinqian = Button(text='金钱起卦', font_size='14sp')
-        self.btn_jinqian.bind(on_press=self.jinqian_gua)
-        row2.add_widget(self.btn_jinqian)
-        self.btn_daily = Button(text='今日运势', font_size='14sp')
-        self.btn_daily.bind(on_press=self.daily_gua)
-        row2.add_widget(self.btn_daily)
-        method_layout.add_widget(row2)
-        
-        main_layout.add_widget(method_layout)
-        
-        # 功能按钮（自适应布局）
-        func_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=dp(10))
-        self.btn_explain = Button(text='解释', font_size='14sp')
-        self.btn_explain.bind(on_press=self.show_explanation)
-        func_layout.add_widget(self.btn_explain)
-        self.btn_share = Button(text='分享', font_size='14sp')
-        self.btn_share.bind(on_press=self.share_gua)
-        func_layout.add_widget(self.btn_share)
-        self.btn_liuyao = Button(text='六爻', font_size='14sp')
-        self.btn_liuyao.bind(on_press=self.show_liuyao)
-        func_layout.add_widget(self.btn_liuyao)
-        self.btn_settings = Button(text='设置', font_size='14sp')
-        self.btn_settings.bind(on_press=lambda x: show_settings_popup())
-        func_layout.add_widget(self.btn_settings)
-        
-        main_layout.add_widget(func_layout)
-        
-        # 添加到 ScrollView
-        main_layout.bind(minimum_height=main_layout.setter('height'))
-        main_scroll.add_widget(main_layout)
-        
+        self.tab_buttons['起卦'].color = COLOR_BG
+        self.tab_buttons['起卦'].bold = True
+
         # 状态
         self.current_gua = None
         self.current_yao_list = None
         self.current_gua_detail = None
         self.current_changing_gua = None
-        
-        return main_scroll
-    
+        self.current_image_info = None
+        self.current_duangua_result = None
+
+        return main_layout
+
+    def _switch_content(self, name):
+        """切换 Tab 内容"""
+        tab_map = {
+            '起卦': self._tab_divination,
+            '64卦': self._tab_gua64,
+            '运势': self._tab_fortune,
+            '设置': self._tab_settings,
+        }
+        self.content_container.clear_widgets()
+        widget = tab_map.get(name)
+        if widget:
+            self.content_container.add_widget(widget)
+        self._current_tab = name
+
+    # ---------- 起卦 Tab ----------
+
+    def _build_divination_tab(self):
+        """起卦 Tab"""
+        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10))
+
+        # 卦象显示区（结果/空状态）
+        self.gua_display_area = BoxLayout(
+            orientation='vertical',
+            size_hint_y=None,
+            height=dp(200),
+            spacing=dp(4),
+        )
+        apply_card_bg(self.gua_display_area, radius=[dp(14), dp(14), dp(14), dp(14)])
+
+        # 空状态
+        self.empty_state = Label(
+            text='☯',
+            font_size=dp(60),
+            color=COLOR_GOLD,
+            halign='center',
+            valign='middle',
+        )
+        self.empty_state.bind(size=self.empty_state.setter('text_size'))
+        self.gua_display_area.add_widget(self.empty_state)
+
+        self.empty_hint = Label(
+            text='选择起卦方式',
+            font_size=dp(16),
+            color=COLOR_TEXT_SECOND,
+            halign='center',
+            size_hint_y=None,
+            height=dp(25),
+        )
+        self.gua_display_area.add_widget(self.empty_hint)
+
+        # 结果状态（初始隐藏）
+        self.result_state = BoxLayout(orientation='vertical', spacing=dp(4), padding=(dp(10), dp(8)))
+        self.result_state.opacity = 0
+
+        self.gua_name_label = Label(
+            text='',
+            font_size=dp(26),
+            color=COLOR_GOLD,
+            bold=True,
+            halign='center',
+            size_hint_y=None,
+            height=dp(36),
+        )
+        self.result_state.add_widget(self.gua_name_label)
+
+        self.gua_palace_label = Label(
+            text='',
+            font_size=dp(12),
+            color=COLOR_TEXT_SECOND,
+            halign='center',
+            size_hint_y=None,
+            height=dp(20),
+        )
+        self.result_state.add_widget(self.gua_palace_label)
+
+        # 爻符显示区
+        self.yao_draw_area = BoxLayout(
+            orientation='vertical',
+            size_hint_y=None,
+            height=dp(100),
+            spacing=dp(4),
+            padding=(dp(30), dp(5)),
+        )
+        self.result_state.add_widget(self.yao_draw_area)
+
+        self.gua_ci_label = Label(
+            text='',
+            font_size=dp(13),
+            color=COLOR_TEXT,
+            halign='center',
+            size_hint_y=None,
+            height=dp(40),
+        )
+        self.gua_ci_label.bind(size=self.gua_ci_label.setter('text_size'))
+        self.result_state.add_widget(self.gua_ci_label)
+
+        self.changing_label = Label(
+            text='',
+            font_size=dp(12),
+            color=COLOR_GOLD_LIGHT,
+            halign='center',
+            size_hint_y=None,
+            height=dp(22),
+        )
+        self.result_state.add_widget(self.changing_label)
+
+        self.gua_display_area.add_widget(self.result_state)
+        layout.add_widget(self.gua_display_area)
+
+        # 起卦方式 2x2 网格
+        method_grid = GridLayout(cols=2, spacing=dp(10), size_hint_y=None, height=dp(160))
+
+        # 随机起卦
+        card1 = create_card_button('🎲 随机起卦', subtitle='心诚则灵', height=dp(72))
+        card1_btn = Button(size_hint=(1, 1), background_color=(0, 0, 0, 0), background_normal='')
+        card1_btn.bind(on_press=self.auto_gua)
+        card1.add_widget(card1_btn)
+        method_grid.add_widget(card1)
+
+        # 手动选卦
+        card2 = create_card_button('📜 手动选卦', subtitle='64卦列表', height=dp(72))
+        card2_btn = Button(size_hint=(1, 1), background_color=(0, 0, 0, 0), background_normal='')
+        card2_btn.bind(on_press=self.manual_gua)
+        card2.add_widget(card2_btn)
+        method_grid.add_widget(card2)
+
+        # 金钱起卦
+        card3 = create_card_button('🪙 金钱起卦', subtitle='模拟摇卦', height=dp(72))
+        card3_btn = Button(size_hint=(1, 1), background_color=(0, 0, 0, 0), background_normal='')
+        card3_btn.bind(on_press=self.jinqian_gua)
+        card3.add_widget(card3_btn)
+        method_grid.add_widget(card3)
+
+        # 时间起卦
+        card4 = create_card_button('⏰ 时间起卦', subtitle='以时起卦', height=dp(72))
+        card4_btn = Button(size_hint=(1, 1), background_color=(0, 0, 0, 0), background_normal='')
+        card4_btn.bind(on_press=self.time_gua)
+        card4.add_widget(card4_btn)
+        method_grid.add_widget(card4)
+
+        layout.add_widget(method_grid)
+
+        # 快捷功能按钮
+        quick_row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(42), spacing=dp(8))
+
+        qbtn1 = create_round_button('📖 卦象解释', font_size=dp(13), height=dp(42))
+        qbtn1.bind(on_press=self.show_explanation)
+        quick_row.add_widget(qbtn1)
+
+        qbtn2 = create_round_button('🔮 六爻排盘', font_size=dp(13), height=dp(42))
+        qbtn2.bind(on_press=self.show_liuyao)
+        quick_row.add_widget(qbtn2)
+
+        qbtn3 = create_round_button('📤 分享', font_size=dp(13), height=dp(42))
+        qbtn3.bind(on_press=self.share_gua)
+        quick_row.add_widget(qbtn3)
+
+        qbtn4 = create_round_button('📋 复制', font_size=dp(13), height=dp(42))
+        qbtn4.bind(on_press=self.copy_result)
+        quick_row.add_widget(qbtn4)
+
+        layout.add_widget(quick_row)
+
+        # 重新起卦按钮
+        self.redivide_btn = create_round_button('🔄 重新起卦', font_size=dp(15), height=dp(45))
+        self.redivide_btn.bind(on_press=self.auto_gua)
+        self.redivide_btn.opacity = 0
+        layout.add_widget(self.redivide_btn)
+
+        return layout
+
+    # ---------- 64卦速查 Tab ----------
+
+    def _build_gua64_tab(self):
+        """64卦速查 Tab"""
+        layout = BoxLayout(orientation='vertical', padding=dp(10), spacing=dp(8))
+
+        # 搜索框
+        search_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(42), spacing=dp(8))
+        self.gua64_search = TextInput(
+            hint_text='🔍 搜索卦名...',
+            font_size=dp(14),
+            size_hint_x=1,
+            multiline=False,
+            background_color=COLOR_BG_CARD,
+            foreground_color=COLOR_TEXT,
+            hint_text_color=COLOR_TEXT_SECOND,
+            cursor_color=COLOR_GOLD,
+        )
+        self.gua64_search.bind(on_text_validate=self._on_gua64_search)
+        search_box.add_widget(self.gua64_search)
+
+        search_btn = create_round_button('搜索', font_size=dp(13), width=dp(60), size_hint_x=None)
+        search_btn.bind(on_press=self._on_gua64_search)
+        search_box.add_widget(search_btn)
+        layout.add_widget(search_box)
+
+        # 宫位筛选
+        palaces = ['全部', '乾宫', '坤宫', '震宫', '巽宫', '坎宫', '离宫', '艮宫', '兑宫']
+        self.gua64_palace = ['全部']
+
+        palace_scroll = ScrollView(size_hint_y=None, height=dp(38), do_scroll_x=True, do_scroll_y=False)
+        palace_row = BoxLayout(orientation='horizontal', size_hint=(None, 1), spacing=dp(6),
+                               width=dp(38) * len(palaces) + dp(20))
+        self.gua64_palace_btns = []
+
+        for p in palaces:
+            btn = Button(
+                text=p,
+                size_hint=(None, 1),
+                width=dp(60),
+                font_size=dp(12),
+                color=COLOR_TEXT_SECOND,
+                background_color=(0, 0, 0, 0),
+                background_normal='',
+            )
+            apply_card_bg(btn, radius=[dp(8), dp(8), dp(8), dp(8)])
+
+            def on_palace(instance, palace_name=p):
+                self.gua64_palace[0] = palace_name
+                for pb in self.gua64_palace_btns:
+                    pb.canvas.before.clear()
+                    if pb.text == palace_name:
+                        apply_gold_bg(pb, radius=[dp(8), dp(8), dp(8), dp(8)])
+                        pb.color = COLOR_BG
+                    else:
+                        apply_card_bg(pb, radius=[dp(8), dp(8), dp(8), dp(8)])
+                        pb.color = COLOR_TEXT_SECOND
+                self._refresh_gua64_grid()
+
+            btn.bind(on_press=on_palace)
+            self.gua64_palace_btns.append(btn)
+            palace_row.add_widget(btn)
+
+        palace_scroll.add_widget(palace_row)
+        layout.add_widget(palace_scroll)
+
+        # 激活"全部"按钮
+        self.gua64_palace_btns[0].canvas.before.clear()
+        apply_gold_bg(self.gua64_palace_btns[0], radius=[dp(8), dp(8), dp(8), dp(8)])
+        self.gua64_palace_btns[0].color = COLOR_BG
+
+        # 卦象网格
+        scroll = ScrollView()
+        self.gua64_grid = GridLayout(
+            cols=3, spacing=dp(8), size_hint_y=None,
+            row_default_height=dp(58),
+            row_force_default=True,
+        )
+        self.gua64_grid.bind(minimum_height=self.gua64_grid.setter('height'))
+        scroll.add_widget(self.gua64_grid)
+        layout.add_widget(scroll)
+
+        # 加载数据
+        self._all_gua_data = get_all_gua_with_palace()
+        self._refresh_gua64_grid()
+
+        return layout
+
+    def _on_gua64_search(self, instance):
+        """搜索卦象"""
+        self._refresh_gua64_grid()
+
+    def _refresh_gua64_grid(self):
+        """刷新 64 卦网格"""
+        self.gua64_grid.clear_widgets()
+
+        query = self.gua64_search.text.strip().lower() if hasattr(self, 'gua64_search') else ''
+        palace = self.gua64_palace[0] if hasattr(self, 'gua64_palace') else '全部'
+
+        filtered = self._all_gua_data
+        if palace != '全部':
+            filtered = [g for g in filtered if g['palace'] == palace]
+        if query:
+            filtered = [g for g in filtered if query in g['name'].lower()]
+
+        for gua in filtered:
+            btn = Button(
+                text=gua['name'],
+                font_size=dp(13),
+                color=COLOR_TEXT,
+                background_color=(0, 0, 0, 0),
+                background_normal='',
+            )
+            apply_card_bg(btn, radius=[dp(8), dp(8), dp(8), dp(8)])
+
+            def on_gua_detail(instance, g_name=gua['name']):
+                self._show_gua_detail_popup(g_name)
+
+            btn.bind(on_press=on_gua_detail)
+            self.gua64_grid.add_widget(btn)
+
+    def _show_gua_detail_popup(self, gua_name):
+        """显示卦象详情弹窗"""
+        try:
+            import gua_db
+            db_data = gua_db.get_gua_by_name(gua_name)
+            if not db_data:
+                show_toast(f'❌ 未找到 {gua_name}')
+                return
+
+            popup_layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
+
+            title = Label(
+                text=f'☯ {gua_name}',
+                size_hint_y=None,
+                height=dp(40),
+                font_size=dp(20),
+                color=COLOR_GOLD,
+                bold=True,
+            )
+            popup_layout.add_widget(title)
+
+            # 基本信息
+            palace = get_gua_palace(gua_name)
+            info = f'宫位：{palace}'
+            if db_data.get('upper_gua') and db_data.get('lower_gua'):
+                info += f'\n上卦：{db_data["upper_gua"]}  下卦：{db_data["lower_gua"]}'
+            info_label = Label(
+                text=info,
+                size_hint_y=None,
+                height=dp(40),
+                font_size=dp(13),
+                color=COLOR_TEXT_SECOND,
+                halign='left',
+            )
+            info_label.bind(size=info_label.setter('text_size'))
+            popup_layout.add_widget(info_label)
+
+            scroll = ScrollView()
+            content_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(10))
+            content_layout.bind(minimum_height=content_layout.setter('height'))
+
+            def add_sec(label_text, detail_text, fs=dp(13)):
+                sec = Label(
+                    text=label_text,
+                    size_hint_y=None, height=dp(26),
+                    font_size=dp(14), color=COLOR_GOLD, bold=True, halign='left',
+                )
+                content_layout.add_widget(sec)
+                txt = Label(
+                    text=detail_text,
+                    size_hint_y=None,
+                    halign='left', valign='top',
+                    font_size=fs, color=COLOR_TEXT, padding=(8, 3),
+                )
+                txt.bind(size=txt.setter('text_size'))
+                content_layout.add_widget(txt)
+
+            if db_data.get('description'):
+                add_sec('【卦辞】', db_data['description'])
+            if db_data.get('da_xiang'):
+                add_sec('【大象】', db_data['da_xiang'])
+            if db_data.get('bai_hua'):
+                add_sec('【白话解释】', db_data['bai_hua'], dp(12))
+            if db_data.get('guan_xiang'):
+                add_sec('【卦象分析】', db_data['guan_xiang'], dp(12))
+
+            scroll.add_widget(content_layout)
+            popup_layout.add_widget(scroll)
+
+            # 快速起卦按钮
+            qi_btn = create_round_button(f'🔮 以此卦起卦', font_size=dp(14), height=dp(45))
+            qi_btn.bind(on_press=lambda x, gn=gua_name: self._quick_divine(gn, popup))
+            popup_layout.add_widget(qi_btn)
+
+            close_btn = Button(
+                text='关闭',
+                size_hint_y=None, height=dp(42),
+                font_size=dp(14), color=COLOR_TEXT_SECOND,
+                background_color=(0, 0, 0, 0), background_normal='',
+            )
+            close_btn.bind(on_press=lambda x: popup.dismiss())
+            popup_layout.add_widget(close_btn)
+
+            popup = Popup(
+                title='',
+                content=popup_layout,
+                size_hint=(0.92, 0.8),
+                auto_dismiss=True,
+                background_color=COLOR_BG,
+            )
+            popup.open()
+        except Exception as e:
+            logger.error(f'[ERROR] _show_gua_detail_popup: {e}')
+
+    def _quick_divine(self, gua_name, popup):
+        """从 64 卦速查快速起卦"""
+        popup.dismiss()
+        yao_list = _gua_name_to_yao(gua_name)
+        if yao_list:
+            # 切换到起卦 Tab
+            self._switch_content('起卦')
+            self.tab_buttons['起卦'].canvas.before.clear()
+            with self.tab_buttons['起卦'].canvas.before:
+                Color(*COLOR_GOLD)
+                self.tab_buttons['起卦']._bg_rect = RoundedRectangle(
+                    size=self.tab_buttons['起卦'].size,
+                    pos=self.tab_buttons['起卦'].pos,
+                    radius=[dp(8), dp(8), dp(8), dp(8)]
+                )
+            self.tab_buttons['起卦'].color = COLOR_BG
+            self.tab_buttons['64卦'].canvas.before.clear()
+            apply_card_bg(self.tab_buttons['64卦'], radius=[dp(8), dp(8), dp(8), dp(8)])
+            self.tab_buttons['64卦'].color = COLOR_TEXT_SECOND
+            self.display_gua(yao_list, '手动选卦')
+        else:
+            show_toast(f'❌ 无法解析 {gua_name}')
+
+    # ---------- 运势 Tab ----------
+
+    def _build_fortune_tab(self):
+        """运势 Tab"""
+        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10))
+
+        # 今日日期
+        today = datetime.now().strftime('%Y年%m月%d日')
+        date_label = Label(
+            text=f'📅 {today}',
+            font_size=dp(16),
+            color=COLOR_TEXT_SECOND,
+            size_hint_y=None,
+            height=dp(30),
+            halign='center',
+        )
+        layout.add_widget(date_label)
+
+        # 运势卡片
+        self.fortune_card = BoxLayout(
+            orientation='vertical',
+            size_hint_y=None,
+            height=dp(280),
+            padding=(dp(15), dp(12)),
+            spacing=dp(6),
+        )
+        apply_card_bg(self.fortune_card, radius=[dp(14), dp(14), dp(14), dp(14)])
+
+        self.fortune_gua_name = Label(
+            text='点击下方按钮查看今日运势',
+            font_size=dp(20),
+            color=COLOR_GOLD,
+            bold=True,
+            halign='center',
+            size_hint_y=None,
+            height=dp(30),
+        )
+        self.fortune_card.add_widget(self.fortune_gua_name)
+
+        self.fortune_yao_area = BoxLayout(
+            orientation='vertical',
+            size_hint_y=None,
+            height=dp(120),
+            spacing=dp(4),
+            padding=(dp(30), dp(5)),
+        )
+        self.fortune_card.add_widget(self.fortune_yao_area)
+
+        self.fortune_desc = Label(
+            text='',
+            font_size=dp(13),
+            color=COLOR_TEXT,
+            halign='center',
+            size_hint_y=None,
+            height=dp(60),
+        )
+        self.fortune_desc.bind(size=self.fortune_desc.setter('text_size'))
+        self.fortune_card.add_widget(self.fortune_desc)
+
+        layout.add_widget(self.fortune_card)
+
+        # 按钮
+        fortune_btn = create_round_button('🔮 查看今日运势', font_size=dp(16), height=dp(50))
+        fortune_btn.bind(on_press=self.daily_gua)
+        layout.add_widget(fortune_btn)
+
+        fortune_actions = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(42), spacing=dp(8))
+        fbtn1 = create_round_button('📖 详解', font_size=dp(13), height=dp(42))
+        fbtn1.bind(on_press=self.show_explanation)
+        fortune_actions.add_widget(fbtn1)
+        fbtn2 = create_round_button('🔮 六爻', font_size=dp(13), height=dp(42))
+        fbtn2.bind(on_press=self.show_liuyao)
+        fortune_actions.add_widget(fbtn2)
+        fbtn3 = create_round_button('📤 分享', font_size=dp(13), height=dp(42))
+        fbtn3.bind(on_press=self.share_gua)
+        fortune_actions.add_widget(fbtn3)
+        layout.add_widget(fortune_actions)
+
+        return layout
+
+    # ---------- 设置 Tab ----------
+
+    def _build_settings_tab(self):
+        """设置 Tab"""
+        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
+
+        # 版本信息卡片
+        version_card = BoxLayout(
+            orientation='vertical',
+            size_hint_y=None,
+            height=dp(120),
+            padding=(dp(20), dp(15)),
+            spacing=dp(8),
+        )
+        apply_card_bg(version_card, radius=[dp(14), dp(14), dp(14), dp(14)])
+
+        app_name = Label(
+            text='☯ 我爱八卦',
+            font_size=dp(22),
+            color=COLOR_GOLD,
+            bold=True,
+            halign='center',
+            size_hint_y=None,
+            height=dp(30),
+        )
+        version_card.add_widget(app_name)
+
+        version_info = Label(
+            text=f'v{__version__}  ·  周易六十四卦  ·  卜卦解惑\n作者：浩哥',
+            font_size=dp(13),
+            color=COLOR_TEXT_SECOND,
+            halign='center',
+            size_hint_y=None,
+            height=dp(40),
+        )
+        version_card.add_widget(version_info)
+
+        layout.add_widget(version_card)
+
+        # 功能说明
+        features_card = BoxLayout(
+            orientation='vertical',
+            padding=(dp(15), dp(12)),
+            spacing=dp(6),
+        )
+        apply_card_bg(features_card, radius=[dp(14), dp(14), dp(14), dp(14)])
+
+        feat_title = Label(
+            text='✨ 功能列表',
+            font_size=dp(15),
+            color=COLOR_GOLD,
+            bold=True,
+            size_hint_y=None,
+            height=dp(28),
+            halign='left',
+        )
+        features_card.add_widget(feat_title)
+
+        features = [
+            '🎲 电脑起卦 —— 随机生成卦象',
+            '📜 手动选卦 —— 从 64 卦中自由选择',
+            '🪙 金钱起卦 —— 模拟三枚铜钱摇卦',
+            '⏰ 时间起卦 —— 根据当前时辰起卦',
+            '📅 今日运势 —— 每日专属卦象',
+            '📖 卦象详解 —— 卦辞、爻辞、白话解释',
+            '🔮 六爻排盘 —— 完整排盘信息',
+            '📤 分享卦象 —— 复制分享给好友',
+        ]
+        for feat in features:
+            feat_label = Label(
+                text=feat,
+                font_size=dp(13),
+                color=COLOR_TEXT,
+                halign='left',
+                size_hint_y=None,
+                height=dp(24),
+            )
+            features_card.add_widget(feat_label)
+
+        layout.add_widget(features_card)
+
+        return layout
+
+    # ==================== 起卦逻辑 ====================
+
     def auto_gua(self, instance):
         """电脑起卦"""
         yao_list = [random.randint(6, 9) for _ in range(6)]
         self.display_gua(yao_list, '电脑起卦')
-    
+
     def manual_gua(self, instance):
-        """手动起卦"""
-        show_manual_gua_popup(self)
-    
+        """手动选卦"""
+        show_manual_select_gua_popup(self)
+
     def daily_gua(self, instance):
-        """今日运势（根据日期 + 设备 ID）"""
+        """今日运势"""
         yao_list = get_daily_gua()
         self.display_gua(yao_list, '今日运势')
-    
+
     def jinqian_gua(self, instance):
-        """金钱起卦（三枚铜钱摇六次）"""
+        """金钱起卦"""
         yao_list = gua_calculator.jinqian_qigua()
         self.display_gua(yao_list, '金钱起卦')
-    
+
     def time_gua(self, instance):
-        """时间起卦（梅花易数）"""
+        """时间起卦"""
         now = datetime.now()
         yao_list = gua_calculator.time_qigua(now.year, now.month, now.day, now.hour, now.minute)
         self.display_gua(yao_list, '时间起卦')
-    
-    def shicao_gua(self, instance):
-        """蓍草起卦（周易传统）"""
-        yao_list = gua_calculator.shicao_qigua()
-        self.display_gua(yao_list, '蓍草起卦')
-    
+
+    # ==================== 卦象显示 ====================
+
     def display_gua(self, yao_list, method):
-        """显示卦象（修复版，P1-4: 添加图片路径检查）"""
+        """显示卦象"""
         try:
             if GUA_CALC_AVAILABLE:
-                # 使用图片显示函数
                 text, gua_name, changing_gua_name, image_info = gua_calculator.format_gua_display(yao_list, method)
-                
-                # 保存变卦信息
                 self.current_changing_gua = changing_gua_name
-                # 保存图片路径信息
                 self.current_image_info = image_info
             else:
                 text = f'{method}\n\n卦名：未知卦'
                 gua_name = '未知卦'
                 self.current_changing_gua = None
                 image_info = {}
-            
-            # 显示卦象图片和爻位信息
-            if hasattr(self, 'gua_name_label'):
-                self.gua_name_label.text = f'[b]{gua_name}[/b]'
-            
-            # 设置 64 卦图片和爻位图片（P1-4: 添加路径检查）
-            if hasattr(self, 'hexagram_image') and image_info:
-                # 设置 64 卦图片
-                hex_image_path = image_info.get('hexagram', '')
-                if hex_image_path and os.path.exists(hex_image_path):
-                    self.hexagram_image.source = hex_image_path
-                    self.hexagram_image.reload()
-                    logger.info(f'[INFO] 64 卦图片加载成功：{hex_image_path}')
-                else:
-                    logger.warning(f'[WARN] 64 卦图片不存在：{hex_image_path}')
-                
-                # 设置卦名
-                if hasattr(self, 'gua_name_label'):
-                    self.gua_name_label.text = f'[b]{gua_name}[/b]'
-                
-                # 设置 6 个爻位图片和信息（每一爻图片 + 文字）
-                if hasattr(self, 'yao_images') and hasattr(self, 'yao_labels'):
-                    yao_names = ['上', '五', '四', '三', '二', '初']
-                    yao_imgs = image_info.get('yao', {})
-                    
-                    for i in range(6):
-                        yao = yao_list[5 - i]  # 从下往上数
-                        yao_type = '阳' if yao in [7, 9] else '阴'
-                        mark = ' ⭕' if yao == 9 else ' ✕' if yao == 6 else ''
-                        
-                        # 设置爻图片（P1-4: 添加路径检查）
-                        if i in yao_imgs:
-                            yao_img_path = yao_imgs[i]
-                            if yao_img_path and os.path.exists(yao_img_path):
-                                self.yao_images[i].source = yao_img_path
-                                self.yao_images[i].reload()
-                            else:
-                                logger.warning(f'[WARN] 爻图片不存在：{yao_img_path}')
-                        
-                        # 设置爻位文字
-                        self.yao_labels[i].text = f'{yao_names[i]}{yao_type}{mark}'
-                else:
-                    # Fallback: 如果没有图片，只显示文字
-                    logger.warning('[WARN] 图片加载失败，使用文字显示')
-            
-            # 保留旧代码兼容性
-            if hasattr(self, 'gua_info_label'):
-                    yao_lines = []
-                    yao_names = ['初', '二', '三', '四', '五', '上']
-                    for i in range(5, -1, -1):
-                        yao = yao_list[i]
-                        yao_name = yao_names[i]
-                        yao_type = '阳' if yao in [7, 9] else '阴'
-                        mark = ' ⭕' if yao == 9 else ' ✕' if yao == 6 else ''
-                        yao_lines.append(f'{yao_name}{yao_type}{mark}')
-                    self.gua_info_label.text = f'[b]{gua_name}[/b]\n\n' + '\n'.join(yao_lines)
-            else:
-                # Fallback: 使用文本显示
-                self.gua_result_label.text = text
-            
+
             self.current_gua = gua_name
             self.current_yao_list = yao_list
-            
+
             # 读取详细数据
             self.current_gua_detail = None
             self.current_duangua_result = None
             if GUA_CALC_AVAILABLE:
-                logger.info(f'[DEBUG] 读取卦象数据：{gua_name}')
                 self.current_gua_detail = gua_calculator.get_gua_detail(gua_name)
-                # 断卦逻辑
                 self.current_duangua_result = gua_calculator.duangua_logic(yao_list)
-                if self.current_gua_detail:
-                    logger.info(f'[DEBUG] ✅ 读取成功：卦辞={self.current_gua_detail.get("gua_ci", "")[:20]}...')
-                    logger.info(f'[DEBUG] 断卦：{self.current_duangua_result["duan_gua_method"]}')
-                else:
-                    logger.warning(f'[DEBUG] ❌ 读取失败：{gua_name}')
-            
+
+            # 更新 UI - 显示结果
+            self._show_gua_result(gua_name, yao_list, changing_gua_name)
+
+            # 更新运势 Tab
+            self._update_fortune_display(gua_name, yao_list, changing_gua_name)
+
             show_toast(f'✅ {gua_name}')
         except Exception as e:
-            logger.error(f'[ERROR] display_gua failed: {e}')
+            logger.error(f'[ERROR] display_gua: {e}')
             logger.error(traceback.format_exc())
             show_toast('❌ 显示失败')
-    
+
+    def _show_gua_result(self, gua_name, yao_list, changing_gua_name):
+        """更新起卦 Tab 的卦象显示"""
+        if not hasattr(self, 'empty_state'):
+            return
+
+        # 隐藏空状态，显示结果
+        self.empty_state.opacity = 0
+        self.empty_hint.opacity = 0
+        self.result_state.opacity = 1
+
+        # 卦名
+        self.gua_name_label.text = gua_name
+
+        # 宫位
+        palace = get_gua_palace(gua_name)
+        self.gua_palace_label.text = palace if palace else ''
+
+        # 画爻符
+        self.yao_draw_area.clear_widgets()
+        yao_names = ['上', '五', '四', '三', '二', '初']
+        for i in range(6):
+            yao = yao_list[5 - i]
+            is_yang = yao in [7, 9]
+            is_changing = yao in [6, 9]
+            mark = ' ○' if yao == 9 else ' ✕' if yao == 6 else ''
+
+            row = BoxLayout(
+                orientation='horizontal',
+                size_hint_y=None,
+                height=dp(16),
+                spacing=dp(4),
+            )
+
+            label = Label(
+                text=f'{yao_names[i]}',
+                font_size=dp(10),
+                color=COLOR_TEXT_SECOND,
+                size_hint_x=0.15,
+            )
+            row.add_widget(label)
+
+            yao_canvas = Label(
+                text='───' if is_yang else '- -',
+                font_size=dp(14),
+                color=COLOR_GOLD_LIGHT if is_changing else COLOR_GOLD,
+                halign='center',
+                size_hint_x=0.7,
+            )
+            row.add_widget(yao_canvas)
+
+            mark_label = Label(
+                text=mark,
+                font_size=dp(11),
+                color=COLOR_GOLD_LIGHT,
+                size_hint_x=0.15,
+            )
+            row.add_widget(mark_label)
+
+            self.yao_draw_area.add_widget(row)
+
+        # 卦辞
+        if self.current_gua_detail and self.current_gua_detail.get('gua_ci'):
+            self.gua_ci_label.text = self.current_gua_detail['gua_ci'][:60]
+        else:
+            self.gua_ci_label.text = ''
+
+        # 变卦
+        if changing_gua_name:
+            self.changing_label.text = f'变卦：{changing_gua_name}'
+        else:
+            self.changing_label.text = ''
+
+        # 显示重新起卦按钮
+        self.redivide_btn.opacity = 1
+
+    def _update_fortune_display(self, gua_name, yao_list, changing_gua_name):
+        """更新运势 Tab 显示"""
+        if not hasattr(self, 'fortune_gua_name'):
+            return
+
+        self.fortune_gua_name.text = gua_name
+
+        # 画爻符
+        self.fortune_yao_area.clear_widgets()
+        yao_names = ['上', '五', '四', '三', '二', '初']
+        for i in range(6):
+            yao = yao_list[5 - i]
+            is_yang = yao in [7, 9]
+            is_changing = yao in [6, 9]
+
+            row = BoxLayout(
+                orientation='horizontal',
+                size_hint_y=None,
+                height=dp(16),
+                spacing=dp(4),
+            )
+            row.add_widget(Label(
+                text=f'{yao_names[i]}',
+                font_size=dp(10),
+                color=COLOR_TEXT_SECOND,
+                size_hint_x=0.15,
+            ))
+            row.add_widget(Label(
+                text='───' if is_yang else '- -',
+                font_size=dp(14),
+                color=COLOR_GOLD_LIGHT if is_changing else COLOR_GOLD,
+                halign='center',
+                size_hint_x=0.7,
+            ))
+            row.add_widget(Label(text='', size_hint_x=0.15))
+            self.fortune_yao_area.add_widget(row)
+
+        # 描述
+        if self.current_gua_detail and self.current_gua_detail.get('bai_hua'):
+            self.fortune_desc.text = self.current_gua_detail['bai_hua'][:100] + '...'
+        if changing_gua_name:
+            self.fortune_desc.text += f'\n\n变卦：{changing_gua_name}'
+
+    # ==================== 功能按钮 ====================
+
     def show_explanation(self, instance):
-        """显示解释（详细版，含断卦结果）"""
-        try:
-            if not self.current_gua:
-                show_toast('❌ 请先起卦')
-                return
-            
-            # 显示详细解释和断卦结果
-            show_gua_explanation_with_duangua(
-                self.current_gua,
-                self.current_gua_detail,
-                self.current_yao_list,
-                self.current_changing_gua,
-                self.current_duangua_result
-            )
-        except Exception as e:
-            print(f'[ERROR] show_explanation failed: {e}')
-            show_toast('❌ 打开失败')
-    
+        """显示卦象解释"""
+        if not self.current_gua:
+            show_toast('❌ 请先起卦')
+            return
+        show_gua_explanation_with_duangua(
+            self.current_gua,
+            self.current_gua_detail,
+            self.current_yao_list,
+            self.current_changing_gua,
+            self.current_duangua_result,
+        )
+
     def show_liuyao(self, instance):
-        """显示六爻排盘（完整版：六亲 + 六神 + 世应）"""
+        """显示六爻排盘"""
+        if not self.current_gua:
+            show_toast('❌ 请先起卦')
+            return
         try:
-            if not self.current_gua:
-                show_toast('❌ 请先起卦')
-                return
-            
-            # 使用完整版六爻排盘
             from liuyao_paipan import format_liuyao_full
-            pandan_text = format_liuyao_full(
-                self.current_yao_list,
-                self.current_gua
-            )
-            show_liuyao_popup(pandan_text)
+            panduan_text = format_liuyao_full(self.current_yao_list, self.current_gua)
+            show_liuyao_popup(panduan_text)
         except Exception as e:
-            print(f'[ERROR] show_liuyao failed: {e}')
+            logger.error(f'[ERROR] show_liuyao: {e}')
             show_toast('❌ 排盘失败')
-    
+
     def share_gua(self, instance):
         """分享卦象"""
         if not self.current_gua:
             show_toast('❌ 请先起卦')
             return
-        
-        # 构建分享文本
+
         share_text = f'【{self.current_gua}】\n\n'
-        share_text += self.gua_result_label.text.replace('[b]', '').replace('[/b]', '').replace('[/font]', '')
-        
+        if self.current_yao_list:
+            yao_names = ['初', '二', '三', '四', '五', '上']
+            for i in range(5, -1, -1):
+                yao = self.current_yao_list[i]
+                yao_type = '阳' if yao in [7, 9] else '阴'
+                mark = ' ○' if yao == 9 else ' ✕' if yao == 6 else ''
+                share_text += f'{yao_names[i]}{yao_type}{mark}\n'
+        if self.current_changing_gua:
+            share_text += f'\n变卦：{self.current_changing_gua}'
+
         show_share_popup(share_text)
-    
+
     def copy_result(self, instance):
         """复制卦象"""
         if not self.current_gua:
             show_toast('❌ 请先起卦')
             return
-        
-        text = f'【{self.current_gua}】\n{self.gua_result_label.text}'
+
+        text = f'【{self.current_gua}】\n'
+        if self.current_yao_list:
+            yao_names = ['初', '二', '三', '四', '五', '上']
+            for i in range(5, -1, -1):
+                yao = self.current_yao_list[i]
+                yao_type = '阳' if yao in [7, 9] else '阴'
+                mark = ' ○' if yao == 9 else ' ✕' if yao == 6 else ''
+                text += f'{yao_names[i]}{yao_type}{mark}\n'
+        if self.current_changing_gua:
+            text += f'\n变卦：{self.current_changing_gua}'
+
         copy_to_clipboard(text)
         show_toast('✅ 已复制')
 

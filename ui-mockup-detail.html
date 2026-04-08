@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=400, initial-scale=1.0">
+<title>我爱八卦 v1.3.0 - 主界面详情</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a1a;
+  color: #e0d5c1;
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 30px;
+  gap: 25px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.phone {
+  width: 390px;
+  height: 844px;
+  background: #16213e;
+  border-radius: 44px;
+  border: 6px solid #2a2a3e;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 40px rgba(201,169,110,0.1);
+}
+.screen-label {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #c9a96e, #a08040);
+  color: #1a1a2e;
+  padding: 5px 16px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  z-index: 100;
+  white-space: nowrap;
+}
+.status-bar {
+  height: 50px;
+  background: #0f3460;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 25px;
+  font-size: 13px;
+  color: #e0d5c1;
+}
+.header {
+  background: linear-gradient(135deg, #0f3460 0%, #1a1a5e 50%, #0f3460 100%);
+  padding: 20px 20px 15px;
+  text-align: center;
+  border-bottom: 2px solid #c9a96e;
+  position: relative;
+}
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #c9a96e, transparent);
+}
+.header h1 {
+  font-size: 26px;
+  color: #c9a96e;
+  letter-spacing: 6px;
+  text-shadow: 0 0 20px rgba(201,169,110,0.3);
+}
+.header .subtitle {
+  font-size: 11px;
+  color: #8a7e6b;
+  margin-top: 3px;
+  letter-spacing: 2px;
+}
+.tabs {
+  display: flex;
+  background: #0f3460;
+  border-bottom: 1px solid #1a1a3e;
+}
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 14px 0;
+  font-size: 13px;
+  color: #6b6b5e;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s;
+}
+.tab.active {
+  color: #c9a96e;
+  border-bottom-color: #c9a96e;
+  background: rgba(201,169,110,0.08);
+}
+.content {
+  padding: 15px;
+  height: 590px;
+  overflow-y: auto;
+}
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 50px 20px 30px;
+}
+.empty-state .icon {
+  font-size: 72px;
+  margin-bottom: 15px;
+  opacity: 0.6;
+}
+.empty-state .text {
+  font-size: 14px;
+  color: #6b6b5e;
+  line-height: 1.8;
+}
+/* 起卦方式 */
+.section-title {
+  font-size: 15px;
+  color: #c9a96e;
+  margin: 15px 0 12px;
+  padding-left: 10px;
+  border-left: 3px solid #c9a96e;
+}
+.gua-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.method-btn {
+  background: linear-gradient(145deg, #1a3a5e, #0f2848);
+  border: 1px solid rgba(201,169,110,0.25);
+  border-radius: 14px;
+  padding: 18px 12px;
+  text-align: center;
+  transition: all 0.3s;
+}
+.method-btn .icon { font-size: 32px; margin-bottom: 6px; }
+.method-btn .label { font-size: 14px; color: #c9a96e; font-weight: 500; }
+.method-btn .desc { font-size: 11px; color: #6b6b5e; margin-top: 3px; }
+/* 快捷功能 */
+.func-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.func-btn {
+  background: rgba(201,169,110,0.1);
+  border: 1px solid rgba(201,169,110,0.3);
+  border-radius: 20px;
+  padding: 10px 18px;
+  font-size: 13px;
+  color: #c9a96e;
+}
+.func-btn.primary {
+  background: linear-gradient(135deg, #c9a96e, #a08040);
+  color: #1a1a2e;
+  font-weight: bold;
+  border-color: transparent;
+}
+/* 卦象显示 */
+.gua-display {
+  background: linear-gradient(145deg, #1a1a3e, #0f0f2e);
+  border-radius: 18px;
+  padding: 25px 20px;
+  text-align: center;
+  margin-bottom: 15px;
+  border: 1px solid rgba(201,169,110,0.3);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.gua-name {
+  font-size: 28px;
+  color: #c9a96e;
+  font-weight: bold;
+  margin-bottom: 5px;
+  letter-spacing: 4px;
+}
+.gua-sub {
+  font-size: 12px;
+  color: #8a7e6b;
+  margin-bottom: 15px;
+}
+.gua-symbol {
+  font-size: 36px;
+  margin: 12px 0;
+  line-height: 1.3;
+  color: #e0d5c1;
+}
+.gua-text {
+  font-size: 13px;
+  color: #a09880;
+  line-height: 1.8;
+  padding: 12px;
+  background: rgba(0,0,0,0.25);
+  border-radius: 10px;
+  text-align: left;
+}
+.gua-text b { color: #c9a96e; }
+/* 变卦 */
+.bian-gua {
+  background: rgba(201,169,110,0.08);
+  border: 1px solid rgba(201,169,110,0.2);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 15px;
+}
+.bian-gua .label { font-size: 13px; color: #c9a96e; margin-bottom: 6px; }
+.bian-gua .text { font-size: 12px; color: #a09880; }
+/* 筛选栏 */
+.filter-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  scrollbar-width: none;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-tag {
+  background: rgba(201,169,110,0.1);
+  border: 1px solid rgba(201,169,110,0.2);
+  border-radius: 15px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: #8a7e6b;
+  white-space: nowrap;
+}
+.filter-tag.active {
+  background: rgba(201,169,110,0.25);
+  color: #c9a96e;
+  border-color: rgba(201,169,110,0.4);
+}
+/* 卦网格 */
+.gua-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.gua-item {
+  background: linear-gradient(145deg, rgba(26,26,62,0.9), rgba(15,15,46,0.9));
+  border-radius: 10px;
+  padding: 14px 5px;
+  text-align: center;
+  border: 1px solid rgba(201,169,110,0.15);
+}
+.gua-item .symbol { font-size: 22px; }
+.gua-item .name { font-size: 12px; color: #c9a96e; margin-top: 5px; }
+/* 搜索框 */
+.search-box {
+  width: 100%;
+  padding: 12px 18px;
+  background: rgba(26,26,62,0.8);
+  border: 1px solid rgba(201,169,110,0.2);
+  border-radius: 22px;
+  color: #c9a96e;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+/* 弹窗 */
+.modal-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+.modal {
+  background: #16213e;
+  border-radius: 20px;
+  padding: 20px;
+  width: 92%;
+  max-height: 75%;
+  border: 1px solid rgba(201,169,110,0.3);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.modal h3 {
+  text-align: center;
+  color: #c9a96e;
+  margin-bottom: 15px;
+  font-size: 18px;
+}
+.modal-gua-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.modal-gua-item {
+  background: rgba(26,26,62,0.8);
+  border-radius: 10px;
+  padding: 10px 5px;
+  text-align: center;
+  font-size: 11px;
+  color: #c9a96e;
+  border: 1px solid rgba(201,169,110,0.15);
+}
+.modal-gua-item .symbol { font-size: 18px; display: block; margin-bottom: 3px; }
+/* 底部导航 */
+.bottom-nav {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 75px;
+  background: linear-gradient(180deg, #0f3460, #0a1a3a);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid #1a1a3e;
+}
+.nav-item {
+  text-align: center;
+  font-size: 10px;
+  color: #6b6b5e;
+}
+.nav-item.active { color: #c9a96e; }
+.nav-item .nav-icon { font-size: 24px; margin-bottom: 2px; }
+/* 标题 */
+.screen-title-label {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #c9a96e, #a08040);
+  color: #1a1a2e;
+  padding: 4px 14px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: bold;
+  z-index: 100;
+}
+</style>
+</head>
+<body>
+
+<!-- 屏幕1: 起卦初始 -->
+<div class="phone">
+  <div class="screen-title-label">屏幕1: 起卦（初始）</div>
+  <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+  <div class="header">
+    <h1>☯ 我爱八卦</h1>
+    <div class="subtitle">周易六十四卦 · 卜卦解惑</div>
+  </div>
+  <div class="tabs">
+    <div class="tab active">🏠 起卦</div>
+    <div class="tab">📚 64卦</div>
+    <div class="tab">🔮 运势</div>
+    <div class="tab">⚙ 设置</div>
+  </div>
+  <div class="content">
+    <div class="empty-state">
+      <div class="icon">☯</div>
+      <div class="text">选择起卦方式<br>探索天机，趋吉避凶</div>
+    </div>
+    <div class="section-title">起卦方式</div>
+    <div class="gua-methods">
+      <div class="method-btn"><div class="icon">🎲</div><div class="label">随机起卦</div><div class="desc">心诚则灵</div></div>
+      <div class="method-btn"><div class="icon">📜</div><div class="label">手动选卦</div><div class="desc">64卦列表</div></div>
+      <div class="method-btn"><div class="icon">🪙</div><div class="label">金钱起卦</div><div class="desc">模拟摇卦</div></div>
+      <div class="method-btn"><div class="icon">⏰</div><div class="label">时间起卦</div><div class="desc">以时起卦</div></div>
+    </div>
+    <div class="section-title">快捷功能</div>
+    <div class="func-btns">
+      <div class="func-btn primary">📖 卦象解释</div>
+      <div class="func-btn">🔮 六爻排盘</div>
+      <div class="func-btn">📤 分享</div>
+      <div class="func-btn">📋 历史</div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active"><div class="nav-icon">☯</div>起卦</div>
+    <div class="nav-item"><div class="nav-icon">📚</div>64卦</div>
+    <div class="nav-item"><div class="nav-icon">🔮</div>运势</div>
+    <div class="nav-item"><div class="nav-icon">⚙</div>设置</div>
+  </div>
+</div>
+
+<!-- 屏幕2: 起卦结果 -->
+<div class="phone">
+  <div class="screen-title-label">屏幕2: 起卦结果</div>
+  <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+  <div class="header">
+    <h1>☯ 我爱八卦</h1>
+    <div class="subtitle">随机起卦 · 心诚则灵</div>
+  </div>
+  <div class="tabs">
+    <div class="tab active">🏠 起卦</div>
+    <div class="tab">📚 64卦</div>
+    <div class="tab">🔮 运势</div>
+    <div class="tab">⚙ 设置</div>
+  </div>
+  <div class="content">
+    <div class="gua-display">
+      <div class="gua-name">乾为天</div>
+      <div class="gua-sub">乾宫 · 上上卦</div>
+      <div class="gua-symbol">⚊<br>⚊<br>⚊<br>⚊<br>⚊<br>⚊</div>
+      <div class="gua-text">
+        <b>卦辞：</b>元亨利贞<br>
+        <b>象曰：</b>天行健，君子以自强不息<br>
+        <b>白话：</b>乾卦象征天，刚健中正。四德具备，万事亨通。
+      </div>
+    </div>
+    <div class="bian-gua">
+      <div class="label">⚡ 变卦</div>
+      <div class="text">乾为天 → 天风姤（初爻变）</div>
+    </div>
+    <div class="section-title">操作</div>
+    <div class="func-btns">
+      <div class="func-btn primary">📖 详细解释</div>
+      <div class="func-btn">🔮 六爻排盘</div>
+      <div class="func-btn">📤 分享</div>
+    </div>
+    <div style="text-align:center;margin-top:12px;">
+      <div class="func-btn" style="display:inline-block;">🎲 重新起卦</div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active"><div class="nav-icon">☯</div>起卦</div>
+    <div class="nav-item"><div class="nav-icon">📚</div>64卦</div>
+    <div class="nav-item"><div class="nav-icon">🔮</div>运势</div>
+    <div class="nav-item"><div class="nav-icon">⚙</div>设置</div>
+  </div>
+</div>
+
+<!-- 屏幕3: 手动选卦弹窗 -->
+<div class="phone">
+  <div class="screen-title-label">屏幕3: 手动选卦</div>
+  <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+  <div class="header">
+    <h1>☯ 我爱八卦</h1>
+    <div class="subtitle">选择卦象</div>
+  </div>
+  <div class="content" style="background:rgba(0,0,0,0.65);">
+    <div class="modal" style="width:100%;max-height:100%;background:#16213e;border:1px solid rgba(201,169,110,0.4);">
+      <h3>📜 选择卦象</h3>
+      <div class="filter-bar">
+        <div class="filter-tag active">全部</div>
+        <div class="filter-tag">乾宫</div>
+        <div class="filter-tag">坤宫</div>
+        <div class="filter-tag">震宫</div>
+        <div class="filter-tag">巽宫</div>
+        <div class="filter-tag">坎宫</div>
+        <div class="filter-tag">离宫</div>
+        <div class="filter-tag">艮宫</div>
+        <div class="filter-tag">兑宫</div>
+      </div>
+      <div class="modal-gua-list">
+        <div class="modal-gua-item"><span class="symbol">☰</span>乾为天</div>
+        <div class="modal-gua-item"><span class="symbol">☷</span>坤为地</div>
+        <div class="modal-gua-item"><span class="symbol">☳</span>震为雷</div>
+        <div class="modal-gua-item"><span class="symbol">☴</span>巽为风</div>
+        <div class="modal-gua-item"><span class="symbol">☵</span>坎为水</div>
+        <div class="modal-gua-item"><span class="symbol">☲</span>离为火</div>
+        <div class="modal-gua-item"><span class="symbol">☶</span>艮为山</div>
+        <div class="modal-gua-item"><span class="symbol">☱</span>兑为泽</div>
+        <div class="modal-gua-item"><span class="symbol">䷊</span>地天泰</div>
+        <div class="modal-gua-item"><span class="symbol">䷋</span>天地否</div>
+        <div class="modal-gua-item"><span class="symbol">䷒</span>地山谦</div>
+        <div class="modal-gua-item"><span class="symbol">䷏</span>雷地豫</div>
+        <div class="modal-gua-item"><span class="symbol">䷞</span>泽山咸</div>
+        <div class="modal-gua-item"><span class="symbol">䷽</span>火风鼎</div>
+        <div class="modal-gua-item"><span class="symbol">䷾</span>水火既济</div>
+        <div class="modal-gua-item"><span class="symbol">䷿</span>火水未济</div>
+        <div class="modal-gua-item"><span class="symbol">⚡</span>水雷屯</div>
+        <div class="modal-gua-item"><span class="symbol">⚡</span>山水蒙</div>
+        <div class="modal-gua-item"><span class="symbol">⚡</span>水天需</div>
+        <div class="modal-gua-item"><span class="symbol">⚡</span>天水讼</div>
+      </div>
+      <div style="text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid rgba(201,169,110,0.2);">
+        <span style="font-size:12px;color:#6b6b5e;">共 64 卦 · 点击选择 · 可滚动</span>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item active"><div class="nav-icon">☯</div>起卦</div>
+    <div class="nav-item"><div class="nav-icon">📚</div>64卦</div>
+    <div class="nav-item"><div class="nav-icon">🔮</div>运势</div>
+    <div class="nav-item"><div class="nav-icon">⚙</div>设置</div>
+  </div>
+</div>
+
+<!-- 屏幕4: 64卦速查 -->
+<div class="phone">
+  <div class="screen-title-label">屏幕4: 64卦速查</div>
+  <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+  <div class="header">
+    <h1>☯ 我爱八卦</h1>
+    <div class="subtitle">六十四卦速查</div>
+  </div>
+  <div class="tabs">
+    <div class="tab">🏠 起卦</div>
+    <div class="tab active">📚 64卦</div>
+    <div class="tab">🔮 运势</div>
+    <div class="tab">⚙ 设置</div>
+  </div>
+  <div class="content">
+    <input class="search-box" type="text" value="🔍 搜索卦名..." readonly>
+    <div class="filter-bar">
+      <div class="filter-tag active">全部</div>
+      <div class="filter-tag">乾宫八卦</div>
+      <div class="filter-tag">坤宫八卦</div>
+      <div class="filter-tag">震宫八卦</div>
+      <div class="filter-tag">巽宫八卦</div>
+      <div class="filter-tag">坎宫八卦</div>
+      <div class="filter-tag">离宫八卦</div>
+      <div class="filter-tag">艮宫八卦</div>
+      <div class="filter-tag">兑宫八卦</div>
+    </div>
+    <div class="gua-grid">
+      <div class="gua-item"><div class="symbol">☰</div><div class="name">乾为天</div></div>
+      <div class="gua-item"><div class="symbol">☷</div><div class="name">坤为地</div></div>
+      <div class="gua-item"><div class="symbol">☳</div><div class="name">震为雷</div></div>
+      <div class="gua-item"><div class="symbol">☴</div><div class="name">巽为风</div></div>
+      <div class="gua-item"><div class="symbol">☵</div><div class="name">坎为水</div></div>
+      <div class="gua-item"><div class="symbol">☲</div><div class="name">离为火</div></div>
+      <div class="gua-item"><div class="symbol">☶</div><div class="name">艮为山</div></div>
+      <div class="gua-item"><div class="symbol">☱</div><div class="name">兑为泽</div></div>
+      <div class="gua-item"><div class="symbol">䷊</div><div class="name">地天泰</div></div>
+      <div class="gua-item"><div class="symbol">䷋</div><div class="name">天地否</div></div>
+      <div class="gua-item"><div class="symbol">䷒</div><div class="name">地山谦</div></div>
+      <div class="gua-item"><div class="symbol">䷏</div><div class="name">雷地豫</div></div>
+      <div class="gua-item"><div class="symbol">䷞</div><div class="name">泽山咸</div></div>
+      <div class="gua-item"><div class="symbol">䷽</div><div class="name">火风鼎</div></div>
+      <div class="gua-item"><div class="symbol">䷾</div><div class="name">水火既济</div></div>
+      <div class="gua-item"><div class="symbol">䷿</div><div class="name">火水未济</div></div>
+      <div class="gua-item"><div class="symbol">⚡</div><div class="name">水雷屯</div></div>
+      <div class="gua-item"><div class="symbol">⚡</div><div class="name">山水蒙</div></div>
+      <div class="gua-item"><div class="symbol">⚡</div><div class="name">水天需</div></div>
+      <div class="gua-item"><div class="symbol">⚡</div><div class="name">天水讼</div></div>
+      <div class="gua-item"><div class="symbol">⚡</div><div class="name">更多...</div></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item"><div class="nav-icon">☯</div>起卦</div>
+    <div class="nav-item active"><div class="nav-icon">📚</div>64卦</div>
+    <div class="nav-item"><div class="nav-icon">🔮</div>运势</div>
+    <div class="nav-item"><div class="nav-icon">⚙</div>设置</div>
+  </div>
+</div>
+
+</body>
+</html>
