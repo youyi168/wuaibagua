@@ -24,9 +24,13 @@ def get_data_path():
     
     回退优先级：
     1. 环境变量 WUAIBAGUA_DATA
-    2. Android 应用私有目录
-    3. 开发环境（项目目录）
+    2. 项目目录（__file__ 所在位置，Android 打包数据也在这里）
+    3. Android 用户存储目录
     4. 用户主目录（最后回退）
+    
+    注意：Android 上 buildozer 打包的 data/ 目录在 __file__ 同级，
+    而 app_storage_path() 是空的用户存储目录，不含打包数据。
+    必须优先使用 __file__ 路径！
     """
     # 1. 环境变量
     if os.getenv('WUAIBAGUA_DATA'):
@@ -34,23 +38,32 @@ def get_data_path():
         data_path.mkdir(parents=True, exist_ok=True)
         return data_path
     
-    # 2. Android 环境
+    # 2. 项目目录（Android 打包数据在这里）
+    dev_path = Path(__file__).parent / 'data'
+    if dev_path.exists() and (dev_path / 'gua_optimized.db').exists():
+        logger.info(f'[DB] 使用项目目录: {dev_path}')
+        return dev_path
+    
+    # 3. Android 用户存储目录
     try:
         from android.storage import app_storage_path
         android_path = Path(app_storage_path()) / 'data'
-        android_path.mkdir(parents=True, exist_ok=True)
-        return android_path
+        if android_path.exists() and (android_path / 'gua_optimized.db').exists():
+            logger.info(f'[DB] 使用 Android 存储: {android_path}')
+            return android_path
     except ImportError:
         pass
     
-    # 3. 开发环境（项目目录）
+    # 4. 再次尝试项目目录（即使 db 不存在也返回）
     dev_path = Path(__file__).parent / 'data'
     if dev_path.exists():
+        logger.warning(f'[DB] 项目目录存在但无 db 文件: {dev_path}')
         return dev_path
     
-    # 4. 用户主目录（最后回退）
+    # 5. 用户主目录（最后回退）
     user_path = Path.home() / '.wuaibagua' / 'data'
     user_path.mkdir(parents=True, exist_ok=True)
+    logger.warning(f'[DB] 使用用户主目录: {user_path}')
     return user_path
 
 DB_PATH = get_data_path() / 'gua_optimized.db'
