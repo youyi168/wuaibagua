@@ -39,7 +39,7 @@ warn_on_root = 1
 
 # 使用官方 python-for-android 稳定版
 p4a.source_url = https://github.com/kivy/python-for-android.git
-p4a.branch = develop
+p4a.branch = v2024.01.21
 
 # 【关键修复】使用自定义 AndroidManifest.xml 强制禁用 Vulkan
 # 解决 Adreno Vulkan 驱动 0800.60 在 Android 13+ 上的崩溃问题
