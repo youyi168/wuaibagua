@@ -187,7 +187,7 @@ GUA_PALACE_MAP = {
 # ==================== 工具函数 ====================
 
 def copy_to_clipboard(text):
-    """复制文本到剪贴板"""
+    """复制文本到剪贴板（修复版：更安全地获取 Context）"""
     try:
         if not ANDROID_CLIPBOARD_AVAILABLE:
             init_android_clipboard()
@@ -196,12 +196,23 @@ def copy_to_clipboard(text):
             ClipboardManager = autoclass('android.content.ClipboardManager')
             ClipData = autoclass('android.content.ClipData')
             app = App.get_running_app()
+            context = None
             if app:
                 context = _get_android_context(app)
+            # 回退：通过 PythonActivity 获取
+            if not context:
+                try:
+                    PythonActivity = autoclass('org.kivy.android.PythonActivity')
+                    context = PythonActivity.mActivity
+                except:
+                    pass
+            if context:
                 clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
                 clip = ClipData.newPlainText('wuaibagua', text)
                 clipboard.setPrimaryClip(clip)
                 logger.info(f'[INFO] 已复制到剪贴板：{text[:50]}...')
+            else:
+                logger.warning('[WARN] 无法获取 Android Context')
         else:
             logger.info(f'[INFO] Copy: {text[:50]}...')
     except Exception as e:
@@ -848,9 +859,7 @@ def show_manual_select_gua_popup(app):
         grid_scroll.add_widget(grid)
         popup_layout.add_widget(grid_scroll)
 
-        # 初始填充
-        _update_gua_grid(grid, '全部', all_gua, app, popup)
-
+        # 先创建 Popup（在调用 _update_gua_grid 之前！）
         popup = Popup(
             title='',
             content=popup_layout,
@@ -858,6 +867,10 @@ def show_manual_select_gua_popup(app):
             auto_dismiss=True,
             background_color=COLOR_BG,
         )
+
+        # 初始填充（此时 popup 已存在）
+        _update_gua_grid(grid, '全部', all_gua, app, popup)
+
         popup.open()
 
     except Exception as e:
@@ -882,7 +895,11 @@ def _update_gua_grid(grid, palace, all_gua, app, popup):
         apply_card_bg(btn, radius=[dp(8), dp(8), dp(8), dp(8)])
 
         def on_gua(instance, g_name=gua['name']):
-            popup.dismiss()
+            try:
+                if popup and hasattr(popup, 'dismiss'):
+                    popup.dismiss()
+            except:
+                pass
             # 通过卦名获取二进制，再生成 yao_list
             yao_list = _gua_name_to_yao(g_name)
             if yao_list:
