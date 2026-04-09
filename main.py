@@ -111,6 +111,14 @@ Config.set('input', 'mouse', 'mouse,disable_multitouch,multitouch_on_demand')
 Config.set('kivy', 'log_level', 'error')
 Config.set('kivy', 'log_dir', '/dev/null')
 
+# 全局默认字体（⚠️ 必须在任何 Kivy import 之前设置）
+# 这样所有 Widget 自动使用该字体，无需单独设置 font_name
+Config.set(
+    'kivy', 'default_font',
+    ['NotoSansSC', 'fonts/NotoSansSC-Regular.ttf', 'fonts/NotoSansSC-Regular.ttf',
+     'fonts/NotoSansSC-Regular.ttf', 'fonts/NotoSansSC-Regular.ttf']
+)
+
 # ==================== 标准导入 ====================
 import random
 import hashlib
@@ -1091,9 +1099,11 @@ class WuaibaguaApp(App):
         else:
             logger.warning(f'[WARN] 字体文件不存在: {_font_path}')
 
-        Label.font_name = 'NotoSansSC'
-        Button.font_name = 'NotoSansSC'
-        TextInput.font_name = 'NotoSansSC'
+        # ⚠️ 禁止类级别设置 font_name！会覆盖 Kivy AliasProperty 导致 Cython 崩溃
+        # 改用 Config 设置全局默认字体（在 Kivy 初始化前生效）
+        # Label.font_name = 'NotoSansSC'  ← 删除
+        # Button.font_name = 'NotoSansSC'  ← 删除
+        # TextInput.font_name = 'NotoSansSC'  ← 删除
 
         # ========== 自定义 Tab 布局 ==========
         main_layout = BoxLayout(orientation='vertical', padding=0, spacing=0)
