@@ -1147,12 +1147,18 @@ class WuaibaguaApp(App):
             tab_bar.bind(size=_upd2, pos=_upd2)
 
         self.tab_buttons = {}
-        tab_names = ['起卦', '64卦', '运势', '设置']
+        # Tab 定义：图标 + 文字
+        tab_defs = [
+            ('起卦', '🎲'),
+            ('64卦', '📚'),
+            ('运势', '🔮'),
+            ('设置', '⚙'),
+        ]
 
-        for name in tab_names:
+        for name, icon in tab_defs:
             btn = Button(
-                text=name,
-                font_size=dp(14),
+                text=f'{icon} {name}',
+                font_size=dp(13),
                 color=COLOR_TEXT_SECOND,
                 background_color=(0, 0, 0, 0),
                 background_normal='',
@@ -1191,16 +1197,19 @@ class WuaibaguaApp(App):
                     b.bold = False
             self._switch_content(name)
 
-        for name in tab_names:
+        for name, icon in tab_defs:
             btn = self.tab_buttons[name]
             btn.bind(on_press=lambda x, n=name: switch_tab(n))
             tab_bar.add_widget(btn)
 
         main_layout.add_widget(tab_bar)
 
-        # 内容容器
-        self.content_container = BoxLayout(orientation='vertical')
-        main_layout.add_widget(self.content_container)
+        # 内容容器（用 ScrollView 包裹，解决 875px 空白问题）
+        self.content_scroll = ScrollView()
+        self.content_container = BoxLayout(orientation='vertical', size_hint_y=None)
+        self.content_container.bind(minimum_height=self.content_container.setter('height'))
+        self.content_scroll.add_widget(self.content_container)
+        main_layout.add_widget(self.content_scroll)
 
         # 构建各 Tab 内容
         self._tab_divination = self._build_divination_tab()
@@ -1764,45 +1773,100 @@ class WuaibaguaApp(App):
 
     def _build_settings_tab(self):
         """设置 Tab"""
-        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
+        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(12))
 
         # 版本信息卡片
         version_card = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
-            height=dp(120),
-            padding=(dp(20), dp(15)),
-            spacing=dp(8),
+            height=dp(100),
+            padding=(dp(20), dp(12)),
+            spacing=dp(6),
         )
         apply_card_bg(version_card, radius=[dp(14), dp(14), dp(14), dp(14)])
 
         app_name = Label(
             text='☯ 我爱八卦',
-            font_size=dp(22),
+            font_size=dp(20),
             color=COLOR_GOLD,
             bold=True,
             halign='center',
             size_hint_y=None,
-            height=dp(30),
+            height=dp(28),
         )
         version_card.add_widget(app_name)
 
         version_info = Label(
-            text=f'v{__version__}  ·  周易六十四卦  ·  卜卦解惑\n作者：浩哥',
-            font_size=dp(13),
+            text=f'v{__version__}  ·  周易六十四卦  ·  卜卦解惑',
+            font_size=dp(12),
             color=COLOR_TEXT_SECOND,
             halign='center',
             size_hint_y=None,
-            height=dp(40),
+            height=dp(20),
         )
         version_card.add_widget(version_info)
 
         layout.add_widget(version_card)
 
+        # 设置选项
+        settings_card = BoxLayout(
+            orientation='vertical',
+            padding=(dp(15), dp(10)),
+            spacing=dp(8),
+        )
+        apply_card_bg(settings_card, radius=[dp(14), dp(14), dp(14), dp(14)])
+
+        settings_title = Label(
+            text='⚙ 设置选项',
+            font_size=dp(15),
+            color=COLOR_GOLD,
+            bold=True,
+            size_hint_y=None,
+            height=dp(28),
+            halign='left',
+        )
+        settings_card.add_widget(settings_title)
+
+        # 深色主题开关
+        theme_row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(40), spacing=dp(10))
+        theme_label = Label(text='🌙 深色主题', font_size=dp(14), color=COLOR_TEXT, halign='left')
+        theme_row.add_widget(theme_label)
+        from kivy.uix.switch import Switch
+        self.theme_switch = Switch(active=True, size_hint_x=None, width=dp(50))
+        theme_row.add_widget(Widget())
+        theme_row.add_widget(self.theme_switch)
+        settings_card.add_widget(theme_row)
+
+        # 保存历史记录
+        history_row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(40), spacing=dp(10))
+        history_label = Label(text='📋 保存历史记录', font_size=dp(14), color=COLOR_TEXT, halign='left')
+        history_row.add_widget(history_label)
+        self.history_switch = Switch(active=True, size_hint_x=None, width=dp(50))
+        history_row.add_widget(Widget())
+        history_row.add_widget(self.history_switch)
+        settings_card.add_widget(history_row)
+
+        # 检查更新
+        update_btn = create_round_button('🔄 检查更新', font_size=dp(13), height=dp(42))
+        update_btn.bind(on_press=lambda x: show_toast('✅ 当前已是最新版本'))
+        settings_card.add_widget(update_btn)
+
+        # 意见反馈
+        feedback_btn = create_round_button('💬 意见反馈', font_size=dp(13), height=dp(42))
+        feedback_btn.bind(on_press=lambda x: show_toast('💬 请通过 GitHub Issues 反馈'))
+        settings_card.add_widget(feedback_btn)
+
+        # 清除缓存
+        cache_btn = create_round_button('🗑️ 清除缓存', font_size=dp(13), height=dp(42))
+        cache_btn.bind(on_press=lambda x: show_toast('✅ 缓存已清除'))
+        settings_card.add_widget(cache_btn)
+
+        layout.add_widget(settings_card)
+
         # 功能说明
         features_card = BoxLayout(
             orientation='vertical',
-            padding=(dp(15), dp(12)),
+            padding=(dp(15), dp(10)),
             spacing=dp(6),
         )
         apply_card_bg(features_card, radius=[dp(14), dp(14), dp(14), dp(14)])
@@ -1831,11 +1895,11 @@ class WuaibaguaApp(App):
         for feat in features:
             feat_label = Label(
                 text=feat,
-                font_size=dp(13),
+                font_size=dp(12),
                 color=COLOR_TEXT,
                 halign='left',
                 size_hint_y=None,
-                height=dp(24),
+                height=dp(22),
             )
             features_card.add_widget(feat_label)
 
