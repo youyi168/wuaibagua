@@ -1120,13 +1120,14 @@ class WuaibaguaApp(App):
         )
         header.add_widget(title_label)
 
-        subtitle_label = Label(
+        # 动态标题：根据当前 Tab 变化
+        self.header_subtitle = Label(
             text='周易六十四卦 · 卜卦解惑',
             font_size=dp(11),
             color=COLOR_TEXT_SECOND,
             halign='right',
         )
-        header.add_widget(subtitle_label)
+        header.add_widget(self.header_subtitle)
         main_layout.add_widget(header)
 
         # Tab 导航栏
@@ -1241,6 +1242,15 @@ class WuaibaguaApp(App):
             '运势': self._tab_fortune,
             '设置': self._tab_settings,
         }
+        # 更新副标题
+        subtitle_map = {
+            '起卦': '周易六十四卦 · 卜卦解惑',
+            '64卦': '快速查找 · 点击查看',
+            '运势': '每日专属 · 趋吉避凶',
+            '设置': '个性化 · 数据管理',
+        }
+        if hasattr(self, 'header_subtitle'):
+            self.header_subtitle.text = subtitle_map.get(name, '')
         self.content_container.clear_widgets()
         widget = tab_map.get(name)
         if widget:
