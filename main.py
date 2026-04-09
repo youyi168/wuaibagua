@@ -133,6 +133,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
 from kivy.uix.image import Image
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelHeader
+from kivy.uix.widget import Widget
 from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.core.text import LabelBase
@@ -151,6 +152,120 @@ COLOR_TEXT_DIM = (0.420, 0.420, 0.369, 1)    # #6b6b5e 暗淡文字
 COLOR_WHITE = (1, 1, 1, 1)
 COLOR_RED = (0.8, 0.3, 0.3, 1)
 COLOR_GREEN = (0.3, 0.7, 0.4, 1)
+
+# ==================== 卦象符号组件 ====================
+
+def yao_lines_from_binary(binary_str):
+    """将 6 位二进制字符串转为 6 爻列表（从下往上）"""
+    if not binary_str or len(binary_str) != 6:
+        return [7, 7, 7, 7, 7, 7]  # 默认全阳
+    # binary_str 是从上往上的，但 draw 是从下往上的
+    return [7 if b == '1' else 8 for b in binary_str]
+
+
+class GuaSymbolWidget(BoxLayout):
+    """卦象符号组件：用 Kivy Canvas 绘制 6 爻（不依赖字体）"""
+    def __init__(self, yao_list=None, binary_str=None, **kwargs):
+        super().__init__(orientation='vertical', spacing=dp(2), **kwargs)
+        self.size_hint_y = None
+        self.height = dp(50)
+        
+        if binary_str:
+            self.yao_list = yao_lines_from_binary(binary_str)
+        elif yao_list:
+            self.yao_list = yao_list
+        else:
+            self.yao_list = [7, 7, 7, 7, 7, 7]
+        
+        self._draw_yao()
+    
+    def _draw_yao(self):
+        """绘制 6 爻"""
+        self.clear_widgets()
+        yao_height = dp(5)
+        total_h = 6 * (yao_height + dp(2))
+        self.height = total_h
+        
+        # 从下往上画（传统顺序）
+        for i in range(5, -1, -1):
+            yao_type = self.yao_list[i] if i < len(self.yao_list) else 7
+            row = BoxLayout(orientation='horizontal', size_hint_y=None, height=yao_height)
+            y_pos = (5 - i) * (yao_height + dp(2))
+            
+            is_yang = yao_type in [7, 9]
+            is_changing = yao_type in [6, 9]
+            margin = dp(2)
+            line_w = dp(40)
+            
+            if is_yang:
+                # 阳爻：实线
+                line = BoxLayout(size_hint_x=None, width=line_w)
+                with line.canvas:
+                    if is_changing:
+                        Color(*COLOR_GOLD_LIGHT)
+                    else:
+                        Color(*COLOR_GOLD)
+                    line._rect = RoundedRectangle(size=(line_w, yao_height), radius=[dp(2)])
+                    line.bind(size=lambda *a: setattr(line._rect, 'size', (line_w, yao_height)))
+                row.add_widget(Widget())
+                row.add_widget(line)
+                row.add_widget(Widget())
+            else:
+                # 阴爻：两段
+                gap = dp(6)
+                half_w = (line_w - gap) / 2
+                left = BoxLayout(size_hint_x=None, width=line_w)
+                with left.canvas:
+                    Color(*COLOR_GOLD)
+                    left._rect = RoundedRectangle(pos=(margin, 0), size=(half_w, yao_height), radius=[dp(2)])
+                    left._rect2 = RoundedRectangle(pos=(margin + half_w + gap, 0), size=(half_w, yao_height), radius=[dp(2)])
+                row.add_widget(Widget())
+                row.add_widget(left)
+                row.add_widget(Widget())
+            
+            self.add_widget(row)
+
+
+class MiniGuaWidget(Widget):
+    """迷你卦象符号（用于 64 卦卡片，固定尺寸）"""
+    def __init__(self, yao_list=None, binary_str=None, **kwargs):
+        super().__init__(**kwargs)
+        self.size_hint = (None, None)
+        self.size = (dp(30), dp(40))
+        
+        if binary_str:
+            self.yao_list = yao_lines_from_binary(binary_str)
+        elif yao_list:
+            self.yao_list = yao_list
+        else:
+            self.yao_list = [7, 7, 7, 7, 7, 7]
+        
+        self.bind(pos=self._draw, size=self._draw)
+        self._draw()
+    
+    def _draw(self, *args):
+        self.canvas.clear()
+        yao_h = dp(3)
+        gap = dp(2)
+        total_h = 6 * (yao_h + gap)
+        y_start = self.y + (self.height - total_h) / 2
+        line_w = self.width - dp(6)
+        
+        with self.canvas:
+            for i in range(6):
+                y = y_start + i * (yao_h + gap)
+                yao_type = self.yao_list[i] if i < len(self.yao_list) else 7
+                is_yang = yao_type in [7, 9]
+                
+                if is_yang:
+                    Color(*COLOR_GOLD)
+                    RoundedRectangle(pos=(self.x + dp(3), y), size=(line_w, yao_h), radius=[dp(1)])
+                else:
+                    half = (line_w - dp(4)) / 2
+                    Color(*COLOR_GOLD)
+                    RoundedRectangle(pos=(self.x + dp(3), y), size=(half, yao_h), radius=[dp(1)])
+                    RoundedRectangle(pos=(self.x + dp(3) + half + dp(4), y), size=(half, yao_h), radius=[dp(1)])
+
 
 # ==================== 8 宫映射 ====================
 GUA_PALACE_MAP = {
@@ -879,28 +994,46 @@ def show_manual_select_gua_popup(app):
 
 
 def _update_gua_grid(grid, palace, all_gua, app, popup):
-    """更新卦象网格"""
+    """更新卦象网格（带卦象符号）"""
     grid.clear_widgets()
 
     filtered = all_gua if palace == '全部' else [g for g in all_gua if g['palace'] == palace]
 
     for gua in filtered:
-        btn = Button(
+        # 卡片布局：符号 + 名称 + 宫位
+        card = BoxLayout(orientation='vertical', spacing=dp(2), padding=dp(3))
+        
+        # 卦象符号
+        binary = get_binary_from_name(gua['name'])
+        if binary:
+            mini_gua = MiniGuaWidget(binary_str=binary, size_hint_y=None, height=dp(36))
+            card.add_widget(mini_gua)
+        
+        # 卦名
+        name_label = Label(
             text=gua['name'],
-            font_size=dp(13),
-            color=COLOR_TEXT,
+            font_size=dp(10),
+            color=COLOR_GOLD,
+            halign='center',
+        )
+        name_label.bind(size=name_label.setter('text_size'))
+        card.add_widget(name_label)
+        
+        # 创建按钮包裹卡片
+        btn = Button(
+            text='',
             background_color=(0, 0, 0, 0),
             background_normal='',
         )
         apply_card_bg(btn, radius=[dp(8), dp(8), dp(8), dp(8)])
-
+        btn.add_widget(card)
+        
         def on_gua(instance, g_name=gua['name']):
             try:
                 if popup and hasattr(popup, 'dismiss'):
                     popup.dismiss()
             except:
                 pass
-            # 通过卦名获取二进制，再生成 yao_list
             yao_list = _gua_name_to_yao(g_name)
             if yao_list:
                 app.display_gua(yao_list, '手动选卦')
@@ -1364,7 +1497,7 @@ class WuaibaguaApp(App):
         self._refresh_gua64_grid()
 
     def _refresh_gua64_grid(self):
-        """刷新 64 卦网格"""
+        """刷新 64 卦网格（带卦象符号）"""
         self.gua64_grid.clear_widgets()
 
         query = self.gua64_search.text.strip().lower() if hasattr(self, 'gua64_search') else ''
@@ -1377,14 +1510,42 @@ class WuaibaguaApp(App):
             filtered = [g for g in filtered if query in g['name'].lower()]
 
         for gua in filtered:
-            btn = Button(
+            # 卡片布局：符号 + 名称
+            card = BoxLayout(orientation='vertical', spacing=dp(2), padding=dp(3))
+            
+            # 卦象符号
+            binary = get_binary_from_name(gua['name'])
+            if binary:
+                mini_gua = MiniGuaWidget(binary_str=binary, size_hint_y=None, height=dp(36))
+                card.add_widget(mini_gua)
+            
+            # 卦名
+            name_label = Label(
                 text=gua['name'],
-                font_size=dp(13),
-                color=COLOR_TEXT,
+                font_size=dp(10),
+                color=COLOR_GOLD,
+                halign='center',
+            )
+            name_label.bind(size=name_label.setter('text_size'))
+            card.add_widget(name_label)
+            
+            # 宫位标签
+            palace_label = Label(
+                text=gua.get('palace', ''),
+                font_size=dp(8),
+                color=COLOR_TEXT_SECOND,
+                halign='center',
+            )
+            card.add_widget(palace_label)
+            
+            # 按钮包裹
+            btn = Button(
+                text='',
                 background_color=(0, 0, 0, 0),
                 background_normal='',
             )
             apply_card_bg(btn, radius=[dp(8), dp(8), dp(8), dp(8)])
+            btn.add_widget(card)
 
             def on_gua_detail(instance, g_name=gua['name']):
                 self._show_gua_detail_popup(g_name)
