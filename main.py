@@ -39,7 +39,7 @@ def setup_global_exception_handler():
             from kivy.clock import Clock
             def show_error():
                 try:
-                    show_toast(f'❌ 错误：{str(exc_value)[:50]}')
+                    show_toast(f' 错误：{str(exc_value)[:50]}')
                 except:
                     pass
             Clock.schedule_once(lambda dt: show_error(), 0)
@@ -231,7 +231,8 @@ class MiniGuaWidget(Widget):
     def __init__(self, yao_list=None, binary_str=None, **kwargs):
         super().__init__(**kwargs)
         self.size_hint = (None, None)
-        self.size = (dp(30), dp(40))
+        self.width = dp(40)
+        self.height = dp(40)
         
         if binary_str:
             self.yao_list = yao_lines_from_binary(binary_str)
@@ -540,7 +541,7 @@ def draw_yao_symbol(canvas_obj, yao_type, width, y_pos, yao_height=dp(8)):
         # 变爻标记
         if is_changing:
             Color(*COLOR_TEXT_SECOND)
-            mark = '○' if yao_type == 9 else '✕'
+            mark = '' if yao_type == 9 else ''
             from kivy.graphics import Canvas
             # 简单文本标记，用额外 Label 会更好
 
@@ -604,9 +605,9 @@ def show_share_popup(text):
         layout.add_widget(title)
 
         options = [
-            ('📋 复制文本', lambda: _share_copy(text, popup)),
-            ('💬 分享到微信', lambda: _share_wechat(text, popup)),
-            ('🐧 分享到 QQ', lambda: _share_qq(text, popup)),
+            (' 复制文本', lambda: _share_copy(text, popup)),
+            (' 分享到微信', lambda: _share_wechat(text, popup)),
+            (' 分享到 QQ', lambda: _share_qq(text, popup)),
         ]
 
         for name, callback in options:
@@ -642,17 +643,17 @@ def show_share_popup(text):
 def _share_copy(text, popup):
     copy_to_clipboard(text)
     popup.dismiss()
-    show_toast('✅ 已复制')
+    show_toast(' 已复制')
 
 def _share_wechat(text, popup):
     copy_to_clipboard(text)
     popup.dismiss()
-    show_toast('✅ 已复制，请打开微信粘贴')
+    show_toast(' 已复制，请打开微信粘贴')
 
 def _share_qq(text, popup):
     copy_to_clipboard(text)
     popup.dismiss()
-    show_toast('✅ 已复制，请打开 QQ 粘贴')
+    show_toast(' 已复制，请打开 QQ 粘贴')
 
 
 # ==================== 六爻排盘弹窗 ====================
@@ -663,7 +664,7 @@ def show_liuyao_popup(panduan_text):
         layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
 
         title = Label(
-            text='🔮 六爻排盘',
+            text='六爻排盘',
             size_hint_y=None,
             height=dp(45),
             font_size=dp(18),
@@ -702,7 +703,7 @@ def show_liuyao_popup(panduan_text):
         popup.open()
     except Exception as e:
         logger.error(f'[ERROR] show_liuyao_popup: {e}')
-        show_toast('❌ 排盘失败')
+        show_toast(' 排盘失败')
 
 
 # ==================== 设置弹窗 ====================
@@ -713,7 +714,7 @@ def show_settings_popup():
         layout = BoxLayout(orientation='vertical', padding=dp(20), spacing=dp(12))
 
         title = Label(
-            text='⚙️ 设置',
+            text='设置',
             size_hint_y=None,
             height=dp(45),
             font_size=dp(20),
@@ -727,10 +728,10 @@ def show_settings_popup():
             f'作者：浩哥\n\n'
             f'☯ 周易六十四卦 · 卜卦解惑\n\n'
             f'起卦方式：\n'
-            f'  🎲 电脑起卦（随机）\n'
-            f'  📜 手动选卦（64卦列表）\n'
-            f'  🪙 金钱起卦（模拟摇卦）\n'
-            f'  ⏰ 时间起卦（以时起卦）\n\n'
+            f'   电脑起卦（随机）\n'
+            f'   手动选卦（64卦列表）\n'
+            f'   金钱起卦（模拟摇卦）\n'
+            f'   时间起卦（以时起卦）\n\n'
             f'更多功能开发中...'
         )
         info_label = Label(
@@ -772,7 +773,7 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
 
         db_data = gua_db.get_gua_by_name(gua_name)
         if not db_data:
-            show_toast(f'❌ 未找到 {gua_name} 的数据')
+            show_toast(f' 未找到 {gua_name} 的数据')
             return
 
         layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
@@ -855,7 +856,7 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
                     yao_type = 6
 
                 is_changing = yao_type in [6, 9]
-                mark = ' ⭕' if yao_type == 9 else ' ✕' if yao_type == 6 else ''
+                mark = ' ' if yao_type == 9 else ' ' if yao_type == 6 else ''
 
                 yao_label = Label(
                     text=f'{yao_name}{mark}: {yao_text}',
@@ -899,7 +900,7 @@ def show_gua_explanation_with_duangua(gua_name, detail_data, yao_list, changing_
         popup.open()
     except Exception as e:
         logger.error(f'[ERROR] show_gua_explanation_with_duangua: {e}')
-        show_toast('❌ 显示失败')
+        show_toast(' 显示失败')
 
 
 # ==================== 手动选卦弹窗（v1.3.0 新版：64卦选择） ====================
@@ -909,7 +910,7 @@ def show_manual_select_gua_popup(app):
     try:
         all_gua = get_all_gua_with_palace()
         if not all_gua:
-            show_toast('❌ 卦象数据加载失败')
+            show_toast(' 卦象数据加载失败')
             return
 
         popup_layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(8))
@@ -990,7 +991,7 @@ def show_manual_select_gua_popup(app):
 
     except Exception as e:
         logger.error(f'[ERROR] show_manual_select_gua_popup: {e}')
-        show_toast('❌ 弹窗失败')
+        show_toast(' 弹窗失败')
 
 
 def _update_gua_grid(grid, palace, all_gua, app, popup):
@@ -1006,7 +1007,7 @@ def _update_gua_grid(grid, palace, all_gua, app, popup):
         # 卦象符号
         binary = get_binary_from_name(gua['name'])
         if binary:
-            mini_gua = MiniGuaWidget(binary_str=binary, size_hint_y=None, height=dp(36))
+            mini_gua = MiniGuaWidget(binary_str=binary, size_hint=(None, None), size=(dp(40), dp(36)))
             card.add_widget(mini_gua)
         
         # 卦名
@@ -1038,7 +1039,7 @@ def _update_gua_grid(grid, palace, all_gua, app, popup):
             if yao_list:
                 app.display_gua(yao_list, '手动选卦')
             else:
-                show_toast(f'❌ 无法解析 {g_name}')
+                show_toast(f' 无法解析 {g_name}')
 
         btn.bind(on_press=on_gua)
         grid.add_widget(btn)
@@ -1147,17 +1148,12 @@ class WuaibaguaApp(App):
             tab_bar.bind(size=_upd2, pos=_upd2)
 
         self.tab_buttons = {}
-        # Tab 定义：图标 + 文字
-        tab_defs = [
-            ('起卦', '🎲'),
-            ('64卦', '📚'),
-            ('运势', '🔮'),
-            ('设置', '⚙'),
-        ]
+        # Tab 定义
+        tab_defs = ['起卦', '64卦', '运势', '设置']
 
-        for name, icon in tab_defs:
+        for name in tab_defs:
             btn = Button(
-                text=f'{icon} {name}',
+                text=name,
                 font_size=dp(13),
                 color=COLOR_TEXT_SECOND,
                 background_color=(0, 0, 0, 0),
@@ -1197,7 +1193,7 @@ class WuaibaguaApp(App):
                     b.bold = False
             self._switch_content(name)
 
-        for name, icon in tab_defs:
+        for name in tab_defs:
             btn = self.tab_buttons[name]
             btn.bind(on_press=lambda x, n=name: switch_tab(n))
             tab_bar.add_widget(btn)
@@ -1268,7 +1264,8 @@ class WuaibaguaApp(App):
     def _build_divination_tab(self):
         """起卦 Tab"""
         # 根布局用 size_hint_y=1 填满剩余空间
-        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10), size_hint_y=1)
+        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10), size_hint_y=None)
+        layout.bind(minimum_height=layout.setter('height'))
 
         # 卦象显示区（结果/空状态）
         self.gua_display_area = BoxLayout(
@@ -1365,28 +1362,28 @@ class WuaibaguaApp(App):
         method_grid = GridLayout(cols=2, spacing=dp(10), size_hint_y=None, height=dp(160))
 
         # 随机起卦
-        card1 = create_card_button('🎲 随机起卦', subtitle='心诚则灵', height=dp(72))
+        card1 = create_card_button(' 随机起卦', subtitle='心诚则灵', height=dp(72))
         card1_btn = Button(size_hint=(1, 1), background_color=(0, 0, 0, 0), background_normal='')
         card1_btn.bind(on_press=self.auto_gua)
         card1.add_widget(card1_btn)
         method_grid.add_widget(card1)
 
         # 手动选卦
-        card2 = create_card_button('📜 手动选卦', subtitle='64卦列表', height=dp(72))
+        card2 = create_card_button(' 手动选卦', subtitle='64卦列表', height=dp(72))
         card2_btn = Button(size_hint=(1, 1), background_color=(0, 0, 0, 0), background_normal='')
         card2_btn.bind(on_press=self.manual_gua)
         card2.add_widget(card2_btn)
         method_grid.add_widget(card2)
 
         # 金钱起卦
-        card3 = create_card_button('🪙 金钱起卦', subtitle='模拟摇卦', height=dp(72))
+        card3 = create_card_button(' 金钱起卦', subtitle='模拟摇卦', height=dp(72))
         card3_btn = Button(size_hint=(1, 1), background_color=(0, 0, 0, 0), background_normal='')
         card3_btn.bind(on_press=self.jinqian_gua)
         card3.add_widget(card3_btn)
         method_grid.add_widget(card3)
 
         # 时间起卦
-        card4 = create_card_button('⏰ 时间起卦', subtitle='以时起卦', height=dp(72))
+        card4 = create_card_button(' 时间起卦', subtitle='以时起卦', height=dp(72))
         card4_btn = Button(size_hint=(1, 1), background_color=(0, 0, 0, 0), background_normal='')
         card4_btn.bind(on_press=self.time_gua)
         card4.add_widget(card4_btn)
@@ -1397,26 +1394,26 @@ class WuaibaguaApp(App):
         # 快捷功能按钮
         quick_row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(42), spacing=dp(8))
 
-        qbtn1 = create_round_button('📖 卦象解释', font_size=dp(13), height=dp(42))
+        qbtn1 = create_round_button(' 卦象解释', font_size=dp(13), height=dp(42))
         qbtn1.bind(on_press=self.show_explanation)
         quick_row.add_widget(qbtn1)
 
-        qbtn2 = create_round_button('🔮 六爻排盘', font_size=dp(13), height=dp(42))
+        qbtn2 = create_round_button(' 六爻排盘', font_size=dp(13), height=dp(42))
         qbtn2.bind(on_press=self.show_liuyao)
         quick_row.add_widget(qbtn2)
 
-        qbtn3 = create_round_button('📤 分享', font_size=dp(13), height=dp(42))
+        qbtn3 = create_round_button(' 分享', font_size=dp(13), height=dp(42))
         qbtn3.bind(on_press=self.share_gua)
         quick_row.add_widget(qbtn3)
 
-        qbtn4 = create_round_button('📋 复制', font_size=dp(13), height=dp(42))
+        qbtn4 = create_round_button(' 复制', font_size=dp(13), height=dp(42))
         qbtn4.bind(on_press=self.copy_result)
         quick_row.add_widget(qbtn4)
 
         layout.add_widget(quick_row)
 
         # 重新起卦按钮
-        self.redivide_btn = create_round_button('🔄 重新起卦', font_size=dp(15), height=dp(45))
+        self.redivide_btn = create_round_button(' 重新起卦', font_size=dp(15), height=dp(45))
         self.redivide_btn.bind(on_press=self.auto_gua)
         self.redivide_btn.opacity = 0
         layout.add_widget(self.redivide_btn)
@@ -1427,12 +1424,13 @@ class WuaibaguaApp(App):
 
     def _build_gua64_tab(self):
         """64卦速查 Tab"""
-        layout = BoxLayout(orientation='vertical', padding=dp(10), spacing=dp(8), size_hint_y=1)
+        layout = BoxLayout(orientation='vertical', padding=dp(10), spacing=dp(8), size_hint_y=None)
+        layout.bind(minimum_height=layout.setter('height'))
 
         # 搜索框
         search_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(42), spacing=dp(8))
         self.gua64_search = TextInput(
-            hint_text='🔍 搜索卦名...',
+            hint_text='搜索卦名...',
             font_size=dp(14),
             size_hint_x=1,
             multiline=False,
@@ -1535,7 +1533,7 @@ class WuaibaguaApp(App):
             # 卦象符号
             binary = get_binary_from_name(gua['name'])
             if binary:
-                mini_gua = MiniGuaWidget(binary_str=binary, size_hint_y=None, height=dp(36))
+                mini_gua = MiniGuaWidget(binary_str=binary, size_hint=(None, None), size=(dp(40), dp(36)))
                 card.add_widget(mini_gua)
             
             # 卦名
@@ -1578,7 +1576,7 @@ class WuaibaguaApp(App):
             import gua_db
             db_data = gua_db.get_gua_by_name(gua_name)
             if not db_data:
-                show_toast(f'❌ 未找到 {gua_name}')
+                show_toast(f' 未找到 {gua_name}')
                 return
 
             popup_layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
@@ -1642,7 +1640,7 @@ class WuaibaguaApp(App):
             popup_layout.add_widget(scroll)
 
             # 快速起卦按钮
-            qi_btn = create_round_button(f'🔮 以此卦起卦', font_size=dp(14), height=dp(45))
+            qi_btn = create_round_button(f' 以此卦起卦', font_size=dp(14), height=dp(45))
             qi_btn.bind(on_press=lambda x, gn=gua_name: self._quick_divine(gn, popup))
             popup_layout.add_widget(qi_btn)
 
@@ -1687,18 +1685,19 @@ class WuaibaguaApp(App):
             self.tab_buttons['64卦'].color = COLOR_TEXT_SECOND
             self.display_gua(yao_list, '手动选卦')
         else:
-            show_toast(f'❌ 无法解析 {gua_name}')
+            show_toast(f' 无法解析 {gua_name}')
 
     # ---------- 运势 Tab ----------
 
     def _build_fortune_tab(self):
         """运势 Tab"""
-        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10), size_hint_y=1)
+        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10), size_hint_y=None)
+        layout.bind(minimum_height=layout.setter('height'))
 
         # 今日日期
         today = datetime.now().strftime('%Y年%m月%d日')
         date_label = Label(
-            text=f'📅 {today}',
+            text=f' {today}',
             font_size=dp(16),
             color=COLOR_TEXT_SECOND,
             size_hint_y=None,
@@ -1751,18 +1750,18 @@ class WuaibaguaApp(App):
         layout.add_widget(self.fortune_card)
 
         # 按钮
-        fortune_btn = create_round_button('🔮 查看今日运势', font_size=dp(16), height=dp(50))
+        fortune_btn = create_round_button(' 查看今日运势', font_size=dp(16), height=dp(50))
         fortune_btn.bind(on_press=self.daily_gua)
         layout.add_widget(fortune_btn)
 
         fortune_actions = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(42), spacing=dp(8))
-        fbtn1 = create_round_button('📖 详解', font_size=dp(13), height=dp(42))
+        fbtn1 = create_round_button(' 详解', font_size=dp(13), height=dp(42))
         fbtn1.bind(on_press=self.show_explanation)
         fortune_actions.add_widget(fbtn1)
-        fbtn2 = create_round_button('🔮 六爻', font_size=dp(13), height=dp(42))
+        fbtn2 = create_round_button(' 六爻', font_size=dp(13), height=dp(42))
         fbtn2.bind(on_press=self.show_liuyao)
         fortune_actions.add_widget(fbtn2)
-        fbtn3 = create_round_button('📤 分享', font_size=dp(13), height=dp(42))
+        fbtn3 = create_round_button(' 分享', font_size=dp(13), height=dp(42))
         fbtn3.bind(on_press=self.share_gua)
         fortune_actions.add_widget(fbtn3)
         layout.add_widget(fortune_actions)
@@ -1773,7 +1772,8 @@ class WuaibaguaApp(App):
 
     def _build_settings_tab(self):
         """设置 Tab"""
-        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(12), size_hint_y=1)
+        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(12), size_hint_y=None)
+        layout.bind(minimum_height=layout.setter('height'))
 
         # 版本信息卡片
         version_card = BoxLayout(
@@ -1817,7 +1817,7 @@ class WuaibaguaApp(App):
         apply_card_bg(settings_card, radius=[dp(14), dp(14), dp(14), dp(14)])
 
         settings_title = Label(
-            text='⚙ 设置选项',
+            text='设置选项',
             font_size=dp(15),
             color=COLOR_GOLD,
             bold=True,
@@ -1829,7 +1829,7 @@ class WuaibaguaApp(App):
 
         # 深色主题开关
         theme_row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(40), spacing=dp(10))
-        theme_label = Label(text='🌙 深色主题', font_size=dp(14), color=COLOR_TEXT, halign='left')
+        theme_label = Label(text='深色主题', font_size=dp(14), color=COLOR_TEXT, halign='left')
         theme_row.add_widget(theme_label)
         from kivy.uix.switch import Switch
         self.theme_switch = Switch(active=True, size_hint_x=None, width=dp(50))
@@ -1839,7 +1839,7 @@ class WuaibaguaApp(App):
 
         # 保存历史记录
         history_row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(40), spacing=dp(10))
-        history_label = Label(text='📋 保存历史记录', font_size=dp(14), color=COLOR_TEXT, halign='left')
+        history_label = Label(text='保存历史记录', font_size=dp(14), color=COLOR_TEXT, halign='left')
         history_row.add_widget(history_label)
         self.history_switch = Switch(active=True, size_hint_x=None, width=dp(50))
         history_row.add_widget(Widget())
@@ -1847,18 +1847,18 @@ class WuaibaguaApp(App):
         settings_card.add_widget(history_row)
 
         # 检查更新
-        update_btn = create_round_button('🔄 检查更新', font_size=dp(13), height=dp(42))
-        update_btn.bind(on_press=lambda x: show_toast('✅ 当前已是最新版本'))
+        update_btn = create_round_button(' 检查更新', font_size=dp(13), height=dp(42))
+        update_btn.bind(on_press=lambda x: show_toast(' 当前已是最新版本'))
         settings_card.add_widget(update_btn)
 
         # 意见反馈
-        feedback_btn = create_round_button('💬 意见反馈', font_size=dp(13), height=dp(42))
-        feedback_btn.bind(on_press=lambda x: show_toast('💬 请通过 GitHub Issues 反馈'))
+        feedback_btn = create_round_button(' 意见反馈', font_size=dp(13), height=dp(42))
+        feedback_btn.bind(on_press=lambda x: show_toast(' 请通过 GitHub Issues 反馈'))
         settings_card.add_widget(feedback_btn)
 
         # 清除缓存
-        cache_btn = create_round_button('🗑️ 清除缓存', font_size=dp(13), height=dp(42))
-        cache_btn.bind(on_press=lambda x: show_toast('✅ 缓存已清除'))
+        cache_btn = create_round_button('清除缓存', font_size=dp(13), height=dp(42))
+        cache_btn.bind(on_press=lambda x: show_toast(' 缓存已清除'))
         settings_card.add_widget(cache_btn)
 
         layout.add_widget(settings_card)
@@ -1872,7 +1872,7 @@ class WuaibaguaApp(App):
         apply_card_bg(features_card, radius=[dp(14), dp(14), dp(14), dp(14)])
 
         feat_title = Label(
-            text='✨ 功能列表',
+            text='功能列表',
             font_size=dp(15),
             color=COLOR_GOLD,
             bold=True,
@@ -1883,14 +1883,14 @@ class WuaibaguaApp(App):
         features_card.add_widget(feat_title)
 
         features = [
-            '🎲 电脑起卦 —— 随机生成卦象',
-            '📜 手动选卦 —— 从 64 卦中自由选择',
-            '🪙 金钱起卦 —— 模拟三枚铜钱摇卦',
-            '⏰ 时间起卦 —— 根据当前时辰起卦',
-            '📅 今日运势 —— 每日专属卦象',
-            '📖 卦象详解 —— 卦辞、爻辞、白话解释',
-            '🔮 六爻排盘 —— 完整排盘信息',
-            '📤 分享卦象 —— 复制分享给好友',
+            ' 电脑起卦 —— 随机生成卦象',
+            ' 手动选卦 —— 从 64 卦中自由选择',
+            ' 金钱起卦 —— 模拟三枚铜钱摇卦',
+            ' 时间起卦 —— 根据当前时辰起卦',
+            ' 今日运势 —— 每日专属卦象',
+            ' 卦象详解 —— 卦辞、爻辞、白话解释',
+            ' 六爻排盘 —— 完整排盘信息',
+            ' 分享卦象 —— 复制分享给好友',
         ]
         for feat in features:
             feat_label = Label(
@@ -1965,11 +1965,11 @@ class WuaibaguaApp(App):
             # 更新运势 Tab
             self._update_fortune_display(gua_name, yao_list, changing_gua_name)
 
-            show_toast(f'✅ {gua_name}')
+            show_toast(f' {gua_name}')
         except Exception as e:
             logger.error(f'[ERROR] display_gua: {e}')
             logger.error(traceback.format_exc())
-            show_toast('❌ 显示失败')
+            show_toast(' 显示失败')
 
     def _show_gua_result(self, gua_name, yao_list, changing_gua_name):
         """更新起卦 Tab 的卦象显示"""
@@ -1995,7 +1995,7 @@ class WuaibaguaApp(App):
             yao = yao_list[5 - i]
             is_yang = yao in [7, 9]
             is_changing = yao in [6, 9]
-            mark = ' ○' if yao == 9 else ' ✕' if yao == 6 else ''
+            mark = ' ' if yao == 9 else ' ' if yao == 6 else ''
 
             row = BoxLayout(
                 orientation='horizontal',
@@ -2094,7 +2094,7 @@ class WuaibaguaApp(App):
     def show_explanation(self, instance):
         """显示卦象解释"""
         if not self.current_gua:
-            show_toast('❌ 请先起卦')
+            show_toast(' 请先起卦')
             return
         show_gua_explanation_with_duangua(
             self.current_gua,
@@ -2107,7 +2107,7 @@ class WuaibaguaApp(App):
     def show_liuyao(self, instance):
         """显示六爻排盘"""
         if not self.current_gua:
-            show_toast('❌ 请先起卦')
+            show_toast(' 请先起卦')
             return
         try:
             from liuyao_paipan import format_liuyao_full
@@ -2115,12 +2115,12 @@ class WuaibaguaApp(App):
             show_liuyao_popup(panduan_text)
         except Exception as e:
             logger.error(f'[ERROR] show_liuyao: {e}')
-            show_toast('❌ 排盘失败')
+            show_toast(' 排盘失败')
 
     def share_gua(self, instance):
         """分享卦象"""
         if not self.current_gua:
-            show_toast('❌ 请先起卦')
+            show_toast(' 请先起卦')
             return
 
         share_text = f'【{self.current_gua}】\n\n'
@@ -2129,7 +2129,7 @@ class WuaibaguaApp(App):
             for i in range(5, -1, -1):
                 yao = self.current_yao_list[i]
                 yao_type = '阳' if yao in [7, 9] else '阴'
-                mark = ' ○' if yao == 9 else ' ✕' if yao == 6 else ''
+                mark = ' ' if yao == 9 else ' ' if yao == 6 else ''
                 share_text += f'{yao_names[i]}{yao_type}{mark}\n'
         if self.current_changing_gua:
             share_text += f'\n变卦：{self.current_changing_gua}'
@@ -2139,7 +2139,7 @@ class WuaibaguaApp(App):
     def copy_result(self, instance):
         """复制卦象"""
         if not self.current_gua:
-            show_toast('❌ 请先起卦')
+            show_toast(' 请先起卦')
             return
 
         text = f'【{self.current_gua}】\n'
@@ -2148,13 +2148,13 @@ class WuaibaguaApp(App):
             for i in range(5, -1, -1):
                 yao = self.current_yao_list[i]
                 yao_type = '阳' if yao in [7, 9] else '阴'
-                mark = ' ○' if yao == 9 else ' ✕' if yao == 6 else ''
+                mark = ' ' if yao == 9 else ' ' if yao == 6 else ''
                 text += f'{yao_names[i]}{yao_type}{mark}\n'
         if self.current_changing_gua:
             text += f'\n变卦：{self.current_changing_gua}'
 
         copy_to_clipboard(text)
-        show_toast('✅ 已复制')
+        show_toast(' 已复制')
 
 
 if __name__ == '__main__':
