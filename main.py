@@ -992,7 +992,7 @@ class WuaibaguaApp(App):
             tab_bar._bg_rect = RoundedRectangle(size=tab_bar.size, pos=tab_bar.pos)
             def _upd2(*a):
                 tab_bar._bg_rect.size = tab_bar.size
-                tab_bar._bg_rect.pos = tab_bar._pos
+                tab_bar._bg_rect.pos = tab_bar.pos
             tab_bar.bind(size=_upd2, pos=_upd2)
 
         self.tab_buttons = {}
