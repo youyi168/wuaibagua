@@ -927,7 +927,19 @@ class WuaibaguaApp(App):
 
         Clock.schedule_once(lambda dt: self.init_android_features(), 0.5)
 
-        # 注册字体
+        # 注册字体（关键修复：必须先注册再使用）
+        from pathlib import Path as _Path
+        _font_dir = _Path(__file__).parent / 'fonts'
+        _font_path = _font_dir / 'NotoSansSC-Regular.ttf'
+        if _font_path.exists():
+            try:
+                LabelBase.register(name='NotoSansSC', fn_regular=str(_font_path))
+                logger.info('[INFO] 字体 NotoSansSC 已注册')
+            except Exception as _e:
+                logger.warning(f'[WARN] 字体注册失败: {_e}')
+        else:
+            logger.warning(f'[WARN] 字体文件不存在: {_font_path}')
+
         Label.font_name = 'NotoSansSC'
         Button.font_name = 'NotoSansSC'
 
