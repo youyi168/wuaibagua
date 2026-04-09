@@ -1204,12 +1204,9 @@ class WuaibaguaApp(App):
 
         main_layout.add_widget(tab_bar)
 
-        # 内容容器（用 ScrollView 包裹，解决 875px 空白问题）
-        self.content_scroll = ScrollView()
-        self.content_container = BoxLayout(orientation='vertical', size_hint_y=None)
-        self.content_container.bind(minimum_height=self.content_container.setter('height'))
-        self.content_scroll.add_widget(self.content_container)
-        main_layout.add_widget(self.content_scroll)
+        # 内容容器（直接放 Tab 内容，不用 ScrollView，避免双重嵌套）
+        self.content_container = BoxLayout(orientation='vertical')
+        main_layout.add_widget(self.content_container)
 
         # 构建各 Tab 内容
         self._tab_divination = self._build_divination_tab()
@@ -1270,7 +1267,8 @@ class WuaibaguaApp(App):
 
     def _build_divination_tab(self):
         """起卦 Tab"""
-        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10))
+        # 根布局用 size_hint_y=1 填满剩余空间
+        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10), size_hint_y=1)
 
         # 卦象显示区（结果/空状态）
         self.gua_display_area = BoxLayout(
@@ -1427,7 +1425,7 @@ class WuaibaguaApp(App):
 
     def _build_gua64_tab(self):
         """64卦速查 Tab"""
-        layout = BoxLayout(orientation='vertical', padding=dp(10), spacing=dp(8))
+        layout = BoxLayout(orientation='vertical', padding=dp(10), spacing=dp(8), size_hint_y=1)
 
         # 搜索框
         search_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(42), spacing=dp(8))
@@ -1693,7 +1691,7 @@ class WuaibaguaApp(App):
 
     def _build_fortune_tab(self):
         """运势 Tab"""
-        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10))
+        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10), size_hint_y=1)
 
         # 今日日期
         today = datetime.now().strftime('%Y年%m月%d日')
@@ -1773,7 +1771,7 @@ class WuaibaguaApp(App):
 
     def _build_settings_tab(self):
         """设置 Tab"""
-        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(12))
+        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(12), size_hint_y=1)
 
         # 版本信息卡片
         version_card = BoxLayout(
