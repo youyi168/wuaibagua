@@ -1093,6 +1093,7 @@ class WuaibaguaApp(App):
 
         Label.font_name = 'NotoSansSC'
         Button.font_name = 'NotoSansSC'
+        TextInput.font_name = 'NotoSansSC'
 
         # ========== 自定义 Tab 布局 ==========
         main_layout = BoxLayout(orientation='vertical', padding=0, spacing=0)
@@ -1267,16 +1268,16 @@ class WuaibaguaApp(App):
         layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10), size_hint_y=None)
         layout.bind(minimum_height=layout.setter('height'))
 
-        # 卦象显示区（结果/空状态）
+        # 卦象显示区（动态高度，根据空状态/结果状态自动切换）
         self.gua_display_area = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
-            height=dp(200),
+            height=dp(180),  # 初始空状态高度：150 + 25 + spacing
             spacing=dp(4),
         )
         apply_card_bg(self.gua_display_area, radius=[dp(14), dp(14), dp(14), dp(14)])
 
-        # 空状态（必须固定高度，防止撑大 gua_display_area）
+        # 空状态
         self.empty_state = Label(
             text='☯',
             font_size=dp(60),
@@ -1287,7 +1288,6 @@ class WuaibaguaApp(App):
             height=dp(150),
         )
         self.empty_state.bind(size=self.empty_state.setter('text_size'))
-        self.gua_display_area.add_widget(self.empty_state)
 
         self.empty_hint = Label(
             text='选择起卦方式',
@@ -1297,11 +1297,15 @@ class WuaibaguaApp(App):
             size_hint_y=None,
             height=dp(25),
         )
+
+        # 初始显示空状态
+        self.gua_display_area.add_widget(self.empty_state)
         self.gua_display_area.add_widget(self.empty_hint)
 
-        # 结果状态（初始隐藏）
+        # 结果状态（动态构建，不提前加入布局）
         self.result_state = BoxLayout(orientation='vertical', spacing=dp(4), padding=(dp(10), dp(8)))
-        self.result_state.opacity = 0
+        self.result_state.size_hint_y = None
+        self.result_state.bind(minimum_height=self.result_state.setter('height'))
 
         self.gua_name_label = Label(
             text='',
@@ -1324,11 +1328,11 @@ class WuaibaguaApp(App):
         )
         self.result_state.add_widget(self.gua_palace_label)
 
-        # 爻符显示区
+        # 爻符显示区（加大到 dp(130)，6爻 × dp(18) + spacing + padding）
         self.yao_draw_area = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
-            height=dp(100),
+            height=dp(130),
             spacing=dp(4),
             padding=(dp(30), dp(5)),
         )
@@ -1354,8 +1358,6 @@ class WuaibaguaApp(App):
             height=dp(22),
         )
         self.result_state.add_widget(self.changing_label)
-
-        self.gua_display_area.add_widget(self.result_state)
         layout.add_widget(self.gua_display_area)
 
         # 起卦方式 2x2 网格
@@ -1432,6 +1434,7 @@ class WuaibaguaApp(App):
         self.gua64_search = TextInput(
             hint_text='搜索卦名...',
             font_size=dp(14),
+            font_name='NotoSansSC',
             size_hint_x=1,
             multiline=False,
             background_color=COLOR_BG_CARD,
@@ -1492,16 +1495,14 @@ class WuaibaguaApp(App):
         apply_gold_bg(self.gua64_palace_btns[0], radius=[dp(8), dp(8), dp(8), dp(8)])
         self.gua64_palace_btns[0].color = COLOR_BG
 
-        # 卦象网格
-        scroll = ScrollView()
+        # 卦象网格（不再嵌套 ScrollView，外层 content_scroll 已提供滚动）
         self.gua64_grid = GridLayout(
             cols=3, spacing=dp(8), size_hint_y=None,
             row_default_height=dp(58),
             row_force_default=True,
         )
         self.gua64_grid.bind(minimum_height=self.gua64_grid.setter('height'))
-        scroll.add_widget(self.gua64_grid)
-        layout.add_widget(scroll)
+        layout.add_widget(self.gua64_grid)
 
         # 加载数据
         self._all_gua_data = get_all_gua_with_palace()
@@ -1976,10 +1977,15 @@ class WuaibaguaApp(App):
         if not hasattr(self, 'empty_state'):
             return
 
-        # 隐藏空状态，显示结果
-        self.empty_state.opacity = 0
-        self.empty_hint.opacity = 0
-        self.result_state.opacity = 1
+        # 移除空状态，添加结果状态（动态切换，释放空白空间）
+        if self.empty_state.parent:
+            self.gua_display_area.remove_widget(self.empty_state)
+        if self.empty_hint.parent:
+            self.gua_display_area.remove_widget(self.empty_hint)
+        if not self.result_state.parent:
+            self.gua_display_area.add_widget(self.result_state, index=0)
+            # 触发高度重算（加上 gua_display_area 的 spacing）
+            Clock.schedule_once(lambda dt: setattr(self.gua_display_area, 'height', self.result_state.minimum_height + dp(4)), 0)
 
         # 卦名
         self.gua_name_label.text = gua_name
@@ -2045,6 +2051,33 @@ class WuaibaguaApp(App):
 
         # 显示重新起卦按钮
         self.redivide_btn.opacity = 1
+
+    def _show_empty_state(self):
+        """恢复空状态显示（移除结果，显示☯图标）"""
+        if not hasattr(self, 'empty_state'):
+            return
+
+        # 移除结果状态，添加空状态
+        if self.result_state.parent:
+            self.gua_display_area.remove_widget(self.result_state)
+        if not self.empty_state.parent:
+            self.gua_display_area.add_widget(self.empty_state, index=0)
+        if not self.empty_hint.parent:
+            self.gua_display_area.add_widget(self.empty_hint, index=1)
+
+        # 恢复空状态高度
+        self.gua_display_area.height = dp(180)
+
+        # 隐藏重新起卦按钮
+        if hasattr(self, 'redivide_btn'):
+            self.redivide_btn.opacity = 0
+
+        # 清空结果数据
+        self.gua_name_label.text = ''
+        self.gua_palace_label.text = ''
+        self.gua_ci_label.text = ''
+        self.changing_label.text = ''
+        self.yao_draw_area.clear_widgets()
 
     def _update_fortune_display(self, gua_name, yao_list, changing_gua_name):
         """更新运势 Tab 显示"""
