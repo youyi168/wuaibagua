@@ -1279,13 +1279,15 @@ class WuaibaguaApp(App):
         )
         apply_card_bg(self.gua_display_area, radius=[dp(14), dp(14), dp(14), dp(14)])
 
-        # 空状态
+        # 空状态（必须固定高度，防止撑大 gua_display_area）
         self.empty_state = Label(
             text='☯',
             font_size=dp(60),
             color=COLOR_GOLD,
             halign='center',
             valign='middle',
+            size_hint_y=None,
+            height=dp(150),
         )
         self.empty_state.bind(size=self.empty_state.setter('text_size'))
         self.gua_display_area.add_widget(self.empty_state)
