@@ -669,48 +669,52 @@ def _share_qq(text, popup):
 def show_liuyao_popup(panduan_text):
     """六爻排盘弹窗"""
     try:
-        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(10))
+        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(8))
 
         title = Label(
             text='六爻排盘',
             size_hint_y=None,
-            height=dp(45),
-            font_size=dp(18),
+            height=dp(40),
+            font_size=dp(17),
             color=COLOR_GOLD,
             bold=True,
         )
         layout.add_widget(title)
 
-        scroll = ScrollView()
+        # ScrollView 必须有 size_hint_y=1 才能正确填充剩余空间
+        scroll = ScrollView(size_hint_y=1)
         content = Label(
             text=panduan_text,
-            markup=False,
+            markup=True,  # 启用 markup 支持中文换行
             size_hint_y=None,
             halign='left',
             valign='top',
-            font_size=dp(13),
+            font_size=dp(12),
             color=COLOR_TEXT,
-            padding=(10, 10),
+            padding=(dp(8), dp(4)),
         )
         content.bind(size=content.setter('text_size'))
+        content.bind(texture_size=lambda *a: setattr(content, 'height', content.texture_size[1]))
         scroll.add_widget(content)
         layout.add_widget(scroll)
 
-        close_btn = create_round_button('关闭', font_size=dp(15), height=dp(45))
+        # 先创建 popup 变量，再绑定按钮事件
+        popup = Popup(
+            title='',
+            content=layout,
+            size_hint=(0.95, 0.85),
+            auto_dismiss=True,
+            background_color=COLOR_BG,
+        )
+        close_btn = create_round_button(' 关闭', font_size=dp(15), height=dp(42))
         close_btn.bind(on_press=lambda x: popup.dismiss())
         layout.add_widget(close_btn)
 
-        popup = Popup(
-            title='六爻排盘',
-            title_color=COLOR_GOLD,
-            content=layout,
-            size_hint=(0.95, 0.85),
-            auto_dismiss=False,
-            background_color=COLOR_BG,
-        )
         popup.open()
     except Exception as e:
+        import traceback
         logger.error(f'[ERROR] show_liuyao_popup: {e}')
+        logger.error(traceback.format_exc())
         show_toast(' 排盘失败')
 
 
@@ -1783,7 +1787,7 @@ class WuaibaguaApp(App):
 
     def _build_settings_tab(self):
         """设置 Tab"""
-        layout = BoxLayout(orientation='vertical', padding=dp(15), spacing=dp(12), size_hint_y=None)
+        layout = BoxLayout(orientation='vertical', padding=(dp(10), dp(4), dp(10), dp(10)), spacing=dp(8), size_hint_y=None)
         layout.bind(minimum_height=layout.setter('height'))
 
         # 版本信息卡片
@@ -1819,12 +1823,14 @@ class WuaibaguaApp(App):
 
         layout.add_widget(version_card)
 
-        # 设置选项
+        # 设置选项卡片（必须设置 size_hint_y=None + minimum_height，否则子控件重叠）
         settings_card = BoxLayout(
             orientation='vertical',
+            size_hint_y=None,
             padding=(dp(15), dp(10)),
             spacing=dp(8),
         )
+        settings_card.bind(minimum_height=settings_card.setter('height'))
         apply_card_bg(settings_card, radius=[dp(14), dp(14), dp(14), dp(14)])
 
         settings_title = Label(
@@ -1874,12 +1880,14 @@ class WuaibaguaApp(App):
 
         layout.add_widget(settings_card)
 
-        # 功能说明
+        # 功能说明卡片（必须设置 size_hint_y=None + minimum_height，否则子控件重叠）
         features_card = BoxLayout(
             orientation='vertical',
+            size_hint_y=None,
             padding=(dp(15), dp(10)),
             spacing=dp(6),
         )
+        features_card.bind(minimum_height=features_card.setter('height'))
         apply_card_bg(features_card, radius=[dp(14), dp(14), dp(14), dp(14)])
 
         feat_title = Label(
