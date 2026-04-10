@@ -1702,17 +1702,17 @@ class WuaibaguaApp(App):
 
     def _build_fortune_tab(self):
         """运势 Tab"""
-        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10), size_hint_y=None)
+        layout = BoxLayout(orientation='vertical', padding=(dp(10), dp(4), dp(10), dp(10)), spacing=dp(6), size_hint_y=None)
         layout.bind(minimum_height=layout.setter('height'))
 
         # 今日日期
         today = datetime.now().strftime('%Y年%m月%d日')
         date_label = Label(
             text=f' {today}',
-            font_size=dp(16),
+            font_size=dp(15),
             color=COLOR_TEXT_SECOND,
             size_hint_y=None,
-            height=dp(30),
+            height=dp(28),
             halign='center',
         )
         layout.add_widget(date_label)
