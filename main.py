@@ -1706,7 +1706,7 @@ class WuaibaguaApp(App):
 
     def _build_fortune_tab(self):
         """运势 Tab"""
-        layout = BoxLayout(orientation='vertical', padding=(dp(10), dp(4), dp(10), dp(10)), spacing=dp(6), size_hint_y=None)
+        layout = BoxLayout(orientation='vertical', padding=(dp(8), 0, dp(8), dp(8)), spacing=dp(4), size_hint_y=None)
         layout.bind(minimum_height=layout.setter('height'))
 
         # 今日日期
@@ -1725,9 +1725,9 @@ class WuaibaguaApp(App):
         self.fortune_card = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
-            height=dp(190),  # 紧凑：卦名30 + 爻符90 + 描述40 + padding 20 + spacing 10
-            padding=(dp(12), dp(6)),
-            spacing=dp(4),
+            height=dp(170),  # 紧凑：卦名30 + 爻符100 + 描述 + padding+spacing
+            padding=(dp(10), dp(4)),
+            spacing=dp(3),
         )
         apply_card_bg(self.fortune_card, radius=[dp(14), dp(14), dp(14), dp(14)])
 
@@ -1745,9 +1745,9 @@ class WuaibaguaApp(App):
         self.fortune_yao_area = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
-            height=dp(90),  # 紧凑：6爻 × dp(12) + spacing
+            height=dp(105),  # 6爻 × dp(16) + spacing × 5
             spacing=dp(3),
-            padding=(dp(20), dp(3)),
+            padding=(dp(15), dp(2)),
         )
         self.fortune_card.add_widget(self.fortune_yao_area)
 
@@ -2104,7 +2104,7 @@ class WuaibaguaApp(App):
 
         self.fortune_gua_name.text = gua_name
 
-        # 画爻符
+        # 画爻符（使用 Canvas 绘制，避免字体不支持导致方框）
         self.fortune_yao_area.clear_widgets()
         yao_names = ['上', '五', '四', '三', '二', '初']
         for i in range(6):
@@ -2124,13 +2124,23 @@ class WuaibaguaApp(App):
                 color=COLOR_TEXT_SECOND,
                 size_hint_x=0.15,
             ))
-            row.add_widget(Label(
-                text='───' if is_yang else '- -',
-                font_size=dp(14),
-                color=COLOR_GOLD_LIGHT if is_changing else COLOR_GOLD,
-                halign='center',
-                size_hint_x=0.7,
-            ))
+
+            # Canvas 绘制爻符
+            yao_widget = Widget(size_hint_x=0.7)
+            yao_color = COLOR_GOLD_LIGHT if is_changing else COLOR_GOLD
+            with yao_widget.canvas:
+                Color(*yao_color)
+                if is_yang:
+                    # 阳爻：一条实线
+                    yao_widget._rect = RoundedRectangle(pos=(0, dp(4)), size=(yao_widget.width, dp(8)), radius=[dp(2)])
+                else:
+                    # 阴爻：两段，中间留空
+                    half_w = (yao_widget.width - dp(6)) / 2
+                    yao_widget._rect1 = Rectangle(pos=(0, dp(4)), size=(half_w, dp(8)))
+                    yao_widget._rect2 = Rectangle(pos=(half_w + dp(6), dp(4)), size=(half_w, dp(8)))
+            yao_widget.bind(size=lambda *a: self._refresh_fortune_yao(yao_widget, is_yang))
+            row.add_widget(yao_widget)
+
             row.add_widget(Label(text='', size_hint_x=0.15))
             self.fortune_yao_area.add_widget(row)
 
@@ -2139,6 +2149,19 @@ class WuaibaguaApp(App):
             self.fortune_desc.text = self.current_gua_detail['bai_hua'][:100] + '...'
         if changing_gua_name:
             self.fortune_desc.text += f'\n\n变卦：{changing_gua_name}'
+
+    def _refresh_fortune_yao(self, widget, is_yang):
+        """重绘运势Tab爻符"""
+        widget.canvas.clear()
+        yao_color = COLOR_GOLD_LIGHT if hasattr(self, '_fortune_changing') and self._fortune_changing else COLOR_GOLD
+        with widget.canvas:
+            Color(*yao_color)
+            if is_yang:
+                widget._rect = RoundedRectangle(pos=(0, dp(4)), size=(widget.width, dp(8)), radius=[dp(2)])
+            else:
+                half_w = (widget.width - dp(6)) / 2
+                widget._rect1 = Rectangle(pos=(0, dp(4)), size=(half_w, dp(8)))
+                widget._rect2 = Rectangle(pos=(half_w + dp(6), dp(4)), size=(half_w, dp(8)))
 
     # ==================== 功能按钮 ====================
 
