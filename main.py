@@ -1274,15 +1274,15 @@ class WuaibaguaApp(App):
 
     def _build_divination_tab(self):
         """起卦 Tab"""
-        # 根布局用 size_hint_y=1 填满剩余空间
-        layout = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(10), size_hint_y=None)
+        # 根布局：紧凑布局，卦象卡片紧贴顶部
+        layout = BoxLayout(orientation='vertical', padding=(dp(10), dp(4), dp(10), dp(10)), spacing=dp(6), size_hint_y=None)
         layout.bind(minimum_height=layout.setter('height'))
 
-        # 卦象显示区（动态高度，根据空状态/结果状态自动切换）
+        # 卦象显示区（紧凑高度，空状态无多余空白）
         self.gua_display_area = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
-            height=dp(180),  # 初始空状态高度：150 + 25 + spacing
+            height=dp(119),  # 精确：empty_state 90 + spacing 4 + empty_hint 25
             spacing=dp(4),
         )
         apply_card_bg(self.gua_display_area, radius=[dp(14), dp(14), dp(14), dp(14)])
@@ -1290,12 +1290,12 @@ class WuaibaguaApp(App):
         # 空状态
         self.empty_state = Label(
             text='☯',
-            font_size=dp(60),
+            font_size=dp(48),
             color=COLOR_GOLD,
             halign='center',
             valign='middle',
             size_hint_y=None,
-            height=dp(150),
+            height=dp(90),
         )
         self.empty_state.bind(size=self.empty_state.setter('text_size'))
 
@@ -1312,8 +1312,8 @@ class WuaibaguaApp(App):
         self.gua_display_area.add_widget(self.empty_state)
         self.gua_display_area.add_widget(self.empty_hint)
 
-        # 结果状态（动态构建，不提前加入布局）
-        self.result_state = BoxLayout(orientation='vertical', spacing=dp(4), padding=(dp(10), dp(8)))
+        # 结果状态（紧凑布局，减少顶部空白）
+        self.result_state = BoxLayout(orientation='vertical', spacing=dp(4), padding=(dp(10), dp(4)))
         self.result_state.size_hint_y = None
         self.result_state.bind(minimum_height=self.result_state.setter('height'))
 
@@ -1508,7 +1508,7 @@ class WuaibaguaApp(App):
         # 卦象网格（不再嵌套 ScrollView，外层 content_scroll 已提供滚动）
         self.gua64_grid = GridLayout(
             cols=3, spacing=dp(8), size_hint_y=None,
-            row_default_height=dp(58),
+            row_default_height=dp(80),  # 增加高度：符号dp(36)+卦名+宫位+间距
             row_force_default=True,
         )
         self.gua64_grid.bind(minimum_height=self.gua64_grid.setter('height'))
