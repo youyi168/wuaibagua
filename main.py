@@ -1717,13 +1717,13 @@ class WuaibaguaApp(App):
         )
         layout.add_widget(date_label)
 
-        # 运势卡片
+        # 运势卡片（极致紧凑，消除空白）
         self.fortune_card = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
-            height=dp(280),
-            padding=(dp(15), dp(12)),
-            spacing=dp(6),
+            height=dp(190),  # 紧凑：卦名30 + 爻符90 + 描述40 + padding 20 + spacing 10
+            padding=(dp(12), dp(6)),
+            spacing=dp(4),
         )
         apply_card_bg(self.fortune_card, radius=[dp(14), dp(14), dp(14), dp(14)])
 
@@ -1741,9 +1741,9 @@ class WuaibaguaApp(App):
         self.fortune_yao_area = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
-            height=dp(120),
-            spacing=dp(4),
-            padding=(dp(30), dp(5)),
+            height=dp(90),  # 紧凑：6爻 × dp(12) + spacing
+            spacing=dp(3),
+            padding=(dp(20), dp(3)),
         )
         self.fortune_card.add_widget(self.fortune_yao_area)
 
