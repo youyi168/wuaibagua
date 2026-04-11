@@ -106,7 +106,7 @@ class WuaibaguaApp(App):
             header.bind(size=lambda *a: setattr(header._bg_rect, 'size', header.size))
             header.bind(pos=lambda *a: setattr(header._bg_rect, 'pos', header.pos))
 
-        header.add_widget(Label(text='我 爱 八 卦', font_size=dp(18), color=T.COLOR_GOLD, bold=True, letter_spacing=4))
+        header.add_widget(Label(text='我 爱 八 卦', font_size=dp(18), color=T.COLOR_GOLD, bold=True))
         self.header_subtitle = Label(text='周易六十四卦 · 卜卦解惑', font_size=dp(10), color=T.COLOR_TEXT_SECOND, halign='right')
         header.add_widget(self.header_subtitle)
         main_layout.add_widget(header)
