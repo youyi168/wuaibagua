@@ -58,6 +58,7 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.widget import Widget
+from kivy.uix.textinput import TextInput
 from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.core.text import LabelBase
