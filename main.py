@@ -285,7 +285,7 @@ class WuaibaguaApp(App):
         layout = BoxLayout(orientation='vertical', padding=(dp(10), dp(4), dp(10), dp(10)), spacing=dp(6), size_hint_y=None)
         layout.bind(minimum_height=layout.setter('height'))
 
-        # 卦象显示区（不设固定高度，由内容自适应）
+        # 卦象显示区（高度自适应，空状态约120dp，起卦后自动扩展）
         self.gua_area = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(4))
         self.gua_area.bind(minimum_height=self.gua_area.setter('height'))
         apply_card_bg(self.gua_area)
@@ -708,14 +708,16 @@ class WuaibaguaApp(App):
                 cl.add_widget(Label(text=lt, size_hint_y=None, height=dp(22), font_size=dp(13), color=T.COLOR_GOLD, bold=True))
                 t = Label(text=dt, size_hint_y=None, halign='left', font_size=dp(12), color=T.COLOR_TEXT, padding=(6, 2))
                 t.bind(size=t.setter('text_size')); cl.add_widget(t)
-            if db.get('description'): add_s('【卦辞】', db['description'])
-            if db.get('bai_hua'): add_s('【白话】', db['bai_hua'])
-            if db.get('guan_xiang'): add_s('【卦象】', db['guan_xiang'])
-            if self.current_duangua_result: add_s('【断卦】', self.current_duangua_result.get('duan_gua_method', ''))
+            has_content = False
+            if db.get('description'): add_s('【卦辞】', db['description']); has_content = True
+            if db.get('bai_hua'): add_s('【白话】', db['bai_hua']); has_content = True
+            if db.get('guan_xiang'): add_s('【卦象】', db['guan_xiang']); has_content = True
+            if self.current_duangua_result: add_s('【断卦】', self.current_duangua_result.get('duan_gua_method', '')); has_content = True
+            if not has_content: cl.add_widget(Label(text='暂无详细数据', size_hint_y=None, height=dp(40), color=T.COLOR_TEXT_SECOND, halign='center'))
             sc.add_widget(cl); pl.add_widget(sc)
+            popup = Popup(title='', content=pl, size_hint=(0.95, 0.85), auto_dismiss=True, background_color=T.COLOR_BG)
             cb = Button(text='关闭', size_hint_y=None, height=dp(40), font_size=dp(14), color=T.COLOR_TEXT_SECOND, background_color=(0,0,0,0), background_normal='')
             cb.bind(on_press=lambda x: popup.dismiss()); pl.add_widget(cb)
-            popup = Popup(title='', content=pl, size_hint=(0.95, 0.85), auto_dismiss=True, background_color=T.COLOR_BG)
             popup.open()
         except Exception as e:
             logger.error(f'[Error] explanation: {e}'); show_toast('显示失败')
@@ -725,15 +727,16 @@ class WuaibaguaApp(App):
         try:
             from liuyao_paipan import format_liuyao_full
             text = format_liuyao_full(self.current_yao_list, self.current_gua)
+            if not text: text = '暂无排盘数据'
             pl = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(8))
             pl.add_widget(Label(text='六爻排盘', size_hint_y=None, height=dp(32), font_size=dp(15), color=T.COLOR_GOLD, bold=True))
             sc = ScrollView(size_hint_y=1)
             c = Label(text=text, markup=True, size_hint_y=None, halign='left', valign='top', font_size=dp(11), color=T.COLOR_TEXT, padding=(dp(6), dp(4)))
-            c.bind(size=c.setter('text_size')); c.bind(texture_size=lambda *a: setattr(c, 'height', c.texture_size[1]))
+            c.bind(size=c.setter('text_size')); c.bind(texture_size=lambda *a: setattr(c, 'height', max(c.texture_size[1], dp(100))))
             sc.add_widget(c); pl.add_widget(sc)
+            popup = Popup(title='', content=pl, size_hint=(0.95, 0.85), auto_dismiss=True, background_color=T.COLOR_BG)
             cb = create_gold_button('关闭', font_size=dp(13), height=dp(40))
             cb.bind(on_press=lambda x: popup.dismiss()); pl.add_widget(cb)
-            popup = Popup(title='', content=pl, size_hint=(0.95, 0.85), auto_dismiss=True, background_color=T.COLOR_BG)
             popup.open()
         except Exception as e:
             logger.error(f'[Error] liuyao: {e}'); show_toast('排盘失败')
