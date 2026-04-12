@@ -593,7 +593,7 @@ class WuaibaguaApp(App):
         if self.empty_hint.parent: self.gua_area.remove_widget(self.empty_hint)
         if not self.res.parent:
             self.gua_area.add_widget(self.res, index=0)
-            Clock.schedule_once(lambda dt: setattr(self.gua_area, 'height', self.res.minimum_height + dp(4)), 0)
+            # minimum_height 绑定会自动处理高度变化，无需手动设置
 
         self.res.children[4].text = gn  # gua_name_label
         self.res.children[3].text = get_gua_palace(gn) or ''  # palace
