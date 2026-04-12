@@ -285,8 +285,8 @@ class WuaibaguaApp(App):
         layout = BoxLayout(orientation='vertical', padding=(dp(10), dp(4), dp(10), dp(10)), spacing=dp(6), size_hint_y=None)
         layout.bind(minimum_height=layout.setter('height'))
 
-        # 卦象显示区（高度自适应，空状态约120dp，起卦后自动扩展）
-        self.gua_area = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(4))
+        # 卦象显示区（初始固定高度，起卦后自动扩展）
+        self.gua_area = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(120), spacing=dp(4))
         self.gua_area.bind(minimum_height=self.gua_area.setter('height'))
         apply_card_bg(self.gua_area)
         self.empty_sym = Label(text='☯', font_size=dp(48), color=T.COLOR_GOLD, halign='center', valign='middle',
@@ -593,7 +593,9 @@ class WuaibaguaApp(App):
         if self.empty_hint.parent: self.gua_area.remove_widget(self.empty_hint)
         if not self.res.parent:
             self.gua_area.add_widget(self.res, index=0)
-            # minimum_height 绑定会自动处理高度变化，无需手动设置
+            # 移除空状态后，gua_area 高度由 minimum_height 自动计算
+            # 但需要等待一帧让 Kivy 重新计算布局
+            Clock.schedule_once(lambda dt: self.gua_area._trigger_layout(), 0)
 
         self.res.children[4].text = gn  # gua_name_label
         self.res.children[3].text = get_gua_palace(gn) or ''  # palace
