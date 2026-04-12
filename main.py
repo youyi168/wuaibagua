@@ -82,15 +82,17 @@ except ImportError:
 
 # ==================== UI 辅助函数 ====================
 
-def create_action_btn(text, fs=None, h=None, **kw):
+def create_action_btn(text, fs=None, h=None, on_press=None, **kw):
     """功能按钮——浅色半透明背景，深色背景下可见"""
     btn = Button(text=text, font_size=fs or dp(12), size_hint_y=None, height=h or dp(40),
                  color=T.COLOR_GOLD, background_color=(0, 0, 0, 0), background_normal='', **kw)
     with btn.canvas.before:
-        Color(0.22, 0.22, 0.36, 0.9)  # 提高亮度，让按钮在深色背景上可见
+        Color(0.22, 0.22, 0.36, 0.9)
         btn._bg = RoundedRectangle(size=btn.size, pos=btn.pos, radius=[dp(10)] * 4)
         btn.bind(size=lambda *a: setattr(btn._bg, 'size', btn.size))
         btn.bind(pos=lambda *a: setattr(btn._bg, 'pos', btn.pos))
+    if on_press:
+        btn.bind(on_press=on_press)
     return btn
 
 
@@ -283,8 +285,9 @@ class WuaibaguaApp(App):
         layout = BoxLayout(orientation='vertical', padding=(dp(10), dp(4), dp(10), dp(10)), spacing=dp(6), size_hint_y=None)
         layout.bind(minimum_height=layout.setter('height'))
 
-        # 卦象显示区
-        self.gua_area = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(120), spacing=dp(4))
+        # 卦象显示区（不设固定高度，由内容自适应）
+        self.gua_area = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(4))
+        self.gua_area.bind(minimum_height=self.gua_area.setter('height'))
         apply_card_bg(self.gua_area)
         self.empty_sym = Label(text='☯', font_size=dp(48), color=T.COLOR_GOLD, halign='center', valign='middle',
                                 size_hint_y=None, height=dp(88))
@@ -329,12 +332,12 @@ class WuaibaguaApp(App):
         # 功能按钮（两行）
         r1 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(40), spacing=dp(6))
         for t, a in [('详解', self._explanation), ('六爻排盘', self._liuyao), ('问豆包', self._doubao), ('分享', self._share)]:
-            r1.add_widget(create_action_btn(f' {t}').bind(on_press=a))
+            r1.add_widget(create_action_btn(f' {t}', on_press=a))
         layout.add_widget(r1)
 
         r2 = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(40), spacing=dp(6))
         for t, a in [('复制', self._copy), ('重新起卦', lambda x: self._divine([random.randint(6, 9) for _ in range(6)], '电脑起卦'))]:
-            r2.add_widget(create_action_btn(f' {t}').bind(on_press=a))
+            r2.add_widget(create_action_btn(f' {t}', on_press=a))
         layout.add_widget(r2)
 
         return layout
@@ -509,7 +512,7 @@ class WuaibaguaApp(App):
 
         acts = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(38), spacing=dp(6))
         for t, a in [('详解', self._explanation), ('六爻排盘', self._liuyao), ('分享', self._share)]:
-            acts.add_widget(create_action_btn(f' {t}').bind(on_press=a))
+            acts.add_widget(create_action_btn(f' {t}', on_press=a))
         layout.add_widget(acts)
         return layout
 
