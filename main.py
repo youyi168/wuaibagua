@@ -105,22 +105,26 @@ def make_yao_row(yao_type, label_text, label_color=None):
     is_yang = yao_type in [7, 9]
     is_changing = yao_type in [6, 9]
 
-    yw = Widget(size_hint_x=0.7)
+    # 修复：Widget 必须设置 size_hint_y=None 和 height，否则 canvas 绘制区域为 0
+    yw = Widget(size_hint=(0.7, None), height=dp(16))
     yc = T.COLOR_GOLD_FAINT if is_changing else T.COLOR_GOLD
 
     def redraw_wy(*args):
         yw.canvas.clear()
         w = yw.width
-        if w < 1:
-            return  # width还未初始化，跳过
+        h = yw.height
+        if w < 1 or h < 1:
+            return
+        # 修复：爻符居中绘制
+        cy = (h - dp(7)) / 2
         with yw.canvas:
             Color(*yc)
             if is_yang:
-                RoundedRectangle(pos=(0, dp(4)), size=(w, dp(7)), radius=[dp(2)] * 4)
+                RoundedRectangle(pos=(0, cy), size=(w, dp(7)), radius=[dp(2)] * 4)
             else:
                 half = (w - dp(6)) / 2
-                Rectangle(pos=(0, dp(4)), size=(half, dp(7)))
-                Rectangle(pos=(half + dp(6), dp(4)), size=(half, dp(7)))
+                Rectangle(pos=(0, cy), size=(half, dp(7)))
+                Rectangle(pos=(half + dp(6), cy), size=(half, dp(7)))
 
     yw.bind(size=redraw_wy)
     row.add_widget(yw)
@@ -137,21 +141,24 @@ def make_yao_row_fortune(yao_type, label_text):
     is_changing = yao_type in [6, 9]
     yc = T.COLOR_GOLD_FAINT if is_changing else T.COLOR_GOLD
 
-    yw = Widget(size_hint_x=0.6)
+    # 修复：Widget 必须设置 size_hint_y=None 和 height
+    yw = Widget(size_hint=(0.6, None), height=dp(14))
 
     def redraw(*args):
         yw.canvas.clear()
         w = yw.width
-        if w < 1:
+        h = yw.height
+        if w < 1 or h < 1:
             return
+        cy = (h - dp(7)) / 2
         with yw.canvas:
             Color(*yc)
             if is_yang:
-                RoundedRectangle(pos=(0, dp(3)), size=(w, dp(7)), radius=[dp(2)] * 4)
+                RoundedRectangle(pos=(0, cy), size=(w, dp(7)), radius=[dp(2)] * 4)
             else:
                 half = (w - dp(6)) / 2
-                Rectangle(pos=(0, dp(3)), size=(half, dp(7)))
-                Rectangle(pos=(half + dp(6), dp(3)), size=(half, dp(7)))
+                Rectangle(pos=(0, cy), size=(half, dp(7)))
+                Rectangle(pos=(half + dp(6), cy), size=(half, dp(7)))
 
     yw.bind(size=redraw)
     row.add_widget(yw)
@@ -304,7 +311,8 @@ class WuaibaguaApp(App):
                                    size_hint_y=None, height=dp(32)))  # [0] gua_name
         self.res.add_widget(Label(text='', font_size=dp(11), color=T.COLOR_TEXT_SECOND, halign='center',
                                    size_hint_y=None, height=dp(18)))  # [1] palace
-        yao_box = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(110), spacing=dp(3), padding=(dp(30), dp(4)))
+        # 修复：移除固定高度，用 minimum_height 自适应
+        yao_box = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(3), padding=(dp(30), dp(4)))
         yao_box.bind(minimum_height=yao_box.setter('height'))
         self.res.add_widget(yao_box)  # [2] yao_area
         self.res.add_widget(Label(text='', font_size=dp(12), color=T.COLOR_TEXT, halign='center',
